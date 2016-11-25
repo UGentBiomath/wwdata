@@ -1,0 +1,4 @@
+Original dataset: 231 datapoints; new dataset: 175 datapoints
+56 datapoints filteredOriginal dataset: 231 datapoints; new dataset: 128 datapoints
+103 datapoints filteredOriginal dataset: 231 datapoints; new dataset: 128 datapoints
+103 datapoints filteredOriginal dataset: 631 datapoints; new dataset: 630 datapoints1 datapoints filtered

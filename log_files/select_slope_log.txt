@@ -1,0 +1,2 @@
+
+Selecting downward slope...430 datapoints dropped, 200 datapoints left.

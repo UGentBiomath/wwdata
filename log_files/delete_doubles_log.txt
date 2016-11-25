@@ -1,0 +1,6 @@
+Original dataset: 604 datapoints; New dataset: 231 datapoints
+373 subsequent duplicates removed
+Original dataset: 604 datapoints; New dataset: 231 datapoints
+373 subsequent duplicates removed
+
+Original dataset: 1682 datapoints; New dataset: 631 datapoints; 1051 subsequent duplicates removed
