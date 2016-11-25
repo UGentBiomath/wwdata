@@ -28,6 +28,13 @@ The workflow of the package is as follows: a dataset is read in as a pandas Data
 
 For the workflow with code and more specific examples included, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
 
+## Dependencies and installation
+To check if you have all necessary Python packages installed, you can used the dependencies.yml file, which lists all packages of the environment wwdata was developed in. You can also use this file to create a [conda environment](http://conda.pydata.org/docs/using/envs.html#managing-environments) (assuming you're using [conda](http://conda.pydata.org/docs/index.html)), in which the wwdata package will work:<br>
+`conda create env -f dependencies.yml`<br>
+
+To install the wwdata package, execute the following with you command line tool:<br>
+`python setup.py install`<br>
+
 ## Development and future plans
 This wwdata package is currently in development, so if you have ideas on how to improve the package content, or suggestions for things to include, feel free to contact me:<br>
 <a href='mailto:chaim.demulder@ugent.be'>chaim.demulder@ugent.be</a><br>
@@ -38,6 +45,3 @@ To be included/extended in the future:
 * The LabExperimentBased Class. For people not into coding or modelling, the LabExperimentBased class is supposed to provide some really basic code. Together with the use of Jupyter notebooks, the goal is to enhance the reproducibility of data analysis happening on a lot of data coming from lab scale experiments.
 * Improved validation functions
 * Improved visualisation
-
-
-
