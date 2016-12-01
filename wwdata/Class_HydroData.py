@@ -212,8 +212,6 @@ class HydroData():
                 print('Data type of column '+ str(column) + ' not convertible to float')
         self._update_time()
             
-        
-    
     def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
         """
         using pandas set_index function to set the columns with timevalues
@@ -268,14 +266,36 @@ class HydroData():
                 self.data.sort_index(inplace=True)
         else:
             if isinstance(self.time[0],int) or isinstance(self.time[0],float):
-                self.data.index = pd.to_datetime(self.data[time_column],unit=unit)
-                self.data.sort_values(inplace=True)
+                self.data[time_column] = pd.to_datetime(self.data[time_column],unit=unit)
+                self.data.sort_values(time_column,inplace=True)
             elif isinstance(self.time[0],str):
                 self.data[time_column] = pd.to_datetime(self.data[time_column].values.ravel(),
                                                         format=time_format)
                 self.data.sort_values(time_column,inplace=True)
         self._update_time()
     
+    def float_to_datetime(self,time_column='index',year=2013):
+        """
+        converts the given (time)column from float values indicating the day in 
+        the year (as many simulations work with) to datetime values.
+        
+        time_column : str
+            column name of the column where values need to be converted to date-
+            time values. Default 'index' converts index values to datetime
+        year : int
+            the year in which the float values indicate the days
+        """
+        if not isinstance(self.time[0],float):
+            ValueError('This function needs a columns with float values as input.'+\
+                       'Please make sure the column you entered contains float '+\
+                       'values.')
+        
+        if time_column == 'index':
+            self.data.index = pd.Series(self.data.index).apply(datetime,args=(year,))
+        else:
+            self.data[time_column] = self.data[time_column].apply(datetime,args=(year,))
+        self._update_time()
+        
     def absolute_to_relative(self,time_data='index',unit='d',inplace=True,
                              save_abs=True,decimals=5):
         """
@@ -1611,6 +1631,24 @@ class HydroData():
 
 def total_seconds(timedelta_value):
     return timedelta_value.total_seconds()
+    
+def datetime(float_value,year):
+    """
+    converts a given float value, indicating the day and time within a certain
+    year, to datetime value
+    float_value : float
+        value indicating the day and time in a certain year
+    year : int
+        the year
+    """
+     
+    first_day = dt.datetime(year,1,1)
+    day = int(float_value)
+    seconds = (float_value - day)*86400
+    actual_day = first_day + dt.timedelta(day,seconds)    
+    
+    return actual_day
+    
 
 def _print_removed_output(original,new,type_):
     """
