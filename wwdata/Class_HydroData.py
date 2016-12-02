@@ -1,9 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 16 00:27:53 2015
+    Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
+    Copyright (C) 2016 Chaim De Mulder
 
-@author: chaimdemulder, stijnvanhoey
-@copyright: (c) 2015, Chaïm De Mulder
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+@authors: chaimdemulder, stijnvanhoey
+contact: chaim.demulder@ugent.be
 """
 
 #import sys

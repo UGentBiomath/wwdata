@@ -1,8 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 11 17:03:51 2016
+    time_conversion_functions provides functionalities for converting certain types of time data to other types, in the context of the wwdata package.
+    Copyright (C) 2016 Chaim De Mulder
 
-@author: chaimdemulder
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@authors: chaimdemulder, stijnvanhoey
+contact: chaim.demulder@ugent.be
 """
 
 import pandas as pd
