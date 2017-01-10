@@ -39,8 +39,8 @@ def list_files(path,ext):
     elif ext == 'csv':
         files = [f for f in listdir(path) if f.endswith('.csv')]
     else:
-        print 'No files with',ext,'extension found in directory',path,'Please \
-        choose one of the following: text, excel, csv'
+        print('No files with',ext,'extension found in directory',path,'Please \
+        choose one of the following: text, excel, csv')
         
         return None
         
@@ -51,7 +51,7 @@ def remove_empty_lines(path,ext):
     """
     files = list_files(path,ext)
     if not files:
-        print 'Please provide a directory that contains '+ext+' files.'
+        print('Please provide a directory that contains '+ext+' files.')
         return None
     for filename in files:
         filepath = os.path.join(path,filename)
@@ -79,7 +79,7 @@ def find_and_replace(path,ext,replace):
     """
     files = list_files(path,ext)
     if not files:
-        print 'Please provide a directory that contains '+ext+' files.'
+        print('Please provide a directory that contains '+ext+' files.')
         return None
     for filename in files:
         filepath = os.path.join(path,filename)
@@ -139,7 +139,7 @@ def sort_data(data,based_on,reset_index=[False,'new_index_name'],
                         format=convert_to_timestamp[2])
         elif reset_index[0] == True & convert_to_timestamp[0] == False:
             dictionary[i].set_index(reset_index[1],inplace=True)
-        print 'Sorting',i,'...'
+        print('Sorting',i,'...')
     
     return dictionary
     
@@ -307,7 +307,7 @@ def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
     #they are added to each other in the correct order
     files = list_files(path,ext)
     files.sort()
-    print 'joining',len(files),'files...'    
+    print('joining',len(files),'files...')
     #Read files
     for file_name in files:
         dir_file_path = os.path.join(path,file_name)
@@ -317,8 +317,9 @@ def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
                                           skiprows=headerlength,
                                           decimal=decimal),
                                 ignore_index=True)
-        print 'Adding file',file_name,'to dataframe'
+        print('Adding file',file_name,'to dataframe')
     data.to_csv('joined_files',sep=sep)
+    
     return data
 
 def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd()):

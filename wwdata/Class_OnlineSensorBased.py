@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     Class_OnlineSensorBased provides functionalities for data handling of data obtained with online sensors in the field of (waste)water treatment.
     Copyright (C) 2016 Chaim De Mulder
@@ -29,7 +28,7 @@ import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 import warnings as wn
 
-from Class_HydroData import HydroData
+from .Class_HydroData import HydroData
 #from data_reading_functions import _print_removed_output,_log_removed_output
 #from time_conversion_functions import *
 
@@ -1108,26 +1107,26 @@ def _select_slope(self,ydata,down=True,limit=0):#,based_on_max=True):#,bounds=[1
     drop_index = self.data[ydata].idxmax()
     if down == True:
         try:
-            print 'Selecting downward slope:',drop_index,\
+            print('Selecting downward slope:',drop_index,\
             'datapoints dropped,',len(self.data)-drop_index,\
-            'datapoints left.'
+            'datapoints left.')
         
             self.data = self.data[drop_index:]
             self.data.reset_index(drop=True,inplace=True)
             return self.__class__(self.data,self.timename)
         except:#IndexError:
-            print 'Not enough datapoints left for selection'
+            print('Not enough datapoints left for selection')
 
     elif down == False:
         try:
-            print 'Selecting upward slope:',len(self.data)-drop_index,\
-            'datapoints dropped,',drop_index,'datapoints left.'
+            print('Selecting upward slope:',len(self.data)-drop_index,\
+            'datapoints dropped,',drop_index,'datapoints left.')
         
             self.data = self.data[:drop_index]
             self.data.reset_index(drop=True,inplace=True)
             return self.__class__(self.data,self.timename)
         except:#IndexError:
-            print 'Not enough datapoints left for selection'
+            print('Not enough datapoints left for selection')
     
     #    elif based_on_max == False:
     #        drop_index = dataframe[ydata].idxmin()
@@ -1214,9 +1213,9 @@ def _print_removed_output(original,new,type_):
         'removed' or 'dropped'
 
     """
-    print 'Original dataset:',original,'datapoints'
-    print 'New dataset:',new,'datapoints'
-    print original-new,'datapoints ',type_
+    print('Original dataset:',original,'datapoints')
+    print('New dataset:',new,'datapoints')
+    print(original-new,'datapoints ',type_)
 
 def _log_removed_output(log_file,original,new,type_):
     """

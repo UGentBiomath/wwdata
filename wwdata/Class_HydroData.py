@@ -30,7 +30,7 @@ import datetime as dt
 import matplotlib.pyplot as plt   #plotten in python
 import warnings as wn
 
-import data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
+import .data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
 #import time_conversion_functions #import timedelta_to_abs, _get_datetime_info,\
 #make_datetime,to_datetime_singlevalue
 
@@ -1190,8 +1190,8 @@ class HydroData():
             except (ZeroDivisionError):
                 pass
         
-        print 'Best ratio (' + str(avg) + ' ± ' + str(std) + \
-        ') was found in the range: ' + str(ranges[index])
+        print('Best ratio (' + str(avg) + ' ± ' + str(std) + \
+        ') was found in the range: ' + str(ranges[index]))
         
         return avg,std
 
@@ -1540,10 +1540,10 @@ class HydroData():
                         ax.plot(df.time[df.meta_valid[data_name]=='filtered'],
                                 df.data[data_name][df.meta_valid[data_name]=='filtered'],
                             '.r',label='filtered')
-            print str(float(df.meta_valid.groupby(data_name).size()['original']*100)/ \
+            print (str(float(df.meta_valid.groupby(data_name).size()['original']*100)/ \
                 float(df.meta_valid[data_name].count())) + \
                 '% datapoints are left over from the original ' + \
-                str(float(df.meta_valid[data_name].count()))
+                str(float(df.meta_valid[data_name].count())))
                
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
         ax.set_xlabel(self.timename,fontsize=14)
@@ -1640,9 +1640,9 @@ def _print_removed_output(original,new,type_):
         'removed' or 'dropped'
 
     """
-    print 'Original dataset:',original,'datapoints'
-    print 'New dataset:',new,'datapoints'
-    print original-new,'datapoints ',type_
+    print('Original dataset:',original,'datapoints')
+    print('New dataset:',new,'datapoints')
+    print(original-new,'datapoints ',type_)
 
 def _log_removed_output(log_file,original,new,type_):
     """
