@@ -27,9 +27,9 @@ import numpy as np
 import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 
-from .Class_HydroData import HydroData
-from .data_reading_functions import *
-from .time_conversion_functions import *
+from wwdata.Class_HydroData import HydroData
+from wwdata.data_reading_functions import *
+from wwdata.time_conversion_functions import *
 
 class LabSensorBased(HydroData):
     """

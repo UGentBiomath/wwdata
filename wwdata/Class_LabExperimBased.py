@@ -28,7 +28,7 @@ import sys
 import matplotlib.pyplot as plt   #plotten in python
 import warnings as wn
 
-from .Class_HydroData import HydroData
+from wwdata.Class_HydroData import HydroData
 
 class LabExperimBased(HydroData):
     """

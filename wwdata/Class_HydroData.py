@@ -30,7 +30,7 @@ import datetime as dt
 import matplotlib.pyplot as plt   #plotten in python
 import warnings as wn
 
-import .data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
+import wwdata.data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
 #import time_conversion_functions #import timedelta_to_abs, _get_datetime_info,\
 #make_datetime,to_datetime_singlevalue
 
@@ -38,7 +38,8 @@ class HydroData():
     """
     """
     def __init__(self,data,timedata_column='index',data_type='WWTP',
-                 experiment_tag='No tag given',time_unit=None):
+                 experiment_tag='No tag given',time_unit=None,
+                 units=[]):
         """
         initialisation of a HydroData object. 
         
@@ -49,6 +50,10 @@ class HydroData():
         experiment_tag : str
             A tag identifying the experiment; can be a date or a code used by 
             the producer/owner of the data.
+        time_unit : str
+            The time unit in which the time data is given
+        units : array
+            The units of the variables in the columns
         """
         if isinstance(data, pd.DataFrame):
             self.data = data.copy()
@@ -68,6 +73,7 @@ class HydroData():
         self.tag = experiment_tag
         self.time_unit = time_unit
         self.meta_valid = pd.DataFrame(index=self.data.index)
+        self.units = units
         #self.highs = pd.DataFrame(data=0,columns=['highs'],index=self.data.index)
         #wn.warn('WARNING: Some functions in the OnlineSensorBased Class assume ' + \
         #'equidistant data!!! This is primarily of importance when indexes are ' + \
@@ -314,7 +320,7 @@ class HydroData():
             timedata = self.data[time_data]
         time_delta = timedata - timedata[0]
         
-        relative = map(total_seconds,time_delta)
+        relative = time_delta.map(total_seconds)
         if unit == 'sec':
             relative = np.array(relative)
         elif unit == 'min':
@@ -1165,7 +1171,7 @@ class HydroData():
         # arange, indicating what the interval should be.
         if isinstance(self.data.index[0],pd.tslib.Timestamp):
             days = [self.index()[0] + dt.timedelta(arange) * x for x in \
-                    range(0, (self.index()[-1]-self.index()[0]).days/arange)]
+                    range(0, int((self.index()[-1]-self.index()[0]).days/arange))]
             starts = [[y] for y in days]
             ends = [[x + dt.timedelta(arange)] for x in days]
             #end = (self.data.index[-1] - self.data.index[0]).days+1
