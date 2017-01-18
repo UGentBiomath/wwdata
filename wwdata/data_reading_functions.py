@@ -277,14 +277,16 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='
         return pd.read_csv(filepath,sep=sep,skiprows=skiprows,encoding=encoding,
 			   error_bad_lines=False,low_memory=False,index_col=None)
         
-def join_dir_files(path,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
+def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
     Reads all files in a given directory, joins them and returns one pd.dataframe
     
     Parameters
     ----------
     path : str
-        the path to the directory containing the files to be put together
+	path to the folder that contains the files to be joined
+    files : list
+        list of files to be joined, must be the same extension
     ext : str
         extention of the files to read; possible: excel, text, csv
     sep : str
@@ -306,7 +308,7 @@ def join_dir_files(path,ext='text',sep=',',comment='#',encoding='utf8',decimal='
   
     #Select files based on extension and sort files alphabetically to make sure
     #they are added to each other in the correct order
-    files = list_files(path,ext)
+    #files = list_files(path,ext)
     files.sort()
     print('joining',len(files),'files...')
     #Read files
