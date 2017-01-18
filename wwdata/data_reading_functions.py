@@ -251,7 +251,7 @@ def _open_file(filepath,ext='text'):
     elif ext == 'excel':
         return xlrd.open_workbook(filepath)
 
-def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding=encoding,decimal='.'):
+def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='.'):
     """
     Read a file of given extension and save it as a pandas dataframe   
     
