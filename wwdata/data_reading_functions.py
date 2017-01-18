@@ -251,7 +251,7 @@ def _open_file(filepath,ext='text'):
     elif ext == 'excel':
         return xlrd.open_workbook(filepath)
 
-def _read_file(filepath,ext='text',skiprows=0,sep='\t',decimal='.'):
+def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding=encoding,decimal='.'):
     """
     Read a file of given extension and save it as a pandas dataframe   
     
@@ -274,7 +274,8 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',decimal='.'):
     elif ext == 'excel':
         return pd.read_excel(filepath,skiprows=skiprows,low_memory=False,index_col=None)
     elif ext == 'csv':
-        return pd.read_csv(filepath,sep=sep,skiprows=skiprows,error_bad_lines=False,low_memory=False,index_col=None)
+        return pd.read_csv(filepath,sep=sep,skiprows=skiprows,encoding=encoding,
+			   error_bad_lines=False,low_memory=False,index_col=None)
         
 def join_dir_files(path,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
