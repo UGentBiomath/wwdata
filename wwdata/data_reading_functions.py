@@ -276,7 +276,7 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',decimal='.'):
     elif ext == 'csv':
         return pd.read_csv(filepath,sep=sep,skiprows=skiprows,error_bad_lines=False,low_memory=False,index_col=None)
         
-def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
+def join_dir_files(path,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
     Reads all files in a given directory, joins them and returns one pd.dataframe
     
@@ -315,7 +315,7 @@ def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
             headerlength = _get_header_length(read_file,ext,comment)
             data = data.append(_read_file(dir_file_path,ext=ext,sep=sep,
                                           skiprows=headerlength,
-                                          decimal=decimal),
+                                          decimal=decimal,encoding=encoding),
                                 ignore_index=True)
         print('Adding file',file_name,'to dataframe')
     data.to_csv('joined_files',sep=sep)
