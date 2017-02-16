@@ -125,11 +125,15 @@ class OnlineSensorBased(HydroData):
             self.data[new_name] = sum_ / self.data[Q_tot]
             self.columns = np.array(self.data.columns)
 
-        if self.units:
+        try:
             self.units = pd.concat([self.units,
                                     pd.DataFrame([[new_name,unit]],columns=self.units.columns)],
                                     ignore_index=True)                
-        return None
+        except:
+	    wn.warn('Something might have gone wrong with the updating of the units. '+ \
+                    'Check self.units to make sure everything is still okay.')
+
+	return None
     
     def calc_daily_average(self,column_name,time='float',plot=False):
         """
