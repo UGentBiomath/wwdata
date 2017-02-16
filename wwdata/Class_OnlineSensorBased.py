@@ -130,10 +130,9 @@ class OnlineSensorBased(HydroData):
                                     pd.DataFrame([[new_name,unit]],columns=self.units.columns)],
                                     ignore_index=True)                
         except:
-	    wn.warn('Something might have gone wrong with the updating of the units. '+
+            wn.warn('Something might have gone wrong with the updating of the units. '+
                     'Check self.units to make sure everything is still okay.')
-
-	return None
+        return None
     
     def calc_daily_average(self,column_name,time='float',plot=False):
         """
