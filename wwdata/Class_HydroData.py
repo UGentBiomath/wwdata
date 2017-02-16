@@ -201,6 +201,7 @@ class HydroData():
             self.data.set_index(keys,drop=drop,inplace=True,
                                 verify_integrity=verify_integrity)
             self.columns = np.array(self.data.columns)
+            self.meta_valid.index = self.index()
             if key_is_time == True:
                 self.timename = 'index'  
                 self.time = self.data.index
