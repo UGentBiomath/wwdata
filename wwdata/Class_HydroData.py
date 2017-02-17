@@ -152,7 +152,7 @@ class HydroData():
         else:
             try:
                 self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid))
-		#self.meta_valid.drop(data_name,axis=1)
+        #self.meta_valid.drop(data_name,axis=1)
             except:
                 pass
                 #wn.warn(data_name + ' is not contained in self.meta_valid yet, so cannot\
@@ -181,28 +181,46 @@ class HydroData():
         elif inplace == True:
             return self.data.replace(to_replace,value,inplace=inplace)
         
-    def set_index(self,keys,key_is_time=True,drop=True,inplace=False,
+    def set_index(self,keys,key_is_time=False,drop=True,inplace=False,
                   verify_integrity=False,save_prev_index=True):
-        """CONFIRMED
-        piping pandas set_index function"""
-        if save_prev_index == True:
+        """
+        piping pandas set_index function, including the option to define the new index
+        as being the time data
+        key_is_time : bool
+            when true, the new index will we known as the time data from here on
+        (other arguments cfr pd.set_index)
+        """
+        if save_prev_index:
             self.prev_index = self.data.index
-        if inplace == False:
+            
+        if not inplace:
+            if key_is_time:
+                if isinstance(self.time[0],str):
+                    raise ValueError('Time values of type "str" can not be used as index')
+                timedata_column = 'index'
+            elif key_is_time == False:
+                timedata_column = self.timename
+            
             data = self.data.set_index(keys,drop=drop,inplace=False,
                                        verify_integrity=verify_integrity)
-            if key_is_time == True:
-                self.timename = 'index'
-                self.time = data.index
-            return self.__class__(pd.DataFrame(data),timedata_column=self.timename,
+    
+            return self.__class__(pd.DataFrame(data),timedata_column=timedata_column,
                                   data_type=self.data_type,experiment_tag=self.tag,
                                   time_unit=self.time_unit)
-            
-        elif inplace == True:
+        
+        elif inplace:
+            if key_is_time:
+                if self.timename == 'index':
+                    raise IndexError('There already is a timeseries in the dataframe index!')
+                if isinstance(self.time[0],str):
+                    raise ValueError('Time values of type "str" can not be used as index')
+                    
             self.data.set_index(keys,drop=drop,inplace=True,
                                 verify_integrity=verify_integrity)
             self.columns = np.array(self.data.columns)
             self.meta_valid.index = self.index()
-            if key_is_time == True:
+            
+            if key_is_time:
                 self.timename = 'index'  
                 self.time = self.data.index
     
@@ -216,7 +234,7 @@ class HydroData():
             self.time = self.data[self.timename]           
     
     def to_float(self,columns='all'):
-        """CONFIRMED
+        """
         convert values in given columns to float values
         
         Parameters
@@ -233,35 +251,33 @@ class HydroData():
             except TypeError:
                 print('Data type of column '+ str(column) + ' not convertible to float')
         self._update_time()
-            
-        
-    
-    def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
-        """
-        using pandas set_index function to set the columns with timevalues
-        as index"""
-        # Drop second layer of indexing to make dataframe handlable
-        # self.data.columns = self.data.columns.get_level_values(0)
-        
-        if self.timename == 'index':
-            raise IndexError('There already is a timeseries in the dataframe index!')
-        if isinstance(self.time[0],str):
-            raise ValueError('Time values of type "str" can not be used as index')
-            
-        if inplace == False:
-            new_data = self.set_index(self.timename,drop=drop,inplace=False,
-                                      verify_integrity=verify_integrity)
-            #self.columns = new_data.columns
-            
-            return self.__class__(new_data,timedata_column='index',
-                                  data_type=self.data_type,experiment_tag=self.tag,
-                                  time_unit=self.time_unit)
-        elif inplace == True:
-            self.set_index(self.timename,drop=drop,inplace=True,
-                           verify_integrity=verify_integrity)
-            #self.columns = self.data.columns.levels[0]
-            self.timename = 'index'
-            self.time = self.index()
+
+#    def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
+#        """
+#        using pandas set_index function to set the columns with timevalues
+#        as index"""
+#        # Drop second layer of indexing to make dataframe handlable
+#        # self.data.columns = self.data.columns.get_level_values(0)
+#        
+#        if self.timename == 'index':
+#            raise IndexError('There already is a timeseries in the dataframe index!')
+#        if isinstance(self.time[0],str):
+#            raise ValueError('Time values of type "str" can not be used as index')
+#            
+#        if inplace == False:
+#            new_data = self.set_index(self.timename,key_is_time=True,drop=drop,inplace=False,
+#                                      verify_integrity=verify_integrity)
+#            #self.columns = new_data.columns
+#            
+#            return self.__class__(new_data,timedata_column='index',
+#                                  data_type=self.data_type,experiment_tag=self.tag,
+#                                  time_unit=self.time_unit)
+#        elif inplace == True:
+#            self.set_index(self.timename,key_is_time=True,drop=drop,inplace=True,
+#                           verify_integrity=verify_integrity)
+#            #self.columns = self.data.columns.levels[0]
+#            #self.timename = 'index'
+#            #self.time = self.index()
             
     
     def to_datetime(self,time_column='index',time_format='%dd-%mm-%yy',
