@@ -161,7 +161,7 @@ class HydroData():
     def drop_index_duplicates(self):
         """
         drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN 
-        THEM!!
+        THEM!! Also updates the meta_valid dataframe
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()

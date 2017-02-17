@@ -58,31 +58,52 @@ class OnlineSensorBased(HydroData):
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
     
-    def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
-        """CONFIRMED
-        using pandas set_index function to set the columns with timevalues
-        as index"""
-        # Drop second layer of indexing to make dataframe handlable
-        # self.data.columns = self.data.columns.get_level_values(0)
+    #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
+    #    """CONFIRMED
+    #    using pandas set_index function to set the columns with timevalues
+    #    as index"""
+    #    # Drop second layer of indexing to make dataframe handlable
+    #    # self.data.columns = self.data.columns.get_level_values(0)
+    #    
+    #    if self.timename == 'index':
+    #        raise IndexError('There already is a timeseries in the dataframe index!')
+    #    if isinstance(self.time[0],str):
+    #        raise ValueError('Time values of type "str" can not be used as index')
+    #        
+    #    if inplace == False:
+    #        new_data = self.set_index(self.timename,drop=drop,inplace=False,
+    #                                  verify_integrity=verify_integrity)
+    #        #self.columns = np.array(new_data.columns)
+    #        return self.__class__(new_data,timedata_column='index',
+    #                              data_type=self.data_type,experiment_tag=self.tag,
+    #                              time_unit=self.time_unit)
+    #    elif inplace == True:
+    #        self.set_index(self.timename,drop=drop,inplace=True,
+    #                       verify_integrity=verify_integrity)
+    #        #self.columns = np.array(self.data.columns)
+    #        #self.timename = 'index'
+    #        #self.time = self.index()
+    
+    def drop_index_duplicates(self):
+        """
+        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN 
+        THEM!! Also updates the meta_valid, meta_filled and filled dataframes
+        """
+        #self.data = self.data.groupby(self.index()).first()
+        #self.meta_valid = self.meta_valid.groupby(self.meta_valid.index).first()
+        #self.meta_filled = self.meta_filled.groupby(self.meta_filled.index).first()
+        #self.filled = self.filled.groupby(self.filled.index).first()
         
-        if self.timename == 'index':
-            raise IndexError('There already is a timeseries in the dataframe index!')
-        if isinstance(self.time[0],str):
-            raise ValueError('Time values of type "str" can not be used as index')
-            
-        if inplace == False:
-            new_data = self.set_index(self.timename,drop=drop,inplace=False,
-                                      verify_integrity=verify_integrity)
-            #self.columns = np.array(new_data.columns)
-            return self.__class__(new_data,timedata_column='index',
-                                  data_type=self.data_type,experiment_tag=self.tag,
-                                  time_unit=self.time_unit)
-        elif inplace == True:
-            self.set_index(self.timename,drop=drop,inplace=True,
-                           verify_integrity=verify_integrity)
-            #self.columns = np.array(self.data.columns)
-            #self.timename = 'index'
-            #self.time = self.index()
+        self.data = self.data[~self.data.index.duplicated(keep='first')]
+        self.meta_valid = self.meta_valid[~self.meta_valid.index.duplicated(keep='first')]
+        self.meta_filled = self.meta_filled[~self.meta_filled.index.duplicated(keep='first')]
+        self.filled= self.filled[~self.filled.index.duplicated(keep='first')]
+        
+        self._update_time()
+        if isinstance(self.index()[1],str):
+            wn.warn('Rows may change order using this function based on '+ \
+            'string values. Convert to datetime, int or float and use '+ \
+            '.sort_index() or .sort_value() to avoid. (see also hp.to_datetime())')
     
     def calc_total_proportional(self,Q_tot,Q,conc,new_name='new',unit='mg/l',
                                 filled=False):
