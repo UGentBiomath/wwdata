@@ -196,7 +196,12 @@ class OnlineSensorBased(HydroData):
         if plot==True:
             fig = plt.figure(figsize=(16,6))
             ax = fig.add_subplot(111)
-            ax.errorbar(to_return['day'],to_return['mean'],yerr=to_return['std'],fmt='o')
+            if isinstance(self.data.index[0],pd.tslib.Timestamp):
+                ax.errorbar([pd.to_datetime(x) for x in to_return['day']],to_return['mean'],
+                            yerr=to_return['std'],fmt='o')
+            else:
+                ax.errorbar(to_return['day'],to_return['mean'],
+                            yerr=to_return['std'],fmt='o')    
             #ax.plot(to_return['day'],(to_return['mean']+to_return['std']),'b',alpha=0.5)
             #ax.plot(to_return['day'],(to_return['mean']-to_return['std']),'b',alpha=0.5)
             #ax.fill_between(to_return['day'],to_return['mean'],(to_return['mean']+to_return['std']),
