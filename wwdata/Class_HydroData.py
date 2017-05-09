@@ -125,8 +125,8 @@ class HydroData():
         """
         function to fill in missing index values
         """
-        wn.warn('This function assumes equidistant data and fills the indexes \
-        accordingly')
+        wn.warn('This function assumes equidistant data and fills the indexes '+\
+        'accordingly')
         first_part = self.data[self.data.index < arange[0]]
         
         if isinstance(self.data.index[0],dt.datetime):
@@ -1236,8 +1236,8 @@ class HydroData():
                       (self.data.index[0] + dt.timedelta(arange[1]-1))]
         
         if arange[0] < self.time[0] or arange[1] > self.time[-1]:
-            raise IndexError('Index out of bounds. Check whether the values of \
-            "arange" are within the index range of the data.')         
+            raise IndexError('Index out of bounds. Check whether the values of '+ \
+            '"arange" are within the index range of the data.')         
         
         if only_checked:           
             #create new pd.Dataframes for original values in range, 
@@ -1330,7 +1330,7 @@ class HydroData():
             
         if column_name in self.daily_profile.keys():
             raise KeyError('self.daily_profile dictionary already contains a ' +\
-            'key ' + column_name + '. Set argument "clear" to True to erase the' + \
+            'key ' + column_name + '. Set argument "clear" to True to erase the ' + \
             'key and create a new one.')
     
         # Give warning when replacing data from rain events and at the same time
@@ -1395,8 +1395,8 @@ class HydroData():
                                          left_index=True, right_index=True,how='outer')        
         else:
             if only_checked:
-                wn.warn('No values of selected column were filtered yet. All values \
-                will be displayed.')
+                wn.warn('No values of selected column were filtered yet. All values '+ \
+                'will be displayed.')
             for i in range_days:
                 if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
@@ -1479,8 +1479,8 @@ class HydroData():
                 'be the same as the value type of index values')
             
             if time_range[0] < self.time[0] or time_range[1] > int(self.time[-1]):
-                raise IndexError('Index out of bounds. Check whether the values of \
-                "time_range" are within the index range of the data.')        
+                raise IndexError('Index out of bounds. Check whether the values of '+\
+                '"time_range" are within the index range of the data.')        
         
         fig = plt.figure(figsize=(16,6))
         ax = fig.add_subplot(111)               

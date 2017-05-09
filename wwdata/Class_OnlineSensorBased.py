@@ -151,7 +151,7 @@ class OnlineSensorBased(HydroData):
                                     pd.DataFrame([[new_name,unit]],columns=self.units.columns)],
                                     ignore_index=True)                
         except:
-            wn.warn('Something might have gone wrong with the updating of the units. '+
+            wn.warn('Something might have gone wrong with the updating of the units. '+ \
                     'Check self.units to make sure everything is still okay.')
         return None
     
@@ -273,8 +273,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
@@ -316,9 +316,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')
+            wn.warn('Data points obtained during a rain event will be replaced. '+\
+            'Make sure you are confident in this replacement method for the '+\
+            'filling of gaps in the data during rain events.')
         
         ###
         # CALCULATIONS
@@ -397,8 +397,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
@@ -441,9 +441,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
+            'filling of gaps in the data during rain events.')
          
         ###
         # FILLING
@@ -504,8 +504,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
@@ -558,9 +558,9 @@ class OnlineSensorBased(HydroData):
         slope,intercept,r_sq = self.get_correlation(to_use,to_fill,corr_range,
                                                     zero_intercept=zero_intercept)
         if intercept < 0:
-                wn.warn('The intercept was calculated to be lower than '+
-                '0, which might lead to negative data values when data is replaced '+
-                'based on this correlation. Try setting "zero_intercept" to True '+
+                wn.warn('The intercept was calculated to be lower than '+ \
+                '0, which might lead to negative data values when data is replaced '+ \
+                'based on this correlation. Try setting "zero_intercept" to True '+ \
                 'to avoid.')                                            
         ###
         # FILLING
@@ -617,8 +617,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
             
         # several checks on availability of the right columns in the necessary
@@ -673,8 +673,8 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+
-            'Make sure you are confident in this replacement method for the '+
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
             'filling of gaps in the data during rain events.')
          
         ###
@@ -753,8 +753,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
             
         # several checks on availability of the right columns in the necessary
@@ -800,8 +800,8 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+
-            'Make sure you are confident in this replacement method for the '+
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
             'filling of gaps in the data during rain events.')       
         
         ###
@@ -832,8 +832,8 @@ class OnlineSensorBased(HydroData):
                 indexes_to_replace['time_index'] = indexes_to_replace['abs_indexes'].\
                                                     apply(find_nearest_time,args=(model_values,'time'))
             except(IndexError):
-                raise IndexError('No indexes were found to replace. Check the '+\
-                'range in which you want to replace values, or check if filtered '+\
+                raise IndexError('No indexes were found to replace. Check the '+ \
+                'range in which you want to replace values, or check if filtered '+ \
                 'values actually exist in the meta_filled dataset.')
             
         elif isinstance(self.data.index[0],float):
@@ -892,8 +892,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+
-        'start filling small gaps and progressively move to larger gaps. This '+
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
         # index checks
         #if arange[0] < 1 or arange[1] > self.index()[-1]:
@@ -944,8 +944,8 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+
-            'Make sure you are confident in this replacement method for the '+
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
             'filling of gaps in the data during rain events.')       
         
         ###
@@ -1078,8 +1078,8 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as '+
-                            'a string type, or leave the argument if no log '+
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
                             'file is needed.')                
         
         return self.__class__(data,self.timename)
@@ -1094,8 +1094,8 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as '+
-                            'a string type, or leave the argument if no log '+
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
                             'file is needed.') 
 
 
