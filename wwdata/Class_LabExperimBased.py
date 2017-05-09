@@ -1,4 +1,3 @@
-#book# -*- coding: utf-8 -*-
 """
     Class_LabExperimBased provides functionalities for data handling of data obtained in lab experiments in the field of (waste)water treatment.
     Copyright (C) 2016 Chaim De Mulder
@@ -29,12 +28,19 @@ import sys
 import matplotlib.pyplot as plt   #plotten in python
 import warnings as wn
 
-from Class_HydroData import HydroData
+from wwdata.Class_HydroData import HydroData
 
 class LabExperimBased(HydroData):
     """
     Superclass for a HydroData object, expanding the functionalities with 
     specific functions for data gathered is lab experiments
+ii                 <Quantities>
+                    <Quantity Name=".FS_2.Outflow2(X_S)">
+                      <Props>
+                      </Props>
+                    </Quantity>
+                 </Quantities>
+book# -*- coding: utf-8 -*-
     
     Attributes
     ----------
@@ -115,8 +121,7 @@ class LabExperimBased(HydroData):
         if dph > thresh:
             wn.warn('Strong change in pH during experiment!')
         else:
-            print('pH range of experiment :'+str(dph))
-        self.delta_ph = dph
+            self.delta_ph = dph
   
     def in_out(self,columns):
         """
@@ -213,9 +218,9 @@ def _print_removed_output(original,new,type_):
         'removed' or 'dropped'
 
     """
-    print 'Original dataset:',original,'datapoints'
-    print 'New dataset:',new,'datapoints'
-    print original-new,'datapoints ',type_
+    print('Original dataset:',original,'datapoints')
+    print('New dataset:',new,'datapoints')
+    print(original-new,'datapoints ',type_)
 
 def _log_removed_output(log_file,original,new,type_):
     """

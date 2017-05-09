@@ -39,8 +39,8 @@ def list_files(path,ext):
     elif ext == 'csv':
         files = [f for f in listdir(path) if f.endswith('.csv')]
     else:
-        print 'No files with',ext,'extension found in directory',path,'Please \
-        choose one of the following: text, excel, csv'
+        print('No files with',ext,'extension found in directory',path,'Please \
+        choose one of the following: text, excel, csv')
         
         return None
         
@@ -51,7 +51,7 @@ def remove_empty_lines(path,ext):
     """
     files = list_files(path,ext)
     if not files:
-        print 'Please provide a directory that contains '+ext+' files.'
+        print('Please provide a directory that contains '+ext+' files.')
         return None
     for filename in files:
         filepath = os.path.join(path,filename)
@@ -79,7 +79,7 @@ def find_and_replace(path,ext,replace):
     """
     files = list_files(path,ext)
     if not files:
-        print 'Please provide a directory that contains '+ext+' files.'
+        print('Please provide a directory that contains '+ext+' files.')
         return None
     for filename in files:
         filepath = os.path.join(path,filename)
@@ -139,7 +139,7 @@ def sort_data(data,based_on,reset_index=[False,'new_index_name'],
                         format=convert_to_timestamp[2])
         elif reset_index[0] == True & convert_to_timestamp[0] == False:
             dictionary[i].set_index(reset_index[1],inplace=True)
-        print 'Sorting',i,'...'
+        print('Sorting',i,'...')
     
     return dictionary
     
@@ -251,7 +251,7 @@ def _open_file(filepath,ext='text'):
     elif ext == 'excel':
         return xlrd.open_workbook(filepath)
 
-def _read_file(filepath,ext='text',skiprows=0,sep='\t',decimal='.'):
+def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='.'):
     """
     Read a file of given extension and save it as a pandas dataframe   
     
@@ -274,16 +274,19 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',decimal='.'):
     elif ext == 'excel':
         return pd.read_excel(filepath,skiprows=skiprows,low_memory=False,index_col=None)
     elif ext == 'csv':
-        return pd.read_csv(filepath,sep=sep,skiprows=skiprows,error_bad_lines=False,low_memory=False,index_col=None)
+        return pd.read_csv(filepath,sep=sep,skiprows=skiprows,encoding=encoding,
+			   error_bad_lines=False,low_memory=False,index_col=None)
         
-def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
+def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
     Reads all files in a given directory, joins them and returns one pd.dataframe
     
     Parameters
     ----------
     path : str
-        the path to the directory containing the files to be put together
+	path to the folder that contains the files to be joined
+    files : list
+        list of files to be joined, must be the same extension
     ext : str
         extention of the files to read; possible: excel, text, csv
     sep : str
@@ -305,9 +308,9 @@ def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
   
     #Select files based on extension and sort files alphabetically to make sure
     #they are added to each other in the correct order
-    files = list_files(path,ext)
+    #files = list_files(path,ext)
     files.sort()
-    print 'joining',len(files),'files...'    
+    print('joining',len(files),'files...')
     #Read files
     for file_name in files:
         dir_file_path = os.path.join(path,file_name)
@@ -315,10 +318,11 @@ def join_dir_files(path,ext='text',sep=',',comment='#',decimal='.'):
             headerlength = _get_header_length(read_file,ext,comment)
             data = data.append(_read_file(dir_file_path,ext=ext,sep=sep,
                                           skiprows=headerlength,
-                                          decimal=decimal),
+                                          decimal=decimal,encoding=encoding),
                                 ignore_index=True)
-        print 'Adding file',file_name,'to dataframe'
+        print('Adding file',file_name,'to dataframe')
     data.to_csv('joined_files',sep=sep)
+    
     return data
 
 def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd()):

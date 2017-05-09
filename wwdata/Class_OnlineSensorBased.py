@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     Class_OnlineSensorBased provides functionalities for data handling of data obtained with online sensors in the field of (waste)water treatment.
     Copyright (C) 2016 Chaim De Mulder
@@ -29,7 +28,7 @@ import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 import warnings as wn
 
-from Class_HydroData import HydroData
+from wwdata.Class_HydroData import HydroData
 #from data_reading_functions import _print_removed_output,_log_removed_output
 #from time_conversion_functions import *
 
@@ -59,31 +58,52 @@ class OnlineSensorBased(HydroData):
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
     
-    def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
-        """CONFIRMED
-        using pandas set_index function to set the columns with timevalues
-        as index"""
-        # Drop second layer of indexing to make dataframe handlable
-        # self.data.columns = self.data.columns.get_level_values(0)
+    #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
+    #    """CONFIRMED
+    #    using pandas set_index function to set the columns with timevalues
+    #    as index"""
+    #    # Drop second layer of indexing to make dataframe handlable
+    #    # self.data.columns = self.data.columns.get_level_values(0)
+    #    
+    #    if self.timename == 'index':
+    #        raise IndexError('There already is a timeseries in the dataframe index!')
+    #    if isinstance(self.time[0],str):
+    #        raise ValueError('Time values of type "str" can not be used as index')
+    #        
+    #    if inplace == False:
+    #        new_data = self.set_index(self.timename,drop=drop,inplace=False,
+    #                                  verify_integrity=verify_integrity)
+    #        #self.columns = np.array(new_data.columns)
+    #        return self.__class__(new_data,timedata_column='index',
+    #                              data_type=self.data_type,experiment_tag=self.tag,
+    #                              time_unit=self.time_unit)
+    #    elif inplace == True:
+    #        self.set_index(self.timename,drop=drop,inplace=True,
+    #                       verify_integrity=verify_integrity)
+    #        #self.columns = np.array(self.data.columns)
+    #        #self.timename = 'index'
+    #        #self.time = self.index()
+    
+    def drop_index_duplicates(self):
+        """
+        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN 
+        THEM!! Also updates the meta_valid, meta_filled and filled dataframes
+        """
+        #self.data = self.data.groupby(self.index()).first()
+        #self.meta_valid = self.meta_valid.groupby(self.meta_valid.index).first()
+        #self.meta_filled = self.meta_filled.groupby(self.meta_filled.index).first()
+        #self.filled = self.filled.groupby(self.filled.index).first()
         
-        if self.timename == 'index':
-            raise IndexError('There already is a timeseries in the dataframe index!')
-        if isinstance(self.time[0],str):
-            raise ValueError('Time values of type "str" can not be used as index')
-            
-        if inplace == False:
-            new_data = self.set_index(self.timename,drop=drop,inplace=False,
-                                      verify_integrity=verify_integrity)
-            #self.columns = np.array(new_data.columns)
-            return self.__class__(new_data,timedata_column='index',
-                                  data_type=self.data_type,experiment_tag=self.tag,
-                                  time_unit=self.time_unit)
-        elif inplace == True:
-            self.set_index(self.timename,drop=drop,inplace=True,
-                           verify_integrity=verify_integrity)
-            #self.columns = np.array(self.data.columns)
-            #self.timename = 'index'
-            #self.time = self.index()
+        self.data = self.data[~self.data.index.duplicated(keep='first')]
+        self.meta_valid = self.meta_valid[~self.meta_valid.index.duplicated(keep='first')]
+        self.meta_filled = self.meta_filled[~self.meta_filled.index.duplicated(keep='first')]
+        self.filled= self.filled[~self.filled.index.duplicated(keep='first')]
+        
+        self._update_time()
+        if isinstance(self.index()[1],str):
+            wn.warn('Rows may change order using this function based on '+ \
+            'string values. Convert to datetime, int or float and use '+ \
+            '.sort_index() or .sort_value() to avoid. (see also hp.to_datetime())')
     
     def calc_total_proportional(self,Q_tot,Q,conc,new_name='new',unit='mg/l',
                                 filled=False):
@@ -126,10 +146,13 @@ class OnlineSensorBased(HydroData):
             self.data[new_name] = sum_ / self.data[Q_tot]
             self.columns = np.array(self.data.columns)
 
-        if self.units is not None:
+        try:
             self.units = pd.concat([self.units,
                                     pd.DataFrame([[new_name,unit]],columns=self.units.columns)],
                                     ignore_index=True)                
+        except:
+            wn.warn('Something might have gone wrong with the updating of the units. '+ \
+                    'Check self.units to make sure everything is still okay.')
         return None
     
     def calc_daily_average(self,column_name,time='float',plot=False):
@@ -173,7 +196,12 @@ class OnlineSensorBased(HydroData):
         if plot==True:
             fig = plt.figure(figsize=(16,6))
             ax = fig.add_subplot(111)
-            ax.errorbar(to_return['day'],to_return['mean'],yerr=to_return['std'],fmt='o')
+            if isinstance(self.data.index[0],pd.tslib.Timestamp):
+                ax.errorbar([pd.to_datetime(x) for x in to_return['day']],to_return['mean'],
+                            yerr=to_return['std'],fmt='o')
+            else:
+                ax.errorbar(to_return['day'],to_return['mean'],
+                            yerr=to_return['std'],fmt='o')    
             #ax.plot(to_return['day'],(to_return['mean']+to_return['std']),'b',alpha=0.5)
             #ax.plot(to_return['day'],(to_return['mean']-to_return['std']),'b',alpha=0.5)
             #ax.fill_between(to_return['day'],to_return['mean'],(to_return['mean']+to_return['std']),
@@ -250,9 +278,9 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to \
-        start filling small gaps and progressively move to larger gaps. This \
-        ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
+        'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
@@ -293,9 +321,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')
+            wn.warn('Data points obtained during a rain event will be replaced. '+\
+            'Make sure you are confident in this replacement method for the '+\
+            'filling of gaps in the data during rain events.')
         
         ###
         # CALCULATIONS
@@ -374,9 +402,9 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to \
-        start filling small gaps and progressively move to larger gaps. This \
-        ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
+        'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
@@ -418,9 +446,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
+            'filling of gaps in the data during rain events.')
          
         ###
         # FILLING
@@ -481,8 +509,8 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to ' + \
-        'start filling small gaps and progressively move to larger gaps. This ' + \
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
         'ensures the proper working of the package algorithms.')
         if clear:
             self._reset_meta_filled(to_fill)
@@ -535,10 +563,10 @@ class OnlineSensorBased(HydroData):
         slope,intercept,r_sq = self.get_correlation(to_use,to_fill,corr_range,
                                                     zero_intercept=zero_intercept)
         if intercept < 0:
-                wn.warn('The intercept was calculated to be lower than \
-                0, which might lead to negative data values when data is replaced \
-                based on this correlation. Try setting "zero_intercept" to True \
-                to avoid.')                                            
+                wn.warn('The intercept was calculated to be lower than '+ \
+                '0, which might lead to negative data values when data is replaced '+ \
+                'based on this correlation. Try setting "zero_intercept" to True '+ \
+                'to avoid.')                                            
         ###
         # FILLING
         ###
@@ -594,9 +622,9 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to \
-        start filling small gaps and progressively move to larger gaps. This \
-        ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
+        'ensures the proper working of the package algorithms.')
             
         # several checks on availability of the right columns in the necessary
         # dataframes/dictionaries
@@ -633,9 +661,9 @@ class OnlineSensorBased(HydroData):
                 raise TypeError("self.daily_profile should be a dictionary Type. \
                 Run calc_daily_profile() to get an average daily profile for " + to_fill)
         except AttributeError:
-            raise AttributeError("self.daily_profile doesn't exist yet, meaning\
-            there is not data available to replace other data with. Run \
-            calc_daily_profile() to get an average daily profile for " + to_fill)
+            raise AttributeError("self.daily_profile doesn't exist yet, meaning "+
+            "there is not data available to replace other data with. Run "+
+            "calc_daily_profile() to get an average daily profile for " + to_fill)
   
         # Give warning when replacing data from rain events and at the same time
         # check if arange has the right type
@@ -650,9 +678,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
+            'filling of gaps in the data during rain events.')
          
         ###
         # CALCULATIONS
@@ -730,9 +758,9 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to \
-        start filling small gaps and progressively move to larger gaps. This \
-        ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
+        'ensures the proper working of the package algorithms.')
             
         # several checks on availability of the right columns in the necessary
         # dataframes/dictionaries
@@ -777,9 +805,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')       
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
+            'filling of gaps in the data during rain events.')       
         
         ###
         # CALCULATIONS
@@ -805,12 +833,12 @@ class OnlineSensorBased(HydroData):
         if isinstance(self.data.index[0],dt.datetime):
             try:
                 indexes_to_replace['abs_indexes'] = absolute_to_relative(indexes_to_replace['indexes'],
-                                                start_date=self.data.index[0],unit=unit)
+                                                    start_date=self.data.index[0],unit=unit)
                 indexes_to_replace['time_index'] = indexes_to_replace['abs_indexes'].\
                                                     apply(find_nearest_time,args=(model_values,'time'))
             except(IndexError):
-                raise IndexError('No indexes were found to replace. Check the '+\
-                'range in which you want to replace values, or check if filtered '+\
+                raise IndexError('No indexes were found to replace. Check the '+ \
+                'range in which you want to replace values, or check if filtered '+ \
                 'values actually exist in the meta_filled dataset.')
             
         elif isinstance(self.data.index[0],float):
@@ -846,9 +874,10 @@ class OnlineSensorBased(HydroData):
         arange : array of two values
             the range within which missing/filtered values need to be replaced
         range_to_replace : array of two int/float values
-            the minimum and maximum amount of time where missing datapoints can 
-            be replaced using this function, i.e. using values of the last day 
-            before measurements went bad.
+            the minimum and maximum amount of time (i.e. min and max size of 
+            gaps in data) where missing datapoints can be replaced using this 
+            function, i.e. using values of the last day before measurements 
+            went bad.
         filtered_only : boolean
             if True, fills only the datapoints labeled as filtered. If False, 
             fills/replaces all datapoints in the given range
@@ -868,9 +897,9 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to \
-        start filling small gaps and progressively move to larger gaps. This \
-        ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to '+ \
+        'start filling small gaps and progressively move to larger gaps. This '+ \
+        'ensures the proper working of the package algorithms.')
         # index checks
         #if arange[0] < 1 or arange[1] > self.index()[-1]:
         #    raise IndexError('Index out of bounds. Check whether the values of \
@@ -920,9 +949,9 @@ class OnlineSensorBased(HydroData):
             " slicing.")    
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. \
-            Make sure you are confident in this replacement method for the \
-            filling of gaps in the data during rain events.')       
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
+            'filling of gaps in the data during rain events.')       
         
         ###
         # CALCULATIONS
@@ -1054,9 +1083,9 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as \
-                            a string type, or leave the argument if no log \
-                            file is needed.')                
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
+                            'file is needed.')                
         
         return self.__class__(data,self.timename)
         
@@ -1070,9 +1099,9 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as \
-                            a string type, or leave the argument if no log \
-                            file is needed.') 
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
+                            'file is needed.') 
 
 
 def _select_slope(self,ydata,down=True,limit=0):#,based_on_max=True):#,bounds=[1,1]):
@@ -1108,26 +1137,26 @@ def _select_slope(self,ydata,down=True,limit=0):#,based_on_max=True):#,bounds=[1
     drop_index = self.data[ydata].idxmax()
     if down == True:
         try:
-            print 'Selecting downward slope:',drop_index,\
+            print('Selecting downward slope:',drop_index,\
             'datapoints dropped,',len(self.data)-drop_index,\
-            'datapoints left.'
+            'datapoints left.')
         
             self.data = self.data[drop_index:]
             self.data.reset_index(drop=True,inplace=True)
             return self.__class__(self.data,self.timename)
         except:#IndexError:
-            print 'Not enough datapoints left for selection'
+            print('Not enough datapoints left for selection')
 
     elif down == False:
         try:
-            print 'Selecting upward slope:',len(self.data)-drop_index,\
-            'datapoints dropped,',drop_index,'datapoints left.'
+            print('Selecting upward slope:',len(self.data)-drop_index,\
+            'datapoints dropped,',drop_index,'datapoints left.')
         
             self.data = self.data[:drop_index]
             self.data.reset_index(drop=True,inplace=True)
             return self.__class__(self.data,self.timename)
         except:#IndexError:
-            print 'Not enough datapoints left for selection'
+            print('Not enough datapoints left for selection')
     
     #    elif based_on_max == False:
     #        drop_index = dataframe[ydata].idxmin()
@@ -1214,9 +1243,9 @@ def _print_removed_output(original,new,type_):
         'removed' or 'dropped'
 
     """
-    print 'Original dataset:',original,'datapoints'
-    print 'New dataset:',new,'datapoints'
-    print original-new,'datapoints ',type_
+    print('Original dataset:',original,'datapoints')
+    print('New dataset:',new,'datapoints')
+    print(original-new,'datapoints ',type_)
 
 def _log_removed_output(log_file,original,new,type_):
     """
@@ -1244,7 +1273,7 @@ def total_seconds(timedelta_value):
 def absolute_to_relative(series,start_date,unit='d',decimals=5):
     """
     converts a pandas series with datetime timevalues to relative timevalues 
-    in the given unit, starting from 0
+    in the given unit, starting from start_date
     
     parameters
     ----------
@@ -1264,7 +1293,7 @@ def absolute_to_relative(series,start_date,unit='d',decimals=5):
         'a relative timeseries, an absolute timeseries is necessary.')
     start = total_seconds(series[0] - start_date)
     
-    relative = map(total_seconds,time_delta)
+    relative = time_delta.map(total_seconds)
     if unit == 'sec':
         relative = np.array(relative) + start
     elif unit == 'min':

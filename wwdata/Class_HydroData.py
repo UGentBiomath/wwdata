@@ -30,7 +30,7 @@ import datetime as dt
 import matplotlib.pyplot as plt   #plotten in python
 import warnings as wn
 
-import data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
+import wwdata.data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function() 
 #import time_conversion_functions #import timedelta_to_abs, _get_datetime_info,\
 #make_datetime,to_datetime_singlevalue
 
@@ -38,7 +38,8 @@ class HydroData():
     """
     """
     def __init__(self,data,timedata_column='index',data_type='WWTP',
-                 experiment_tag='No tag given',time_unit=None):
+                 experiment_tag='No tag given',time_unit=None,
+                 units=[]):
         """
         initialisation of a HydroData object. 
         
@@ -49,6 +50,10 @@ class HydroData():
         experiment_tag : str
             A tag identifying the experiment; can be a date or a code used by 
             the producer/owner of the data.
+        time_unit : str
+            The time unit in which the time data is given
+        units : array
+            The units of the variables in the columns
         """
         if isinstance(data, pd.DataFrame):
             self.data = data.copy()
@@ -68,6 +73,7 @@ class HydroData():
         self.tag = experiment_tag
         self.time_unit = time_unit
         self.meta_valid = pd.DataFrame(index=self.data.index)
+        self.units = units
         #self.highs = pd.DataFrame(data=0,columns=['highs'],index=self.data.index)
         #wn.warn('WARNING: Some functions in the OnlineSensorBased Class assume ' + \
         #'equidistant data!!! This is primarily of importance when indexes are ' + \
@@ -119,8 +125,8 @@ class HydroData():
         """
         function to fill in missing index values
         """
-        wn.warn('This function assumes equidistant data and fills the indexes \
-        accordingly')
+        wn.warn('This function assumes equidistant data and fills the indexes '+\
+        'accordingly')
         first_part = self.data[self.data.index < arange[0]]
         
         if isinstance(self.data.index[0],dt.datetime):
@@ -145,7 +151,8 @@ class HydroData():
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
             try:
-                self.meta_valid = self.meta_valid.drop(data_name,axis=1)
+                self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid))
+        #self.meta_valid.drop(data_name,axis=1)
             except:
                 pass
                 #wn.warn(data_name + ' is not contained in self.meta_valid yet, so cannot\
@@ -154,10 +161,11 @@ class HydroData():
     def drop_index_duplicates(self):
         """
         drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN 
-        THEM!!
+        THEM!! Also updates the meta_valid dataframe
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()
+        self.meta_valid = self.meta_valid.groupby(self.meta_valid.index).first()
         self._update_time()
         if isinstance(self.index()[1],str):
             wn.warn('Rows may change order using this function based on '+ \
@@ -174,27 +182,46 @@ class HydroData():
         elif inplace == True:
             return self.data.replace(to_replace,value,inplace=inplace)
         
-    def set_index(self,keys,key_is_time=True,drop=True,inplace=False,
+    def set_index(self,keys,key_is_time=False,drop=True,inplace=False,
                   verify_integrity=False,save_prev_index=True):
-        """CONFIRMED
-        piping pandas set_index function"""
-        if save_prev_index == True:
+        """
+        piping pandas set_index function, including the option to define the new index
+        as being the time data
+        key_is_time : bool
+            when true, the new index will we known as the time data from here on
+        (other arguments cfr pd.set_index)
+        """
+        if save_prev_index:
             self.prev_index = self.data.index
-        if inplace == False:
+            
+        if not inplace:
+            if key_is_time:
+                if isinstance(self.time[0],str):
+                    raise ValueError('Time values of type "str" can not be used as index')
+                timedata_column = 'index'
+            elif key_is_time == False:
+                timedata_column = self.timename
+            
             data = self.data.set_index(keys,drop=drop,inplace=False,
                                        verify_integrity=verify_integrity)
-            if key_is_time == True:
-                self.timename = 'index'
-                self.time = data.index
-            return self.__class__(pd.DataFrame(data),timedata_column=self.timename,
+    
+            return self.__class__(pd.DataFrame(data),timedata_column=timedata_column,
                                   data_type=self.data_type,experiment_tag=self.tag,
                                   time_unit=self.time_unit)
-            
-        elif inplace == True:
+        
+        elif inplace:
+            if key_is_time:
+                if self.timename == 'index':
+                    raise IndexError('There already is a timeseries in the dataframe index!')
+                if isinstance(self.time[0],str):
+                    raise ValueError('Time values of type "str" can not be used as index')
+                    
             self.data.set_index(keys,drop=drop,inplace=True,
                                 verify_integrity=verify_integrity)
             self.columns = np.array(self.data.columns)
-            if key_is_time == True:
+            self._update_meta_valid_index()
+            
+            if key_is_time:
                 self.timename = 'index'  
                 self.time = self.data.index
     
@@ -207,8 +234,15 @@ class HydroData():
         else:
             self.time = self.data[self.timename]           
     
+    def _update_meta_valid_index(self):
+        """
+        update the index of the meta_valid dataframe to be the same as the one of the dataframe
+        with the data
+        """
+        self.meta_valid.index = self.index()        
+    
     def to_float(self,columns='all'):
-        """CONFIRMED
+        """
         convert values in given columns to float values
         
         Parameters
@@ -225,36 +259,6 @@ class HydroData():
             except TypeError:
                 print('Data type of column '+ str(column) + ' not convertible to float')
         self._update_time()
-            
-        
-    
-    def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
-        """
-        using pandas set_index function to set the columns with timevalues
-        as index"""
-        # Drop second layer of indexing to make dataframe handlable
-        # self.data.columns = self.data.columns.get_level_values(0)
-        
-        if self.timename == 'index':
-            raise IndexError('There already is a timeseries in the dataframe index!')
-        if isinstance(self.time[0],str):
-            raise ValueError('Time values of type "str" can not be used as index')
-            
-        if inplace == False:
-            new_data = self.set_index(self.timename,drop=drop,inplace=False,
-                                      verify_integrity=verify_integrity)
-            #self.columns = new_data.columns
-            
-            return self.__class__(new_data,timedata_column='index',
-                                  data_type=self.data_type,experiment_tag=self.tag,
-                                  time_unit=self.time_unit)
-        elif inplace == True:
-            self.set_index(self.timename,drop=drop,inplace=True,
-                           verify_integrity=verify_integrity)
-            #self.columns = self.data.columns.levels[0]
-            self.timename = 'index'
-            self.time = self.index()
-            
     
     def to_datetime(self,time_column='index',time_format='%dd-%mm-%yy',
                     unit='D'):
@@ -314,7 +318,7 @@ class HydroData():
             timedata = self.data[time_data]
         time_delta = timedata - timedata[0]
         
-        relative = map(total_seconds,time_delta)
+        relative = time_delta.map(total_seconds)
         if unit == 'sec':
             relative = np.array(relative)
         elif unit == 'min':
@@ -1165,7 +1169,7 @@ class HydroData():
         # arange, indicating what the interval should be.
         if isinstance(self.data.index[0],pd.tslib.Timestamp):
             days = [self.index()[0] + dt.timedelta(arange) * x for x in \
-                    range(0, (self.index()[-1]-self.index()[0]).days/arange)]
+                    range(0, int((self.index()[-1]-self.index()[0]).days/arange))]
             starts = [[y] for y in days]
             ends = [[x + dt.timedelta(arange)] for x in days]
             #end = (self.data.index[-1] - self.data.index[0]).days+1
@@ -1190,8 +1194,8 @@ class HydroData():
             except (ZeroDivisionError):
                 pass
         
-        print 'Best ratio (' + str(avg) + ' ± ' + str(std) + \
-        ') was found in the range: ' + str(ranges[index])
+        print('Best ratio (' + str(avg) + ' ± ' + str(std) + \
+        ') was found in the range: ' + str(ranges[index]))
         
         return avg,std
 
@@ -1232,8 +1236,8 @@ class HydroData():
                       (self.data.index[0] + dt.timedelta(arange[1]-1))]
         
         if arange[0] < self.time[0] or arange[1] > self.time[-1]:
-            raise IndexError('Index out of bounds. Check whether the values of \
-            "arange" are within the index range of the data.')         
+            raise IndexError('Index out of bounds. Check whether the values of '+ \
+            '"arange" are within the index range of the data.')         
         
         if only_checked:           
             #create new pd.Dataframes for original values in range, 
@@ -1326,7 +1330,7 @@ class HydroData():
             
         if column_name in self.daily_profile.keys():
             raise KeyError('self.daily_profile dictionary already contains a ' +\
-            'key ' + column_name + '. Set argument "clear" to True to erase the' + \
+            'key ' + column_name + '. Set argument "clear" to True to erase the ' + \
             'key and create a new one.')
     
         # Give warning when replacing data from rain events and at the same time
@@ -1391,8 +1395,8 @@ class HydroData():
                                          left_index=True, right_index=True,how='outer')        
         else:
             if only_checked:
-                wn.warn('No values of selected column were filtered yet. All values \
-                will be displayed.')
+                wn.warn('No values of selected column were filtered yet. All values '+ \
+                'will be displayed.')
             for i in range_days:
                 if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
@@ -1475,8 +1479,8 @@ class HydroData():
                 'be the same as the value type of index values')
             
             if time_range[0] < self.time[0] or time_range[1] > int(self.time[-1]):
-                raise IndexError('Index out of bounds. Check whether the values of \
-                "time_range" are within the index range of the data.')        
+                raise IndexError('Index out of bounds. Check whether the values of '+\
+                '"time_range" are within the index range of the data.')        
         
         fig = plt.figure(figsize=(16,6))
         ax = fig.add_subplot(111)               
@@ -1540,10 +1544,10 @@ class HydroData():
                         ax.plot(df.time[df.meta_valid[data_name]=='filtered'],
                                 df.data[data_name][df.meta_valid[data_name]=='filtered'],
                             '.r',label='filtered')
-            print str(float(df.meta_valid.groupby(data_name).size()['original']*100)/ \
+            print (str(float(df.meta_valid.groupby(data_name).size()['original']*100)/ \
                 float(df.meta_valid[data_name].count())) + \
                 '% datapoints are left over from the original ' + \
-                str(float(df.meta_valid[data_name].count()))
+                str(float(df.meta_valid[data_name].count())))
                
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
         ax.set_xlabel(self.timename,fontsize=14)
@@ -1640,9 +1644,9 @@ def _print_removed_output(original,new,type_):
         'removed' or 'dropped'
 
     """
-    print 'Original dataset:',original,'datapoints'
-    print 'New dataset:',new,'datapoints'
-    print original-new,'datapoints ',type_
+    print('Original dataset:',original,'datapoints')
+    print('New dataset:',new,'datapoints')
+    print(original-new,'datapoints ',type_)
 
 def _log_removed_output(log_file,original,new,type_):
     """
