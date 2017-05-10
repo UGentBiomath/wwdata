@@ -539,7 +539,7 @@ class HydroData():
     
     def tag_nan(self,data_name,clear=False):
         """
-        adds a tag 'falsify' in self.meta_valid for every NaN value in the given
+        adds a tag 'filtered' in self.meta_valid for every NaN value in the given
         column
         
         Parameters
@@ -613,7 +613,7 @@ class HydroData():
                                  data_type=self.data_type,experiment_tag=self.tag,
                                  time_unit=self.time_unit)
         # Make a mask with False values for double values to be dropped
-        mask = abs(self.data[data_name].diff()) >= bound
+        mask = abs(self.data[data_name].dropna().diff()) >= bound
         
         # Update the index of self.meta_valid
         if clear:
