@@ -614,6 +614,9 @@ class HydroData():
                                  time_unit=self.time_unit)
         # Make a mask with False values for double values to be dropped
         mask = abs(self.data[data_name].dropna().diff()) >= bound
+        # Make sure the indexes are still the same in the mask and df_temp, so the 
+        # taggin can happen
+        mask.reindex(df_temp.index()).fillna(True,inplace=True)
         
         # Update the index of self.meta_valid
         if clear:
