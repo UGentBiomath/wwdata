@@ -275,7 +275,7 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='
         return pd.read_excel(filepath,skiprows=skiprows,low_memory=False,index_col=None)
     elif ext == 'csv':
         return pd.read_csv(filepath,sep=sep,skiprows=skiprows,encoding=encoding,
-			   error_bad_lines=False,low_memory=False,index_col=None)
+                           error_bad_lines=False,low_memory=False,index_col=None)
         
 def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
@@ -325,7 +325,7 @@ def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal
     
     return data
 
-def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd()):
+def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd(),fillna=True):
         """
         writes a text-file that is compatible with WEST. Adds the units as 
         they are given in the 'units' argument.
@@ -342,11 +342,16 @@ def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd()):
             array containing the units for the respective columns in df
         filepath : str
             directory to save the files in; defaults to the current one
+        fillna : bool
+            when True, replaces nan values with 0 values (this might avoid 
+            WEST problems later one).
         
         Returns
         -------
         None; writes files
         """
+        if fillna:
+            df = df.fillna(0)
         df.to_csv(os.path.join(filepath,file_normal),sep='\t')
         
         f = open(os.path.join(filepath,file_normal),'r')
