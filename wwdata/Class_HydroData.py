@@ -616,7 +616,7 @@ class HydroData():
         mask = abs(self.data[data_name].dropna().diff()) >= bound
         # Make sure the indexes are still the same in the mask and df_temp, so the 
         # taggin can happen
-        mask.reindex(df_temp.index()).fillna(True,inplace=True)
+        mask = mask.reindex(df_temp.index()).fillna(True)
         
         # Update the index of self.meta_valid
         if clear:
@@ -1430,18 +1430,18 @@ class HydroData():
                 ax.plot(mean_day.index,mean_day['Qupper'],'b',alpha=0.5)
                 ax.plot(mean_day.index,mean_day['Qlower'],'b',alpha=0.5)
                 ax.fill_between(mean_day.index,mean_day['avg'],mean_day['Qupper'],
-                            color='grey', alpha='0.3')
+                            color='grey', alpha=0.3)
                 ax.fill_between(mean_day.index,mean_day['avg'],mean_day['Qlower'],
-                            color='grey', alpha='0.3')
+                            color='grey', alpha=0.3)
             elif plot_method == 'stdev':
                 ax.plot(mean_day.index,mean_day['avg']+mean_day['std'],'b',alpha=0.5)
                 ax.plot(mean_day.index,mean_day['avg']-mean_day['std'],'b',alpha=0.5)
                 ax.fill_between(mean_day.index,mean_day['avg'],
                                 mean_day['avg']+mean_day['std'],
-                                color='grey', alpha='0.3')
+                                color='grey', alpha=0.3)
                 ax.fill_between(mean_day.index,mean_day['avg'],
                                 mean_day['avg']-mean_day['std'],
-                                color='grey', alpha='0.3')
+                                color='grey', alpha=0.3)
             ax.set_xlim(mean_day.index[0],mean_day.index[-1])
             ax.set_title(column_name)
             return fig,ax
