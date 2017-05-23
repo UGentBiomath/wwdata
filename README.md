@@ -32,8 +32,10 @@ For the workflow with code and more specific examples included, check out the Sh
 To check if you have all necessary Python packages installed, you can used the dependencies.yml file, which lists all packages of the environment wwdata was developed in. You can also use this file to create a [conda environment](http://conda.pydata.org/docs/using/envs.html#managing-environments) (assuming you're using [conda](http://conda.pydata.org/docs/index.html)), in which the wwdata package will work:<br>
 `conda create env -f dependencies.yml`<br>
 
-To install the wwdata package, execute the following with you command line tool:<br>
+To install the wwdata package, execute the following with your command line tool, from the package folder:<br>
 `python setup.py install`<br>
+After this, move to the folder that contains the installed packages (if you are using a conda environment, this will likely be .conda/envs/_enviromentname_/lib/python3.5/site-packages/). There unzip the wwdata zip-file:
+`unzip wwdata-0.1-py3.5.egg`
 
 ## Development and future plans
 This wwdata package is currently in development, so if you have ideas on how to improve the package content, or suggestions for things to include, feel free to contact me:<br>
