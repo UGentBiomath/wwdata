@@ -40,7 +40,7 @@ After this, move to the folder that contains the installed packages (if you are 
 ## Development and future plans
 This wwdata package is currently in development, so if you have ideas on how to improve the package content, or suggestions for things to include, feel free to contact me:<br>
 <a href='mailto:chaim.demulder@ugent.be'>chaim.demulder@ugent.be</a><br>
-<a href='github.com/cdmulde'>github.com/cdmulde</a><br>
+<a href='github.com/cdemulde'>github.com/cdemulde</a><br>
 <a href='twitter.com/ChaimDM'>@ChaimDM</a>
 
 To be included/extended in the future:
