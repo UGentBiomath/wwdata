@@ -1084,6 +1084,10 @@ class OnlineSensorBased(HydroData):
         
         # create gaps
         self.meta_valid.iloc[locations] = 'filtered'
+        
+        # user output
+        left = (len(self.meta_valid)-len(locations))*100/len(meta_valid)
+        print(str(left)+" % of datapoints left after creating gaps")
     
     def check_filling_reliability(self,data_name,filling_function,
                               nr_small_gaps=0,max_size_small_gaps=0,
@@ -1129,19 +1133,20 @@ class OnlineSensorBased(HydroData):
         # fill gaps    
         switcher = {
             'fill_missing_interpolation' : 
-            gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange')),
+            "gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange'))",
             'fill_missing_ratio' : 
-            gaps.fill_missing_ratio(options.get('fo_fill'),options.get('to_use'),options.get('ratio'),options.get('arange')),
+            "gaps.fill_missing_ratio(options.get('fo_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
             'fill_missing_correlation' : 
-            gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept')),
+            "gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
             'fill_missing_standard' : 
-            gaps.fill_missing_standard(options.get('to_fill'),options.get('arange')),
+            "gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
             'fill_missing_model' : 
-            gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange')),
+            "gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange'))",
             'fill_missing_daybefore' : 
-            gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace')),
+            "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
         }
-        save = switcher.get(filling_function, None)
+        function = switcher.get(filling_function, None)
+        exec(function)
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[self.meta_valid[data_name]=='filtered'].index
