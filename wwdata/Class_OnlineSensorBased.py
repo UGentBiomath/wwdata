@@ -1141,7 +1141,7 @@ class OnlineSensorBased(HydroData):
             'fill_missing_daybefore' : 
             gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace')),
         }
-        save = switcher.get(filling_function)
+        save = switcher.get(filling_function, None)
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[self.meta_valid[data_name]=='filtered'].index
