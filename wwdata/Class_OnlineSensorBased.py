@@ -27,6 +27,7 @@ import numpy as np
 import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 import warnings as wn
+import random as rn
 
 from wwdata.Class_HydroData import HydroData
 #from data_reading_functions import _print_removed_output,_log_removed_output
@@ -244,7 +245,11 @@ class OnlineSensorBased(HydroData):
                 pass                
                 #wn.warn('self.filled already contains a column named ' + 
                 #    column + '. The original columns was kept.')
-        
+    
+    #####################
+    ###   FILLING
+    #####################
+    
     def fill_missing_interpolation(self,to_fill,range_,arange,method='index',plot=False,
                                    clear=False):
         """
@@ -1036,7 +1041,56 @@ class OnlineSensorBased(HydroData):
             self.plot_analysed(to_fill)
             
         return None
+    
+
+    #####################
+    ###   CHECKING
+    #####################
+    
+    def _create_gaps(self,data_name,number,max_size):
+        """
+        Creates gaps in the data by introducing fake 'filtered' tags in 
+        meta_valid. This artificial creation of gaps can be filled later to
+        test the reliability of the filling algorithms.
         
+        Parameters
+        ----------
+        data_name : string
+            name of the column containing the data to create gaps in
+        number : int
+            number of gaps to create
+        max_size : int
+            maximum size of the gaps, expressed in data points
+            
+        Returns
+        -------
+        None; creates a self.meta_valid dataframe containing 'fake' tags 
+        creating artificial gaps in the data.
+        
+        !!!
+        Watch out when using this on the original dataset, as tags might be 
+        changed or removed when using this function.
+        !!!
+        """
+        # create a new meta_valid dataframe with original values
+        self._reset_meta_valid(data_name)
+        
+        # create random positions where to create gaps
+        positions = [rn.randrange(0,len(self.meta_valid)) for _ in range(5)]
+        
+        # create random sizes with maximum size of max_size
+        sizes = [rn.randrange(0,12) for _ in range(len(positions))]
+        
+        # define integer indexes where gaps need to be created (i.e. 'filtered' 
+        # in meta_valid)
+        locs = [np.arange(x,x+y) for x,y in zip(positions,sizes)]
+        locations = np.concatenate([x for x in locs])
+        
+        # create gaps
+        self.meta_valid.iloc[locations] = 'filtered'
+    
+    
+    
 #==============================================================================
 # LOOKUP FUNCTIONS
 #==============================================================================
