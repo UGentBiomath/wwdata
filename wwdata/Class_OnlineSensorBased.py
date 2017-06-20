@@ -1111,15 +1111,16 @@ class OnlineSensorBased(HydroData):
         """
         orig = self.__class__(self.data[data_name])
         gaps = self.__class__(self.data[data_name])
+        gaps.get_highs(data_name,0.9)
         
         # create gaps; 
-        if nr_of_small_gaps == 0 and nr_of_large_gaps == 0:
+        if nr_small_gaps == 0 and nr_large_gaps == 0:
             wn.warn("No information was provided to make the gaps with. Please" +\
                     "specify the number of small or large gaps you want to "+\
                     "create for testing")
-        elif nr_of_small_gaps == 0:
+        elif nr_small_gaps == 0:
             gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=True)
-        elif nr_of_large_gaps == 0:
+        elif nr_large_gaps == 0:
             gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
         else:
             gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
@@ -1127,18 +1128,18 @@ class OnlineSensorBased(HydroData):
         
         # fill gaps    
         switcher = {
-            fill_missing_interpolation : 
-            gaps.fill_missing_interpolation(options.get(to_fill),options.get(range_),options.get(arange)),
-            fill_missing_ratio : 
-            gaps.fill_missing_ratio(options.get(fo_fill),options.get(to_use),options.get(ratio),options.get(arange)),
-            fill_missing_correlation : 
-            gaps.fill_missing_correlation(options.get(to_fill),options.get(to_use),options.get(arange),options.get(corr_range),options.get(zero_intercept)),
-            fill_missing_standard : 
-            gaps.fill_missing_standard(options.get(to_fill),options.get(arange)),
-            fill_missing_model : 
-            gaps.fill_missing_model(options.get(to_fill),options.get(to_use),options.get(arange)),
-            fill_missing_daybefore : 
-            gaps.fill_missing_daybefore(options.get(to_fill),options.get(arange),options.get(range_to_replace)),
+            'fill_missing_interpolation' : 
+            gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange')),
+            'fill_missing_ratio' : 
+            gaps.fill_missing_ratio(options.get('fo_fill'),options.get('to_use'),options.get('ratio'),options.get('arange')),
+            'fill_missing_correlation' : 
+            gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept')),
+            'fill_missing_standard' : 
+            gaps.fill_missing_standard(options.get('to_fill'),options.get('arange')),
+            'fill_missing_model' : 
+            gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange')),
+            'fill_missing_daybefore' : 
+            gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace')),
         }
         switcher.get(filling_function)
         
