@@ -151,7 +151,7 @@ class HydroData():
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
             try:
-                self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid))
+                self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid),index=self.index())
         #self.meta_valid.drop(data_name,axis=1)
             except:
                 pass
