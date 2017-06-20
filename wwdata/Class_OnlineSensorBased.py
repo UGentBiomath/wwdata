@@ -1148,13 +1148,13 @@ class OnlineSensorBased(HydroData):
             'fill_missing_daybefore' : 
             gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace')),
         }
-        switcher.get(filling_function)
+        save = switcher.get(filling_function)
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[self.meta_valid[data_name]=='filtered'].index
         avg_deviation = (abs(orig.data[data_name][indexes_to_compare] - 
                              gaps.data[data_name][indexes_to_compare])/ \
-                         orig.data[data_name][indexes_]).mean()
+                         orig.data[data_name][indexes_to_compare]).mean()
         
         if not isinstance(self.filling_reliability,pd.DataFrame()):
             self.filling_error = pd.DataFrame(columns = self.data.columns)
