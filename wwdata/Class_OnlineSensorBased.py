@@ -58,6 +58,7 @@ class OnlineSensorBased(HydroData):
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
+        self.filling_error = pd.DataFrame(index=self.data.index)
     
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -1088,18 +1089,20 @@ class OnlineSensorBased(HydroData):
         # in meta_valid)
         locs = [np.arange(x,x+y) for x,y in zip(positions,sizes)]
         locations = np.concatenate([x for x in locs])
+        #cut values off when higher than len(self.meta_valid)
         
         # create gaps
         self.meta_valid.iloc[locations] = 'filtered'
         
         # user output
-        left = self.meta_valid.groupby[data_name].size()[0]*100/len(self.meta_valid)
+        #correct!
+        left = self.meta_valid.groupby(data_name).size()[0]*100/len(self.meta_valid)
         print(str(left)+" % of datapoints left after creating gaps")
     
-    def check_filling_reliability(self,data_name,filling_function,
-                              nr_small_gaps=0,max_size_small_gaps=0,
-                              nr_large_gaps=0,max_size_large_gaps=0,
-                              **options):
+    def check_filling_error(self,data_name,filling_function,
+                            nr_small_gaps=0,max_size_small_gaps=0,
+                            nr_large_gaps=0,max_size_large_gaps=0,
+                            **options):
         """
         
         
@@ -1156,13 +1159,11 @@ class OnlineSensorBased(HydroData):
         exec(function)
         
         # compare with original data 
-        indexes_to_compare = gaps.meta_valid[self.meta_valid[data_name]=='filtered'].index
+        indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
         avg_deviation = (abs(orig.data[data_name][indexes_to_compare] - 
                              gaps.data[data_name][indexes_to_compare])/ \
                          orig.data[data_name][indexes_to_compare]).mean()
         
-        if not isinstance(self.filling_reliability,pd.DataFrame()):
-            self.filling_error = pd.DataFrame(columns = self.data.columns)
         self.filling_error[data_name] = avg_deviation
     
 #==============================================================================
