@@ -1112,9 +1112,18 @@ class OnlineSensorBased(HydroData):
         orig = self.__class__(self.data[data_name])
         gaps = self.__class__(self.data[data_name])
         
-        # create gaps
-        gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
-        gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=False)
+        # create gaps; 
+        if nr_of_small_gaps == 0 and nr_of_large_gaps == 0:
+            wn.warn("No information was provided to make the gaps with. Please" +\
+                    "specify the number of small or large gaps you want to "+\
+                    "create for testing")
+        elif nr_of_small_gaps == 0:
+            gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=True)
+        elif nr_of_large_gaps == 0:
+            gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
+        else:
+            gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
+            gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=False)
         
         # fill gaps    
         switcher = {
