@@ -1093,7 +1093,7 @@ class OnlineSensorBased(HydroData):
         self.meta_valid.iloc[locations] = 'filtered'
         
         # user output
-        left = (len(self.meta_valid)-len(locations))*100/len(meta_valid)
+        left = self.meta_valid.groupby[data_name].size()[0]*100/len(self.meta_valid)
         print(str(left)+" % of datapoints left after creating gaps")
     
     def check_filling_reliability(self,data_name,filling_function,
