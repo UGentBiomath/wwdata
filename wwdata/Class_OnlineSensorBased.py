@@ -1047,7 +1047,7 @@ class OnlineSensorBased(HydroData):
     ###   CHECKING
     #####################
     
-    def _create_gaps(self,data_name,number,max_size):
+    def _create_gaps(self,data_name,number,max_size,reset=False):
         """
         Creates gaps in the data by introducing fake 'filtered' tags in 
         meta_valid. This artificial creation of gaps can be filled later to
@@ -1061,6 +1061,8 @@ class OnlineSensorBased(HydroData):
             number of gaps to create
         max_size : int
             maximum size of the gaps, expressed in data points
+        reset : boolean
+            if True, the meta_valid dataframe is set back to 'original' values
             
         Returns
         -------
@@ -1073,13 +1075,14 @@ class OnlineSensorBased(HydroData):
         !!!
         """
         # create a new meta_valid dataframe with original values
-        self._reset_meta_valid(data_name)
+        if reset:
+            self._reset_meta_valid(data_name)
         
         # create random positions where to create gaps
-        positions = [rn.randrange(0,len(self.meta_valid)) for _ in range(5)]
+        positions = [rn.randrange(0,len(self.meta_valid)) for _ in range(number)]
         
         # create random sizes with maximum size of max_size
-        sizes = [rn.randrange(0,12) for _ in range(len(positions))]
+        sizes = [rn.randrange(0,max_size) for _ in range(len(positions))]
         
         # define integer indexes where gaps need to be created (i.e. 'filtered' 
         # in meta_valid)
@@ -1089,7 +1092,63 @@ class OnlineSensorBased(HydroData):
         # create gaps
         self.meta_valid.iloc[locations] = 'filtered'
     
-    
+    def check_filling_reliability(self,data_name,filling_function,
+                              nr_small_gaps=0,max_size_small_gaps=0,
+                              nr_large_gaps=0,max_size_large_gaps=0,
+                              **options):
+        """
+        
+        
+        Parameters
+        ----------
+        data_name : string
+            name of the column containing the data the filling reliability needs to be checked for.
+        filling function : wwdata function
+            
+        arg_small_gaps : 2-element array
+            The arguments for the _create_small_gaps function: the number of gaps to be created and
+            the size of the gaps (given as an array, see also _create_small_gaps docstring)
+        arg_large_gaps : 2-element array
+            The arguments for the _create_large_gaps function: the number of gaps to be created and
+            the size of the gaps (given as an array, see also _create_large_gaps docstring)
+        *options: 
+            Arguments for the filling function; refer to the relevant filling function to know what 
+            to enter
+        
+        """
+        orig = self.__class__(self.data[data_name])
+        gaps = self.__class__(self.data[data_name])
+        
+        # create gaps
+        gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
+        gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=False)
+        
+        # fill gaps    
+        switcher = {
+            fill_missing_interpolation : 
+            gaps.fill_missing_interpolation(options.get(to_fill),options.get(range_),options.get(arange)),
+            fill_missing_ratio : 
+            gaps.fill_missing_ratio(options.get(fo_fill),options.get(to_use),options.get(ratio),options.get(arange)),
+            fill_missing_correlation : 
+            gaps.fill_missing_correlation(options.get(to_fill),options.get(to_use),options.get(arange),options.get(corr_range),options.get(zero_intercept)),
+            fill_missing_standard : 
+            gaps.fill_missing_standard(options.get(to_fill),options.get(arange)),
+            fill_missing_model : 
+            gaps.fill_missing_model(options.get(to_fill),options.get(to_use),options.get(arange)),
+            fill_missing_daybefore : 
+            gaps.fill_missing_daybefore(options.get(to_fill),options.get(arange),options.get(range_to_replace)),
+        }
+        switcher.get(filling_function)
+        
+        # compare with original data 
+        indexes_to_compare = gaps.meta_valid[self.meta_valid[data_name]=='filtered'].index
+        avg_deviation = (abs(orig.data[data_name][indexes_to_compare] - 
+                             gaps.data[data_name][indexes_to_compare])/ \
+                         orig.data[data_name][indexes_]).mean()
+        
+        if not isinstance(self.filling_reliability,pd.DataFrame()):
+            self.filling_error = pd.DataFrame(columns = self.data.columns)
+        self.filling_error[data_name] = avg_deviation
     
 #==============================================================================
 # LOOKUP FUNCTIONS
