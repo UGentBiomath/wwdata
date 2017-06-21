@@ -1096,12 +1096,16 @@ class OnlineSensorBased(HydroData):
         left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
         print(str(left)+" % of datapoints left after creating gaps")
     
-    def check_filling_error(self,data_name,filling_function,
+    def _calculate_filling_error(self,data_name,filling_function,
                             nr_small_gaps=0,max_size_small_gaps=0,
                             nr_large_gaps=0,max_size_large_gaps=0,
                             **options):
         """
-        
+        Calculates a filling error based on the articial and random creation of
+        gaps in a dataset, subsequent filling of those gaps with a defined 
+        algorithm and comparison of the filling results with the original data.
+        Because this happens randomly, results differ every time this function
+        is used. To get an average of the errors, run check_filling_error.
         
         Parameters
         ----------
@@ -1118,6 +1122,10 @@ class OnlineSensorBased(HydroData):
         **options: 
             Arguments for the filling function; refer to the relevant filling 
             function to know what arguments to give
+        
+        Returns
+        -------
+        None
         
         """
         orig = self.__class__(self.data)
@@ -1172,10 +1180,38 @@ class OnlineSensorBased(HydroData):
         
         if avg_deviation == 100.000000:
             print('No points were filled with the defined filling algorithm. Check the filling function arguments to ensure that filling can happen')
+            return None
         else:
-            self.filling_error.ix[data_name] = avg_deviation
-            print('Average deviation of imputed points compared to original ones is '+\
-                  str(avg_deviation)+"% . This value is also saved in self.filling_error")
+            return avg_deviation
+            
+    def check_filling_error(self,nr_iterations,data_name,filling_function,
+                            nr_small_gaps=0,max_size_small_gaps=0,
+                            nr_large_gaps=0,max_size_large_gaps=0,
+                            **options):
+        """
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        
+        """
+        
+        filling_errors = np.array([])
+        for iteration in range(0,nr_iterations):
+            iter_error = self._calculate_filling_error(data_name,filling_function,
+                                                       nr_small_gaps=0,max_size_small_gaps=0,
+                                                       nr_large_gaps=0,max_size_large_gaps=0,
+                                                       **options)
+            filling_errors = np.append(filling_errors,iter_error)
+            
+        avg = filling_errors.mean()
+        
+        self.filling_error.ix[data_name] = avg
+        print('Average deviation of imputed points compared to original ones is '+\
+              str(avg)+"% . This value is also saved in self.filling_error")
+        
     
 #==============================================================================
 # LOOKUP FUNCTIONS
