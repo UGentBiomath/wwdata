@@ -58,7 +58,7 @@ class OnlineSensorBased(HydroData):
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
-        self.filling_error = pd.DataFrame(index = self.data.columns)
+        self.filling_error = pd.DataFrame(index = self.data.columns,columns=['imputation error'])
     
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -1092,8 +1092,12 @@ class OnlineSensorBased(HydroData):
         # replace values when higher than length of the dataset with the maximum position
         locations = np.clip(locations,0,len(self.meta_valid)-1)
         
-        # create gaps
+        # create gaps by replacing data with 0; not nan, because this will 
+        # complicate comparison with filled values when using check_filling_error
+        self.data[data_name].iloc[locations] = 0
+        # create gaps in meta_valid
         self.meta_valid.iloc[locations] = 'filtered'
+        
         
         # user output
         left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
@@ -1140,6 +1144,12 @@ class OnlineSensorBased(HydroData):
             gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
             gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=False)
         
+        # create a column in gaps.filled containing the artificial gaps; this 
+        # avoids calling of the add_to_filled function in the filling functions
+        # which would reset gaps.filled to the original dataset and make 
+        # comparing after data imputation impossible
+        gaps.filled[data_name] = gaps.data[data_name]
+        
         # fill gaps    
         switcher = {
             'fill_missing_interpolation' : 
@@ -1162,12 +1172,12 @@ class OnlineSensorBased(HydroData):
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
         deviations = (abs(orig.data[data_name][indexes_to_compare] - 
-                             gaps.filled[data_name][indexes_to_compare])/ \
-                         orig.data[data_name][indexes_to_compare])
+                          gaps.filled[data_name][indexes_to_compare])/ \
+                      orig.data[data_name][indexes_to_compare])
         # drop inf values and calculate average
         avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
         
-        gaps.filling_error[data_name] = avg_deviation
+        self.filling_error.ix[data_name] = avg_deviation
         print('Average deviation of imputed points compared to original ones is '+\
               str(avg_deviation)+"% . This value is also saved in self.filling_error")
     
