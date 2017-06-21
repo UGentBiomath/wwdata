@@ -1048,7 +1048,7 @@ class OnlineSensorBased(HydroData):
     ###   CHECKING
     #####################
     
-    def _create_gaps(self,data_name,number,max_size,reset=False):
+    def _create_gaps(self,data_name,number,max_size,reset=False,user_output=False):
         """
         Randomly creates gaps in the data by introducing fake 'filtered' tags in 
         meta_valid. This artificial creation of gaps can be filled later to
@@ -1097,11 +1097,10 @@ class OnlineSensorBased(HydroData):
         self.data[data_name].iloc[locations] = 0
         # create gaps in meta_valid
         self.meta_valid.iloc[locations] = 'filtered'
-        
-        
-        # user output
-        left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
-        print(str(left)+" % of datapoints left after creating gaps")
+    
+        if user_output:
+            left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
+            print(str(left)+" % of datapoints left after creating gaps")
     
     def _calculate_filling_error(self,data_name,filling_function,
                             nr_small_gaps=0,max_size_small_gaps=0,
@@ -1116,23 +1115,12 @@ class OnlineSensorBased(HydroData):
         
         Parameters
         ----------
-        data_name : string
-            name of the column containing the data the filling reliability needs 
-            to be checked for.
-        filling function : wwdata filling function 
-            the name of the filling function to be tested for reliability
-        nr_small_gaps / nr_large_gaps: int    
-            the number of small/large gaps to create in the dataset for testing
-        max_size_small_gaps / max_size_large_gaps: int
-            the maximum size of the gaps inserted in the data, expressed in data
-            points
-        **options: 
-            Arguments for the filling function; refer to the relevant filling 
-            function to know what arguments to give
+        please refer to the check_filling_error docstring for the parameter
+        definitions.
         
         Returns
         -------
-        None
+        Average filling error
         
         """
         orig = self.__class__(self.data)
@@ -1196,20 +1184,44 @@ class OnlineSensorBased(HydroData):
                             nr_large_gaps=0,max_size_large_gaps=0,
                             **options):
         """
+        Uses the _calculate_filling_error function (refer to that docstring for
+        more specific info) to calculate the error on the data points that are 
+        filled with a certain algorithm.
+        Because this function inserts random gaps, results differ every time it
+        is used. Check_filling_error averages this out.
         
         Parameters
         ----------
-        
+        nr_iterations : int
+            The number of iterations to run for the calculation of the imputation
+            error
+        data_name : string
+            name of the column containing the data the filling reliability needs 
+            to be checked for.
+        filling function : wwdata filling function 
+            the name of the filling function to be tested for reliability
+        nr_small_gaps / nr_large_gaps: int    
+            the number of small/large gaps to create in the dataset for testing
+        max_size_small_gaps / max_size_large_gaps: int
+            the maximum size of the gaps inserted in the data, expressed in data
+            points
+        **options: 
+            Arguments for the filling function; refer to the relevant filling 
+            function to know what arguments to give
+                
         Returns
         -------
+        None; adds the average filling error the self.filling_error dataframe
         
         """
         
         filling_errors = np.array([])
         for iteration in range(0,nr_iterations):
             iter_error = self._calculate_filling_error(data_name,filling_function,
-                                                       nr_small_gaps=0,max_size_small_gaps=0,
-                                                       nr_large_gaps=0,max_size_large_gaps=0,
+                                                       nr_small_gaps=nr_small_gaps,
+                                                       max_size_small_gaps=max_size_small_gaps,
+                                                       nr_large_gaps=nr_large_gaps,
+                                                       max_size_large_gaps=max_size_large_gaps,
                                                        **options)
             filling_errors = np.append(filling_errors,iter_error)
             
