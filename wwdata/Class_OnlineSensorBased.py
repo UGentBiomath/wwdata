@@ -1050,7 +1050,7 @@ class OnlineSensorBased(HydroData):
     
     def _create_gaps(self,data_name,number,max_size,reset=False):
         """
-        Creates gaps in the data by introducing fake 'filtered' tags in 
+        Randomly creates gaps in the data by introducing fake 'filtered' tags in 
         meta_valid. This artificial creation of gaps can be filled later to
         test the reliability of the filling algorithms.
         
@@ -1089,7 +1089,9 @@ class OnlineSensorBased(HydroData):
         # in meta_valid)
         locs = [np.arange(x,x+y) for x,y in zip(positions,sizes)]
         locations = np.concatenate([x for x in locs])
-        #cut values off when higher than len(self.meta_valid)
+        # replace values when higher than length of the dataset with the maximum position
+        locations = np.clip(locations,0,len(self.meta_valid)-1)
+        
         
         # create gaps
         self.meta_valid.iloc[locations] = 'filtered'
