@@ -58,7 +58,7 @@ class OnlineSensorBased(HydroData):
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
-        self.filling_error = pd.DataFrame(index=self.data.index)
+        self.filling_error = pd.DataFrame(index = self.data.columns)
     
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -1095,8 +1095,7 @@ class OnlineSensorBased(HydroData):
         self.meta_valid.iloc[locations] = 'filtered'
         
         # user output
-        #correct!
-        left = self.meta_valid.groupby(data_name).size()[0]*100/len(self.meta_valid)
+        left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
         print(str(left)+" % of datapoints left after creating gaps")
     
     def check_filling_error(self,data_name,filling_function,
@@ -1109,18 +1108,18 @@ class OnlineSensorBased(HydroData):
         Parameters
         ----------
         data_name : string
-            name of the column containing the data the filling reliability needs to be checked for.
-        filling function : wwdata function
-            
-        arg_small_gaps : 2-element array
-            The arguments for the _create_small_gaps function: the number of gaps to be created and
-            the size of the gaps (given as an array, see also _create_small_gaps docstring)
-        arg_large_gaps : 2-element array
-            The arguments for the _create_large_gaps function: the number of gaps to be created and
-            the size of the gaps (given as an array, see also _create_large_gaps docstring)
-        *options: 
-            Arguments for the filling function; refer to the relevant filling function to know what 
-            to enter
+            name of the column containing the data the filling reliability needs 
+            to be checked for.
+        filling function : wwdata filling function 
+            the name of the filling function to be tested for reliability
+        nr_small_gaps / nr_large_gaps: int    
+            the number of small/large gaps to create in the dataset for testing
+        max_size_small_gaps / max_size_large_gaps: int
+            the maximum size of the gaps inserted in the data, expressed in data
+            points
+        **options: 
+            Arguments for the filling function; refer to the relevant filling 
+            function to know what arguments to give
         
         """
         orig = self.__class__(self.data[data_name])
@@ -1156,15 +1155,20 @@ class OnlineSensorBased(HydroData):
             "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
         }
         function = switcher.get(filling_function, None)
+        #ADD: try to suppress warnings when executing the below!
         exec(function)
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
-        avg_deviation = (abs(orig.data[data_name][indexes_to_compare] - 
-                             gaps.data[data_name][indexes_to_compare])/ \
-                         orig.data[data_name][indexes_to_compare]).mean()
+        deviations = (abs(orig.data[data_name][indexes_to_compare] - 
+                             gaps.filled[data_name][indexes_to_compare])/ \
+                         orig.data[data_name][indexes_to_compare])
+        # drop inf values and calculate average
+        avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()
         
-        self.filling_error[data_name] = avg_deviation
+        gaps.filling_error[data_name] = avg_deviation
+        print('Average deviation of imputed points compared to original ones is '+\
+              str(avg_deviation)+". This value is also saved in self.filling_error")
     
 #==============================================================================
 # LOOKUP FUNCTIONS
