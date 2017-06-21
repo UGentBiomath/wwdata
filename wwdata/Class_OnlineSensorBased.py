@@ -1128,11 +1128,7 @@ class OnlineSensorBased(HydroData):
         gaps.get_highs(data_name,0.9)
         
         # create gaps; 
-        if nr_small_gaps == 0 and nr_large_gaps == 0:
-            wn.warn("No information was provided to make the gaps with. Please" +\
-                    "specify the number of small or large gaps you want to "+\
-                    "create for testing")
-        elif nr_small_gaps == 0:
+        if nr_small_gaps == 0:
             gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=True)
         elif nr_large_gaps == 0:
             gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
@@ -1179,8 +1175,8 @@ class OnlineSensorBased(HydroData):
             return avg_deviation
             
     def check_filling_error(self,nr_iterations,data_name,filling_function,
-                            nr_small_gaps=0,max_size_small_gaps=0,
-                            nr_large_gaps=0,max_size_large_gaps=0,
+                            nr_small_gaps=None,max_size_small_gaps=None,
+                            nr_large_gaps=None,max_size_large_gaps=None,
                             **options):
         """
         Uses the _calculate_filling_error function (refer to that docstring for
@@ -1213,6 +1209,13 @@ class OnlineSensorBased(HydroData):
         None; adds the average filling error the self.filling_error dataframe
         
         """
+        print(nr_small_gaps)
+        print(nr_large_gaps)
+        
+        if nr_small_gaps == None and nr_large_gaps == None :
+            ValueError("No information was provided to make the gaps with. "+\
+                       "Please specify the number of small or large gaps you "+\
+                       "want to create for testing")
         
         filling_errors = np.array([])
         for iteration in range(0,nr_iterations):
