@@ -1085,7 +1085,6 @@ class OnlineSensorBased(HydroData):
         # replace values when higher than length of the dataset with the maximum position
         locations = np.clip(locations,0,len(self.meta_valid)-1)
         
-        
         # create gaps
         self.meta_valid.iloc[locations] = 'filtered'
         
@@ -1159,11 +1158,11 @@ class OnlineSensorBased(HydroData):
                              gaps.filled[data_name][indexes_to_compare])/ \
                          orig.data[data_name][indexes_to_compare])
         # drop inf values and calculate average
-        avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()
+        avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
         
         gaps.filling_error[data_name] = avg_deviation
         print('Average deviation of imputed points compared to original ones is '+\
-              str(avg_deviation)+". This value is also saved in self.filling_error")
+              str(avg_deviation)+"% . This value is also saved in self.filling_error")
     
 #==============================================================================
 # LOOKUP FUNCTIONS
