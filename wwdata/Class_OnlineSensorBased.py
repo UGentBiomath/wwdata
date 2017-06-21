@@ -1177,9 +1177,12 @@ class OnlineSensorBased(HydroData):
         # drop inf values and calculate average
         avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
         
-        self.filling_error.ix[data_name] = avg_deviation
-        print('Average deviation of imputed points compared to original ones is '+\
-              str(avg_deviation)+"% . This value is also saved in self.filling_error")
+        if avg_deviation == 100.000000:
+            print('No points were filled with the defined filling algorithm. Check the filling function arguments to ensure that filling can happen')
+        else:
+            self.filling_error.ix[data_name] = avg_deviation
+            print('Average deviation of imputed points compared to original ones is '+\
+                  str(avg_deviation)+"% . This value is also saved in self.filling_error")
     
 #==============================================================================
 # LOOKUP FUNCTIONS
