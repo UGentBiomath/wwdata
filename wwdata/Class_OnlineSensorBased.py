@@ -1167,7 +1167,6 @@ class OnlineSensorBased(HydroData):
         avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
         
         if avg_deviation == 100.000000:
-            print('No points were filled with the defined filling algorithm. Check the filling function arguments to ensure that filling can happen')
             return None
         else:
             return avg_deviation
@@ -1216,13 +1215,18 @@ class OnlineSensorBased(HydroData):
                                                        nr_large_gaps=nr_large_gaps,
                                                        max_size_large_gaps=max_size_large_gaps,
                                                        **options)
+            if iter_error == None:
+                print('No points were filled with the defined filling algorithm.'+\
+                      ' Check the filling function arguments to ensure that filling'+\
+                      ' can happen')
+                return None
             filling_errors = np.append(filling_errors,iter_error)
             
         avg = filling_errors.mean()
         
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points compared to original ones is '+\
-              str(avg)+"% . This value is also saved in self.filling_error")
+              str(avg)+"%. This value is also saved in self.filling_error")
         
     
 #==============================================================================

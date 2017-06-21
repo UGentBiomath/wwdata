@@ -1247,7 +1247,7 @@ class HydroData():
             arange = [(self.data.index[0] + dt.timedelta(arange[0]-1)),
                       (self.data.index[0] + dt.timedelta(arange[1]-1))]
 
-        if arange[0] < self.time[0] or arange[1] > self.time[-1]:
+        if arange[0] <= self.time[0] or arange[1] >= self.time[-1]:
             raise IndexError('Index out of bounds. Check whether the values of '+ \
             '"arange" are within the index range of the data.')
 
