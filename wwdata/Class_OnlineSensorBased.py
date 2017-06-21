@@ -1127,8 +1127,8 @@ class OnlineSensorBased(HydroData):
             function to know what arguments to give
         
         """
-        orig = self.__class__(self.data[data_name])
-        gaps = self.__class__(self.data[data_name])
+        orig = self.__class__(self.data)
+        gaps = self.__class__(self.data)
         gaps.get_highs(data_name,0.9)
         
         # create gaps; 
@@ -1155,7 +1155,7 @@ class OnlineSensorBased(HydroData):
             'fill_missing_interpolation' : 
             "gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange'))",
             'fill_missing_ratio' : 
-            "gaps.fill_missing_ratio(options.get('fo_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
+            "gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
             'fill_missing_correlation' : 
             "gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
             'fill_missing_standard' : 
