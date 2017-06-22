@@ -58,7 +58,8 @@ class OnlineSensorBased(HydroData):
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
         self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
-        self.filling_error = pd.DataFrame(index = self.data.columns,columns=['imputation error'])
+        self.filling_error = pd.DataFrame(index = self.data.columns,
+                                          columns=['imputation error [%]'])
     
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -975,14 +976,14 @@ class OnlineSensorBased(HydroData):
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before, adjust the range"+\
-                                 "for replacement.")
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
             time = pd.Series((self.filled[to_fill][arange[0]-oneday:arange[0]].index).time)    
         elif isinstance(self.data.index[0],float):
             oneday = 1
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before, adjust the range"+\
-                                 "for replacement.")
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
             time = pd.Series(self.filled[to_fill][arange[0]-oneday:arange[0]].index).apply(lambda x: x-int(x))
             
         day_before = pd.DataFrame(self.filled[to_fill][arange[0]-oneday:arange[0]].values,
@@ -1256,7 +1257,7 @@ class OnlineSensorBased(HydroData):
         avg = filling_errors.mean()
         
         self.filling_error.ix[data_name] = avg
-        print('Average deviation of imputed points compared to original ones is '+\
+        print('Average deviation of imputed points from the original ones is '+\
               str(avg)+"%. This value is also saved in self.filling_error.")
         
         # turn warnings on again
