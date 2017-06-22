@@ -537,7 +537,7 @@ class HydroData():
                     column + '. The original column was kept.')
 
 
-    def tag_nan(self,data_name,clear=False):
+    def tag_nan(self,data_name,arange=None,clear=False):
         """
         adds a tag 'filtered' in self.meta_valid for every NaN value in the given
         column
@@ -546,6 +546,8 @@ class HydroData():
         ----------
         data_name : str
             column name of the column to apply the function to
+        arange : array of two values
+            the range within which nan values need to be tagged
         clear : bool
             when true, resets the tags in meta_valid for the data in column
             data_name
@@ -556,16 +558,38 @@ class HydroData():
 
         """
         self._plot='valid'
-        len_orig = len(self.data[data_name])
 
         if clear:
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
-
-        self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
-                                     'filtered','original')
-        len_new = self.data[data_name].count()
-
+        
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+        
+        if arange == None:
+            len_orig = len(self.data[data_name])
+            self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
+                                                  'filtered','original')
+            len_new = self.data[data_name].count()
+    
+        else:
+            # check if arange has the right type
+            try:
+                len_orig = len(self.data[data_name][arange[0]:arange[1]])
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.") 
+                
+            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(np.isnan(self.data[data_name][arange[0]:arange[1]]),
+                                                                       'filtered','original')
+            len_new = self.data[data_name][arange[0]:arange[1]].count()
+    
         print(str(len_orig-len_new) + ' NaN values detected and tagged as filtered.')
 
     def tag_doubles(self,data_name,bound,clear=False,inplace=False,log_file=None,
