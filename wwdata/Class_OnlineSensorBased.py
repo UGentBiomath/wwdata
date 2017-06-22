@@ -668,7 +668,7 @@ class OnlineSensorBased(HydroData):
                 Run calc_daily_profile() to get an average daily profile for " + to_fill)
         except AttributeError:
             raise AttributeError("self.daily_profile doesn't exist yet, meaning "+
-            "there is not data available to replace other data with. Run "+
+            "there is no data available to replace other data with. Run "+
             "calc_daily_profile() to get an average daily profile for " + to_fill)
   
         # Give warning when replacing data from rain events and at the same time
@@ -1151,15 +1151,19 @@ class OnlineSensorBased(HydroData):
             'fill_missing_correlation' : 
             "gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
             'fill_missing_standard' : 
-            "gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
+            "gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'));gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
             'fill_missing_model' : 
             "gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange'))",
             'fill_missing_daybefore' : 
             "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
         }
         function = switcher.get(filling_function, None)
-        #ADD: try to suppress warnings when executing the below!
-        exec(function)
+        try:
+            exec(function)
+        except TypeError:
+            raise TypeError("Filling function could not be executed due to "+\
+                            "missing argument. Check docstring of the filling "+\
+                            "function to provide appropriate arguments")
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
@@ -1175,8 +1179,8 @@ class OnlineSensorBased(HydroData):
             return avg_deviation
             
     def check_filling_error(self,nr_iterations,data_name,filling_function,
-                            nr_small_gaps=None,max_size_small_gaps=None,
-                            nr_large_gaps=None,max_size_large_gaps=None,
+                            nr_small_gaps=0,max_size_small_gaps=0,
+                            nr_large_gaps=0,max_size_large_gaps=0,
                             **options):
         """
         Uses the _calculate_filling_error function (refer to that docstring for
@@ -1209,13 +1213,14 @@ class OnlineSensorBased(HydroData):
         None; adds the average filling error the self.filling_error dataframe
         
         """
-        print(nr_small_gaps)
-        print(nr_large_gaps)
+        # shut off warnings, to avoid e.g. warning about replacing datapoints 
+        # in wet weather
+        wn.filterwarnings("ignore")
         
-        if nr_small_gaps == None and nr_large_gaps == None :
-            ValueError("No information was provided to make the gaps with. "+\
-                       "Please specify the number of small or large gaps you "+\
-                       "want to create for testing")
+        if nr_small_gaps == 0 and nr_large_gaps == 0 :
+                raise ValueError("No information was provided to make the gaps "+\
+                                 "with. Please specify the number of small or "+\
+                                 "large gaps you want to create for testing")
         
         filling_errors = np.array([])
         for iteration in range(0,nr_iterations):
@@ -1226,9 +1231,11 @@ class OnlineSensorBased(HydroData):
                                                        max_size_large_gaps=max_size_large_gaps,
                                                        **options)
             if iter_error == None:
-                print('No points were filled with the defined filling algorithm.'+\
+                raise ValueError('No points were filled with the defined filling algorithm.'+\
                       ' Check the filling function arguments to ensure that filling'+\
                       ' can happen')
+                # turn warnings on again
+                wn.filterwarnings("always")
                 return None
             filling_errors = np.append(filling_errors,iter_error)
             
@@ -1237,6 +1244,9 @@ class OnlineSensorBased(HydroData):
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points compared to original ones is '+\
               str(avg)+"%. This value is also saved in self.filling_error")
+        
+        # turn warnings on again
+        wn.filterwarnings("always")
         
     
 #==============================================================================
