@@ -968,11 +968,21 @@ class OnlineSensorBased(HydroData):
         # and convert indices to relative ones per day; parallel for 
         # self.meta_filled
         
+        # check if arange[0] is equal to beginning of the dataset; if this is 
+        # the case, change it to one day further for the coming code to work
+        
+    
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
+            if arange[0] < self.time[0]+oneday:
+                raise IndexError("No data from the day before, adjust the range"+\
+                                 "for replacement.")
             time = pd.Series((self.filled[to_fill][arange[0]-oneday:arange[0]].index).time)    
         elif isinstance(self.data.index[0],float):
             oneday = 1
+            if arange[0] < self.time[0]+oneday:
+                raise IndexError("No data from the day before, adjust the range"+\
+                                 "for replacement.")
             time = pd.Series(self.filled[to_fill][arange[0]-oneday:arange[0]].index).apply(lambda x: x-int(x))
             
         day_before = pd.DataFrame(self.filled[to_fill][arange[0]-oneday:arange[0]].values,
@@ -1163,8 +1173,8 @@ class OnlineSensorBased(HydroData):
             exec(function)
         except TypeError:
             raise TypeError("Filling function could not be executed due to "+\
-                            "missing argument. Check docstring of the filling "+\
-                            "function to provide appropriate arguments.")
+                            "wrong or missing argument. Check docstring of the "+\
+                            "filling function to provide appropriate arguments.")
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
@@ -1237,7 +1247,7 @@ class OnlineSensorBased(HydroData):
             if iter_error == None:
                 # turn warnings on again
                 wn.filterwarnings("always")
-                raise ValueError("Filling function could not be executed."+\
+                raise ValueError("Filling function could not be executed. "+\
                                  "Check docstring of the filling "+\
                                  "function to provide appropriate arguments.")
                 
