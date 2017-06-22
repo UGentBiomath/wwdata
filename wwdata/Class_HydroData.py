@@ -592,7 +592,7 @@ class HydroData():
     
         print(str(len_orig-len_new) + ' NaN values detected and tagged as filtered.')
 
-    def tag_doubles(self,data_name,bound,clear=False,inplace=False,log_file=None,
+    def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
                        plot=False,final=False):
         '''CONFIRMED
         deletes double values that subsequently occur in a measurement series.
@@ -640,10 +640,24 @@ class HydroData():
                                  data_type=self.data_type,experiment_tag=self.tag,
                                  time_unit=self.time_unit)
         # Make a mask with False values for double values to be dropped
-        mask = abs(self.data[data_name].dropna().diff()) >= bound
+        bound_mask = abs(self.data[data_name].dropna().diff()) >= bound
         # Make sure the indexes are still the same in the mask and df_temp, so the
-        # taggin can happen
-        mask = mask.reindex(df_temp.index()).fillna(True)
+        # tagging can happen
+        bound_mask = bound_mask.reindex(df_temp.index()).fillna(True)
+        # Make a mask with False values where data needs to be filtered
+        if arange == None:
+            mask = bound_mask
+        else:
+            try:
+                range_mask = (self.index() < arange[0]) + (arange[1] < self.index())
+                mask = bound_mask + range_mask
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.")
 
         # Update the index of self.meta_valid
         if clear:
@@ -653,13 +667,14 @@ class HydroData():
         # Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
+        
         if log_file == None:
             _print_removed_output(len_orig,len_new,'filtered')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else:
             raise TypeError('Provide the location of the log file \
-                            as a string type, or leave the argument if \
+                            as a string type, or drop the argument if \
                             no log file is needed.')
 
         self.meta_valid[data_name][mask==False] = 'filtered'
