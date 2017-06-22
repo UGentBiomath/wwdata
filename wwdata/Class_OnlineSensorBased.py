@@ -1133,7 +1133,8 @@ class OnlineSensorBased(HydroData):
         # avoids calling of the add_to_filled function in the filling functions
         # which would reset gaps.filled to the original dataset and make 
         # comparing after data imputation impossible
-        gaps.filled[data_name] = gaps.data[data_name]
+        gaps.filled = pd.DataFrame(gaps.data[data_name],columns = [data_name], 
+                                   index = gaps.data.index) 
         
         # fill gaps    
         switcher = {
@@ -1156,7 +1157,7 @@ class OnlineSensorBased(HydroData):
         except TypeError:
             raise TypeError("Filling function could not be executed due to "+\
                             "missing argument. Check docstring of the filling "+\
-                            "function to provide appropriate arguments")
+                            "function to provide appropriate arguments.")
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
@@ -1167,6 +1168,9 @@ class OnlineSensorBased(HydroData):
         avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
         
         if avg_deviation == 100.000000:
+            # if avg deviation is 100, this means that gaps.filled was 0 on all
+            # indexes to compare, which is exactly the same as was defined `
+            # befor the filling, i.e. no data were filled.
             return None
         else:
             return avg_deviation
@@ -1224,19 +1228,19 @@ class OnlineSensorBased(HydroData):
                                                        max_size_large_gaps=max_size_large_gaps,
                                                        **options)
             if iter_error == None:
-                raise ValueError('No points were filled with the defined filling algorithm.'+\
-                      ' Check the filling function arguments to ensure that filling'+\
-                      ' can happen')
                 # turn warnings on again
                 wn.filterwarnings("always")
-                return None
+                raise ValueError("Filling function could not be executed."+\
+                                 "Check docstring of the filling "+\
+                                 "function to provide appropriate arguments.")
+                
             filling_errors = np.append(filling_errors,iter_error)
             
         avg = filling_errors.mean()
         
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points compared to original ones is '+\
-              str(avg)+"%. This value is also saved in self.filling_error")
+              str(avg)+"%. This value is also saved in self.filling_error.")
         
         # turn warnings on again
         wn.filterwarnings("always")
