@@ -1136,8 +1136,8 @@ class OnlineSensorBased(HydroData):
         Average filling error
         
         """
-        orig = self.__class__(self.data[options.get('arange')])
-        gaps = self.__class__(self.data[options.get('arange')])
+        orig = self.__class__(self.data[options.get('arange')[0]:options.get('arange')[1]])
+        gaps = self.__class__(self.data[options.get('arange')[0]:options.get('arange')[1]])
         gaps.get_highs(data_name,0.9)
         
         # create gaps; 
