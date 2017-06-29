@@ -266,8 +266,10 @@ class OnlineSensorBased(HydroData):
         range_ : int
             the maximum range that the absence of values can be to still
             allow interpolation to fill in values
+        arange : array of two values
+            the range within which missing/filtered values need to be replaced
         method : str
-            interpolation method to be used by the .interpolate function. See
+	    interpolation method to be used by the .interpolate function. See
             pandas docstrings for more info
         plot : bool
             whether or not to plot the new dataset
