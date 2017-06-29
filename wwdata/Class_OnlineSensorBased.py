@@ -1153,28 +1153,62 @@ class OnlineSensorBased(HydroData):
         gaps.filled = pd.DataFrame(gaps.data[data_name],columns = [data_name], 
                                    index = gaps.data.index) 
         
-        # fill gaps    
-        switcher = {
-            'fill_missing_interpolation' : 
-            "gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange'))",
-            'fill_missing_ratio' : 
-            "gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
-            'fill_missing_correlation' : 
-            "gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
-            'fill_missing_standard' : 
-            "gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'));gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
-            'fill_missing_model' : 
-            "gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange'))",
-            'fill_missing_daybefore' : 
-            "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
-        }
-        function = switcher.get(filling_function, None)
+        # fill gaps 
         try:
-            exec(function)
-        except TypeError:
-            raise TypeError("Filling function could not be executed due to "+\
-                            "wrong or missing argument. Check docstring of the "+\
-                            "filling function to provide appropriate arguments.")
+            if filling_function == 'fill_missing_interpolation':
+                gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),
+                                                    options.get('arange')) 
+
+            elif filling_function == 'fill_missing_ratio':
+                gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),
+                                        options.get('ratio'),options.get('arange'))
+
+            elif filling_function == 'fill_missing_correlation':
+                gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),
+                                              options.get('arange'),options.get('corr_range'),
+                                              options.get('zero_intercept'))
+
+            elif filling_function == 'fill_missing_standard':
+                gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'))
+                gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))
+                
+            elif filling_function == 'fill_missing_model':
+                gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),
+                                            options.get('arange'))
+
+            elif filling_function == 'fill_missing_daybefore':
+                gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),
+                                                options.get('range_to_replace'))
+                
+            else:
+                raise ValueError("Entered filling function is not available for testing.") 
+
+        except:
+            raise TypeError("Filling function could not be executed. Check "+\
+                            "docstring of the filling function to provide "+\
+                            "appropriate arguments.")   
+        
+        #switcher = {
+        #    'fill_missing_interpolation' : 
+        #    "gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange'))",
+        #    'fill_missing_ratio' : 
+        #    "gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
+         #   'fill_missing_correlation' : 
+            #"gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
+#            'fill_missing_standard' : 
+            #"gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'));gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
+         #   'fill_missing_model' : 
+         #   "gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange'))",
+#            'fill_missing_daybefore' : 
+         #   "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
+        #}
+        #function = switcher.get(filling_function, None)
+        #try:
+        #    exec(function)
+        #except TypeError:
+        #    raise TypeError("Filling function could not be executed due to "+\
+        #                    "wrong or missing argument. Check docstring of the "+\
+        #                    "filling function to provide appropriate arguments.")
         
         # compare with original data 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
