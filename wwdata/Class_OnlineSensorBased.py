@@ -1205,7 +1205,7 @@ class OnlineSensorBased(HydroData):
         data_name : string
             name of the column containing the data the filling reliability needs 
             to be checked for.
-        filling function : wwdata filling function 
+        filling function : str, wdata filling function 
             the name of the filling function to be tested for reliability
         nr_small_gaps / nr_large_gaps: int    
             the number of small/large gaps to create in the dataset for testing
