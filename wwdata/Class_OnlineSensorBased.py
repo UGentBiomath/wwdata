@@ -1203,8 +1203,15 @@ class OnlineSensorBased(HydroData):
         Uses the _calculate_filling_error function (refer to that docstring for
         more specific info) to calculate the error on the data points that are 
         filled with a certain algorithm.
-        Because this function inserts random gaps, results differ every time it
-        is used. Check_filling_error averages this out.
+        Because _calculate_filling_error inserts random gaps, results differ 
+        every time it is used. Check_filling_error averages this out.
+        
+        !! Important !!
+        When checking for the error on data filling, a period (arange argument) 
+        with mostly reliable data should be used. If for example large gaps are
+        already present in the given data, this will heavily influence the 
+        returned error, as filled values will be compared with the values from 
+        the data gap.
         
         Parameters
         ----------
