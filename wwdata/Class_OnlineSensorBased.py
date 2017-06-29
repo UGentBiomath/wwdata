@@ -978,14 +978,18 @@ class OnlineSensorBased(HydroData):
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before available, "+\
-                                 "adjust the range for replacement.")
+                arange[0] = arange[0] + oneday
+                wn.warn("The range for replacement given in the arange argument "+\
+                        "included the first day of data. The range was adjusted to"+\
+                        "start one day later.")
             time = pd.Series((self.filled[to_fill][arange[0]-oneday:arange[0]].index).time)    
         elif isinstance(self.data.index[0],float):
             oneday = 1
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before available, "+\
-                                 "adjust the range for replacement.")
+                arange[0] = arange[0] + oneday
+                wn.warn("The range for replacement given in the arange argument "+\
+                        "included the first day of data. The range was adjusted to"+\
+                        "start one day later.")
             time = pd.Series(self.filled[to_fill][arange[0]-oneday:arange[0]].index).apply(lambda x: x-int(x))
             
         day_before = pd.DataFrame(self.filled[to_fill][arange[0]-oneday:arange[0]].values,
