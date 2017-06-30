@@ -1113,7 +1113,7 @@ class OnlineSensorBased(HydroData):
         
         # create gaps by replacing data with 0; not nan, because this will 
         # complicate comparison with filled values when using check_filling_error
-        self.data[data_name].iloc[locations] = 0
+        self.data.loc(data_name,locations) = 0
         # create gaps in meta_valid
         self.meta_valid.iloc[locations] = 'filtered'
     
@@ -1292,8 +1292,8 @@ class OnlineSensorBased(HydroData):
             if iter_error == None:
                 # turn warnings on again
                 wn.filterwarnings("always")
-                raise ValueError("Filling function could not be executed. "+\
-                                 "Check docstring of the filling "+\
+                raise ValueError("Checking of the filling function could not "+\
+                                 "be executed. Check docstring of the filling "+\
                                  "function to provide appropriate arguments.")
                 
             filling_errors = filling_errors.append(pd.Series([iter_error])
