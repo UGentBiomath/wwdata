@@ -1106,7 +1106,7 @@ class OnlineSensorBased(HydroData):
         
         # create gaps by replacing data with 0; not nan, because this will 
         # complicate comparison with filled values when using check_filling_error
-        self.data.loc(data_name,locations) = 0
+        self.data[data_name].iloc[locations] = 0
         # create gaps in meta_valid
         self.meta_valid.iloc[locations] = 'filtered'
     
@@ -1166,6 +1166,7 @@ class OnlineSensorBased(HydroData):
                                         options['ratio'],options['arange'])
 
             elif filling_function == 'fill_missing_correlation':
+                print(options)
                 gaps.fill_missing_correlation(options['to_fill'],options['to_use'],
                                               options['arange'],options['corr_range'],
                                               options['zero_intercept'])
@@ -1289,7 +1290,7 @@ class OnlineSensorBased(HydroData):
                                  "be executed. Check docstring of the filling "+\
                                  "function to provide appropriate arguments.")
                 
-            filling_errors = filling_errors.append(pd.Series([iter_error])
+            filling_errors = filling_errors.append(pd.Series([iter_error]))
             
         avg = filling_errors.dropna().mean()
         
