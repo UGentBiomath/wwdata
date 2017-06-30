@@ -1186,12 +1186,14 @@ class OnlineSensorBased(HydroData):
                                         options['arange'])
 
             elif filling_function == 'fill_missing_daybefore':
+                # make a copy of options, because otherwise the object keeps on changing
+                # in every for-iteration of the check_filling_error function
+                arange = [options['arange'].copy()[0],
+                          options['arange'].copy()[1]]
                 # check if there is a 'day before' to do filling; this will not be
                 # the case, because length of the dataeset and to_fill range are the
                 # same, but checking in this way still needs to happen because of
-                # the for-loop in the check_filling_error_function
-                arange = [options['arange'].copy()[0],
-                          options['arange'].copy()[1]]
+                # the for-loop in the check_filling_error function
                 if isinstance(gaps.time[0],dt.datetime):
                     oneday = dt.timedelta(1)
                     if options['arange'][0] < gaps.time[0]+oneday:
@@ -1211,30 +1213,7 @@ class OnlineSensorBased(HydroData):
             raise TypeError("Filling function could not be executed. Check "+\
                             "docstring of the filling function to provide "+\
                             "appropriate arguments.")   
-        
-        #switcher = {
-        #    'fill_missing_interpolation' : 
-        #    "gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),options.get('arange'))",
-        #    'fill_missing_ratio' : 
-        #    "gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),options.get('ratio'),options.get('arange'))",
-         #   'fill_missing_correlation' : 
-            #"gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),options.get('arange'),options.get('corr_range'),options.get('zero_intercept'))",
-#            'fill_missing_standard' : 
-            #"gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'));gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))",
-         #   'fill_missing_model' : 
-         #   "gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),options.get('arange'))",
-#            'fill_missing_daybefore' : 
-         #   "gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),options.get('range_to_replace'))",
-        #}
-        #function = switcher.get(filling_function, None)
-        #try:
-        #    exec(function)
-        #except TypeError:
-        #    raise TypeError("Filling function could not be executed due to "+\
-        #                    "wrong or missing argument. Check docstring of the "+\
-        #                    "filling function to provide appropriate arguments.")
-        
-        # compare with original data 
+         
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
         deviations = (abs(orig.data[data_name][indexes_to_compare] - 
                           gaps.filled[data_name][indexes_to_compare])/ \
@@ -1301,15 +1280,8 @@ class OnlineSensorBased(HydroData):
                                  "with. Please specify the number of small or "+\
                                  "large gaps you want to create for testing")
         
-        filling_errors = np.array([])
-        #options_temp = options.copy()
-        #print(options_temp)
+        filling_errors = pd.Series([])
         for iteration in range(0,nr_iterations):
-            # reset options every loop
-            #print(options_temp)
-            #options_filling_function = options_temp.copy()
-            #print(options_temp)
-            #print(options_filling_function)
             iter_error = self._calculate_filling_error(data_name,filling_function,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
@@ -1324,9 +1296,9 @@ class OnlineSensorBased(HydroData):
                                  "Check docstring of the filling "+\
                                  "function to provide appropriate arguments.")
                 
-            filling_errors = np.append(filling_errors,iter_error)
+            filling_errors = filling_errors.append(pd.Series([iter_error])
             
-        avg = filling_errors.mean()
+        avg = filling_errors.dropna().mean()
         
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points from the original ones is '+\
