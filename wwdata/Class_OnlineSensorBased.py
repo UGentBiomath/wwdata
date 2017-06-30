@@ -1192,12 +1192,12 @@ class OnlineSensorBased(HydroData):
                 # the for-loop in the check_filling_error_function
                 if isinstance(gaps.time[0],dt.datetime):
                     oneday = dt.timedelta(1)
-                    if arange[0] < gaps.time[0]+oneday:
-                        arange[0] = arange[0] + oneday    
+                    if options['arange'][0] < gaps.time[0]+oneday:
+                        options['arange'][0] = options['arange'][0] + oneday    
                 elif isinstance(gaps.time[0],float):
                     oneday = 1
-                    if arange[0] < gaps.time[0]+oneday:
-                        arange[0] = arange[0] + oneday
+                    if options['arange'][0] < gaps.time[0]+oneday:
+                        options['arange'][0] = options['arange'][0] + oneday
                         
                 gaps.fill_missing_daybefore(options['to_fill'],options['arange'],
                                             options['range_to_replace'])
