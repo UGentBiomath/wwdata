@@ -1156,29 +1156,29 @@ class OnlineSensorBased(HydroData):
         # fill gaps 
         try:
             if filling_function == 'fill_missing_interpolation':
-                gaps.fill_missing_interpolation(options.get('to_fill'),options.get('range_'),
-                                                    options.get('arange')) 
+                gaps.fill_missing_interpolation(options['to_fill'],options['range_'],
+                                                options['arange']) 
 
             elif filling_function == 'fill_missing_ratio':
-                gaps.fill_missing_ratio(options.get('to_fill'),options.get('to_use'),
-                                        options.get('ratio'),options.get('arange'))
+                gaps.fill_missing_ratio(options['to_fill'],options['to_use'],
+                                        options['ratio'],options['arange'])
 
             elif filling_function == 'fill_missing_correlation':
-                gaps.fill_missing_correlation(options.get('to_fill'),options.get('to_use'),
-                                              options.get('arange'),options.get('corr_range'),
-                                              options.get('zero_intercept'))
+                gaps.fill_missing_correlation(options['to_fill'],options['to_use'],
+                                              options['arange'],options['corr_range'],
+                                              options['zero_intercept'])
 
             elif filling_function == 'fill_missing_standard':
-                gaps.calc_daily_profile(options.get('to_fill'),options.get('arange'))
-                gaps.fill_missing_standard(options.get('to_fill'),options.get('arange'))
+                gaps.calc_daily_profile(options['to_fill'],options['arange'])
+                gaps.fill_missing_standard(options['to_fill'],options['arange'])
                 
             elif filling_function == 'fill_missing_model':
-                gaps.fill_missing_model(options.get('to_fill'),options.get('to_use'),
-                                            options.get('arange'))
+                gaps.fill_missing_model(options['to_fill'],options['to_use'],
+                                        options['arange'])
 
             elif filling_function == 'fill_missing_daybefore':
-                gaps.fill_missing_daybefore(options.get('to_fill'),options.get('arange'),
-                                                options.get('range_to_replace'))
+                gaps.fill_missing_daybefore(options['to_fill'],options['arange'],
+                                            options['range_to_replace'])
                 
             else:
                 raise ValueError("Entered filling function is not available for testing.") 
