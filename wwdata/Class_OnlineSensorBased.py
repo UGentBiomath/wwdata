@@ -978,18 +978,22 @@ class OnlineSensorBased(HydroData):
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
             if arange[0] < self.time[0]+oneday:
-                arange[0] = arange[0] + oneday
-                wn.warn("The range for replacement given in the arange argument "+\
-                        "included the first day of data. The range was adjusted to"+\
-                        "start one day later.")
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
+                #arange[0] = arange[0] + oneday
+                #wn.warn("The range for replacement given in the arange argument "+\
+                #        "included the first day of data. The range was adjusted to"+\
+                #        "start one day later.")
             time = pd.Series((self.filled[to_fill][arange[0]-oneday:arange[0]].index).time)    
         elif isinstance(self.data.index[0],float):
             oneday = 1
             if arange[0] < self.time[0]+oneday:
-                arange[0] = arange[0] + oneday
-                wn.warn("The range for replacement given in the arange argument "+\
-                        "included the first day of data. The range was adjusted to"+\
-                        "start one day later.")
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
+                #arange[0] = arange[0] + oneday
+                #wn.warn("The range for replacement given in the arange argument "+\
+                #        "included the first day of data. The range was adjusted to"+\
+                #        "start one day later.")
             time = pd.Series(self.filled[to_fill][arange[0]-oneday:arange[0]].index).apply(lambda x: x-int(x))
             
         day_before = pd.DataFrame(self.filled[to_fill][arange[0]-oneday:arange[0]].values,
@@ -997,8 +1001,6 @@ class OnlineSensorBased(HydroData):
         day_before.columns = ['data']
         day_before = day_before.reset_index().drop_duplicates('index',keep='first').\
                      set_index('index')
-        #day_before_meta = self.meta_filled[to_fill][arange[0]-1:arange[0]]
-        #day_before_meta.index = pd.Series(day_before_meta.index).apply(lambda x: x-int(x))
         
         range_to_replace[0] = range_to_replace[0] * len(day_before)
         range_to_replace[1] = range_to_replace[1] * len(day_before)
@@ -1184,6 +1186,19 @@ class OnlineSensorBased(HydroData):
                                         options['arange'])
 
             elif filling_function == 'fill_missing_daybefore':
+                # check if there is a 'day before' to do filling; this will not be
+                # the case, because length of the dataeset and to_fill range are the
+                # same, but checking in this way still needs to happen because of
+                # the for-loop in the check_filling_error_function
+                if isinstance(gaps.time[0],dt.datetime):
+                    oneday = dt.timedelta(1)
+                    if arange[0] < gaps.time[0]+oneday:
+                        arange[0] = arange[0] + oneday    
+                elif isinstance(gaps.time[0],float):
+                    oneday = 1
+                    if arange[0] < gaps.time[0]+oneday:
+                        arange[0] = arange[0] + oneday
+                        
                 gaps.fill_missing_daybefore(options['to_fill'],options['arange'],
                                             options['range_to_replace'])
                 
@@ -1286,6 +1301,8 @@ class OnlineSensorBased(HydroData):
         
         filling_errors = np.array([])
         for iteration in range(0,nr_iterations):
+            # reset arange every loop
+            options['arange'] = options.get('arange')
             iter_error = self._calculate_filling_error(data_name,filling_function,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
