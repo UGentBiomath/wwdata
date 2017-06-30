@@ -1186,23 +1186,23 @@ class OnlineSensorBased(HydroData):
                                         options['arange'])
 
             elif filling_function == 'fill_missing_daybefore':
-                print(gaps)
-                print(options)
                 # check if there is a 'day before' to do filling; this will not be
                 # the case, because length of the dataeset and to_fill range are the
                 # same, but checking in this way still needs to happen because of
                 # the for-loop in the check_filling_error_function
+                arange = [options['arange'].copy()[0],
+                          options['arange'].copy()[1]]
                 if isinstance(gaps.time[0],dt.datetime):
                     oneday = dt.timedelta(1)
                     if options['arange'][0] < gaps.time[0]+oneday:
-                        options['arange'][0] = options['arange'][0] + oneday    
+                        arange[0] = options['arange'].copy()[0] + oneday    
                 elif isinstance(gaps.time[0],float):
                     oneday = 1
                     if options['arange'][0] < gaps.time[0]+oneday:
-                        options['arange'][0] = options['arange'][0] + oneday
+                        arange[0] = options['arange'].copy()[0] + oneday
                         
-                gaps.fill_missing_daybefore(options['to_fill'],options['arange'],
-                                            options['range_to_replace'])
+                gaps.fill_missing_daybefore(options['to_fill'],arange,
+                                            options['range_to_replace'].copy())
                 
             else:
                 raise ValueError("Entered filling function is not available for testing.") 
@@ -1302,15 +1302,21 @@ class OnlineSensorBased(HydroData):
                                  "large gaps you want to create for testing")
         
         filling_errors = np.array([])
+        #options_temp = options.copy()
+        #print(options_temp)
         for iteration in range(0,nr_iterations):
             # reset options every loop
-            options_filling_function = options.copy()
+            #print(options_temp)
+            #options_filling_function = options_temp.copy()
+            #print(options_temp)
+            #print(options_filling_function)
             iter_error = self._calculate_filling_error(data_name,filling_function,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
                                                        nr_large_gaps=nr_large_gaps,
                                                        max_size_large_gaps=max_size_large_gaps,
-                                                       **options_filling_function)
+                                                       **options)
+            #print(options_filling_function)
             if iter_error == None:
                 # turn warnings on again
                 wn.filterwarnings("always")
