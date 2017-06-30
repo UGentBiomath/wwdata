@@ -1186,6 +1186,8 @@ class OnlineSensorBased(HydroData):
                                         options['arange'])
 
             elif filling_function == 'fill_missing_daybefore':
+                print(gaps)
+                print(options)
                 # check if there is a 'day before' to do filling; this will not be
                 # the case, because length of the dataeset and to_fill range are the
                 # same, but checking in this way still needs to happen because of
@@ -1301,14 +1303,14 @@ class OnlineSensorBased(HydroData):
         
         filling_errors = np.array([])
         for iteration in range(0,nr_iterations):
-            # reset arange every loop
-            options['arange'] = options.get('arange')
+            # reset options every loop
+            options_filling_function = options.copy()
             iter_error = self._calculate_filling_error(data_name,filling_function,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
                                                        nr_large_gaps=nr_large_gaps,
                                                        max_size_large_gaps=max_size_large_gaps,
-                                                       **options)
+                                                       **options_filling_function)
             if iter_error == None:
                 # turn warnings on again
                 wn.filterwarnings("always")
