@@ -571,6 +571,7 @@ class OnlineSensorBased(HydroData):
         ###
         slope,intercept,r_sq = self.get_correlation(to_use,to_fill,corr_range,
                                                     zero_intercept=zero_intercept)
+        print(slope,intercept,r_sq)
         if intercept < 0:
                 wn.warn('The intercept was calculated to be lower than '+ \
                 '0, which might lead to negative data values when data is replaced '+ \
@@ -1114,10 +1115,10 @@ class OnlineSensorBased(HydroData):
             left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
             print(str(left)+" % of datapoints left after creating gaps")
     
-    def _calculate_filling_error(self,data_name,filling_function,
-                            nr_small_gaps=0,max_size_small_gaps=0,
-                            nr_large_gaps=0,max_size_large_gaps=0,
-                            **options):
+    def _calculate_filling_error(self,data_name,filling_function,test_data_range,
+                                 nr_small_gaps=0,max_size_small_gaps=0,
+                                 nr_large_gaps=0,max_size_large_gaps=0,
+                                 **options):
         """
         Calculates a filling error based on the articial and random creation of
         gaps in a dataset, subsequent filling of those gaps with a defined 
@@ -1135,8 +1136,8 @@ class OnlineSensorBased(HydroData):
         Average filling error
         
         """
-        orig = self.__class__(self.data[options.get('arange')[0]:options.get('arange')[1]])
-        gaps = self.__class__(self.data[options.get('arange')[0]:options.get('arange')[1]])
+        orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]])
+        gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]])
         gaps.get_highs(data_name,0.9)
         
         # create gaps; 
@@ -1152,7 +1153,7 @@ class OnlineSensorBased(HydroData):
         # avoids calling of the add_to_filled function in the filling functions
         # which would reset gaps.filled to the original dataset and make 
         # comparing after data imputation impossible
-        gaps.filled = pd.DataFrame(gaps.data[data_name],columns = [data_name], 
+        gaps.filled = pd.DataFrame(gaps.data[data_name].copy(),columns = [data_name], 
                                    index = gaps.data.index) 
         
         # fill gaps 
@@ -1186,7 +1187,7 @@ class OnlineSensorBased(HydroData):
                 arange = [options['arange'].copy()[0],
                           options['arange'].copy()[1]]
                 # check if there is a 'day before' to do filling; this will not be
-                # the case, because length of the dataeset and to_fill range are the
+                # the case, because length of the dataset and to_fill range are the
                 # same, but checking in this way still needs to happen because of
                 # the for-loop in the check_filling_error function
                 if isinstance(gaps.time[0],dt.datetime):
@@ -1225,6 +1226,7 @@ class OnlineSensorBased(HydroData):
             return avg_deviation
             
     def check_filling_error(self,nr_iterations,data_name,filling_function,
+                            test_data_range,
                             nr_small_gaps=0,max_size_small_gaps=0,
                             nr_large_gaps=0,max_size_large_gaps=0,
                             **options):
@@ -1252,6 +1254,10 @@ class OnlineSensorBased(HydroData):
             to be checked for.
         filling function : str, wdata filling function 
             the name of the filling function to be tested for reliability
+        test_data_range : array of two values
+            an array containing the start and end point of the test data to be used.
+            IMPORTANT: for testing filling with correlation, this range needs to
+            include the range for correlation calculation and the filling range.
         nr_small_gaps / nr_large_gaps: int    
             the number of small/large gaps to create in the dataset for testing
         max_size_small_gaps / max_size_large_gaps: int
@@ -1277,7 +1283,7 @@ class OnlineSensorBased(HydroData):
         
         filling_errors = pd.Series([])
         for iteration in range(0,nr_iterations):
-            iter_error = self._calculate_filling_error(data_name,filling_function,
+            iter_error = self._calculate_filling_error(data_name,filling_function,test_data_range,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
                                                        nr_large_gaps=nr_large_gaps,
