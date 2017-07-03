@@ -57,7 +57,7 @@ class OnlineSensorBased(HydroData):
                            data_type=data_type,experiment_tag=experiment_tag,
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
-        self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
+        self.meta_filled = pd.DataFrame(self.meta_valid.copy(),index=self.data.index)
         self.filling_error = pd.DataFrame(index = self.data.columns,
                                           columns=['imputation error [%]'])
     
@@ -224,7 +224,7 @@ class OnlineSensorBased(HydroData):
         should wrong labels have been assigned at some point
         """
         if data_name == None:
-            self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
+            self.meta_filled = pd.DataFrame(self.meta_valid.copy(),index=self.data.index)
         else:
             try:
                 self.meta_filled[data_name] = self.meta_valid[data_name].copy()
