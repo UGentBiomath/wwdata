@@ -227,7 +227,7 @@ class OnlineSensorBased(HydroData):
             self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
         else:
             try:
-                self.meta_filled[data_name] = self.meta_valid[data_name]
+                self.meta_filled[data_name] = self.meta_valid[data_name].copy()
             except:
                 pass
                 #wn.warn(data_name + ' is not contained in self.meta_valid yet, so cannot\
@@ -1170,6 +1170,7 @@ class OnlineSensorBased(HydroData):
                 gaps.fill_missing_correlation(options['to_fill'],options['to_use'],
                                               options['arange'],options['corr_range'],
                                               options['zero_intercept'])
+                
 
             elif filling_function == 'fill_missing_standard':
                 gaps.calc_daily_profile(options['to_fill'],options['arange'])
