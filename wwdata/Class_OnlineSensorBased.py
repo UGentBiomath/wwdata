@@ -582,7 +582,7 @@ class OnlineSensorBased(HydroData):
         if filtered_only:
             indexes_to_replace = pd.DataFrame(self.meta_valid.\
                                             loc[arange[0]:arange[1]].\
-                                            loc[self.meta_filled[to_fill] == 'filtered'].index.values)
+                                            loc[self.meta_valid[to_fill] == 'filtered'].index.values)
             self.filled.loc[indexes_to_replace[0],to_fill] = \
                             self.data.loc[indexes_to_replace[0],to_use]*slope + intercept
             # Adjust in the self.meta_filled dataframe
