@@ -1270,7 +1270,7 @@ class HydroData():
             if 'True', filtered values are excluded from calculation and plotting;
             default to 'False'
             if a value in one column is filtered, the corresponding value in the second
-            column gets also excluded!
+            column also gets excluded!
 
         Returns
         -------
@@ -1301,7 +1301,7 @@ class HydroData():
 
         else:
             corr_data = pd.DataFrame(self.data[arange[0]:arange[1]][[data_1,data_2]].values)
-
+            
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
@@ -1310,7 +1310,7 @@ class HydroData():
             model = sm.OLS(corr_data[data_1],corr_data[data_2])
             results = model.fit()
             slope = results.params[data_2]
-            intercept = 0
+            intercept = 0.0
             r_sq = results.rsquared
 
         else:
