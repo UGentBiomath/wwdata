@@ -1068,7 +1068,7 @@ class OnlineSensorBased(HydroData):
     ###   CHECKING
     #####################
     
-    def _create_gaps(self,data_name,number,max_size,reset=False,user_output=False):
+    def _create_gaps(self,data_name,range_,number,max_size,reset=False,user_output=False):
         """
         Randomly creates gaps in the data by introducing fake 'filtered' tags in 
         meta_valid. This artificial creation of gaps can be filled later to
@@ -1078,6 +1078,8 @@ class OnlineSensorBased(HydroData):
         ----------
         data_name : string
             name of the column containing the data to create gaps in
+        range_ : 2-element array
+            the range within which gaps need to be created
         number : int
             number of gaps to create
         max_size : int
@@ -1099,8 +1101,21 @@ class OnlineSensorBased(HydroData):
         if reset:
             self._reset_meta_valid(data_name)
         
+        # get index locations of range_
+        try:
+            list_ = list(self.meta_valid.index)
+            ilocs = [list_.index(range_[0]),
+                     list_.index(range_[1])]
+        
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.meta_valid.index[0])) + " and range_ argument type " + \
+            str(type(range_[0])) + ". Try changing the type of the range_ " + \
+            "values to one compatible with " + str(type(self.meta_valid.index[0])) + \
+            " slicing.")         
+                 
         # create random positions where to create gaps
-        positions = [rn.randrange(0,len(self.meta_valid)) for _ in range(number)]
+        positions = [rn.randrange(ilocs[0],ilocs[1]) for _ in range(number)]
         
         # create random sizes with maximum size of max_size
         sizes = [rn.randrange(0,max_size) for _ in range(len(positions))]
@@ -1110,7 +1125,7 @@ class OnlineSensorBased(HydroData):
         locs = [np.arange(x,x+y) for x,y in zip(positions,sizes)]
         locations = np.concatenate([x for x in locs])
         # replace values when higher than length of the dataset with the maximum position
-        locations = np.clip(locations,0,len(self.meta_valid)-1)
+        locations = np.clip(locations,ilocs[0],ilocs[1])
         
         # create gaps by replacing data with 0; not nan, because this will 
         # complicate comparison with filled values when using check_filling_error
@@ -1143,18 +1158,19 @@ class OnlineSensorBased(HydroData):
         Average filling error
         
         """
-        orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]])
-        gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]])
+        orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
+        gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
         gaps.get_highs(data_name,0.9)
         
+                
         # create gaps; 
         if nr_small_gaps == 0:
-            gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=True)
+            gaps._create_gaps(data_name,options['arange'],nr_large_gaps,max_size_large_gaps,reset=True)
         elif nr_large_gaps == 0:
-            gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
+            gaps._create_gaps(data_name,options['arange'],nr_small_gaps,max_size_small_gaps,reset=True)
         else:
-            gaps._create_gaps(data_name,nr_small_gaps,max_size_small_gaps,reset=True)
-            gaps._create_gaps(data_name,nr_large_gaps,max_size_large_gaps,reset=False)
+            gaps._create_gaps(data_name,options['arange'],nr_small_gaps,max_size_small_gaps,reset=True)
+            gaps._create_gaps(data_name,options['arange'],nr_large_gaps,max_size_large_gaps,reset=False)
         
         # create a column in gaps.filled containing the artificial gaps; this 
         # avoids calling of the add_to_filled function in the filling functions
@@ -1174,7 +1190,6 @@ class OnlineSensorBased(HydroData):
                                         options['ratio'],options['arange'])
 
             elif filling_function == 'fill_missing_correlation':
-                print(options)
                 gaps.fill_missing_correlation(options['to_fill'],options['to_use'],
                                               options['arange'],options['corr_range'],
                                               options['zero_intercept'])
