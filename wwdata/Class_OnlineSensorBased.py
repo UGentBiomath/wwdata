@@ -571,7 +571,7 @@ class OnlineSensorBased(HydroData):
         ###
         slope,intercept,r_sq = self.get_correlation(to_use,to_fill,corr_range,
                                                     zero_intercept=zero_intercept)
-        print(slope,intercept,r_sq)
+
         if intercept < 0:
                 wn.warn('The intercept was calculated to be lower than '+ \
                 '0, which might lead to negative data values when data is replaced '+ \
