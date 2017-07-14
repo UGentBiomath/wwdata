@@ -40,8 +40,10 @@ After this, move to the folder that contains the installed packages (if you are 
 ## Development and future plans
 This wwdata package is currently in development, so if you have ideas on how to improve the package content, or suggestions for things to include, feel free to contact me:<br>
 <a href='mailto:chaim.demulder@ugent.be'>chaim.demulder@ugent.be</a><br>
-<a href='github.com/cdemulde'>github.com/cdemulde</a><br>
 <a href='twitter.com/ChaimDM'>@ChaimDM</a>
+
+Or create an issue at:
+<a href='github.com/UGentBiomath/wwdata'>github.com/UGentBiomath/wwdata</a><br>
 
 To be included/extended in the future:
 * The LabExperimentBased Class. For people not into coding or modelling, the LabExperimentBased class is supposed to provide some really basic code. Together with the use of Jupyter notebooks, the goal is to enhance the reproducibility of data analysis happening on a lot of data coming from lab scale experiments.
