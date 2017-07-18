@@ -1009,7 +1009,12 @@ class OnlineSensorBased(HydroData):
                                           loc[mask_df['count'] > range_to_replace[0]].\
                                           index.values,columns=['indexes'])
         #mask_based.columns = ['indexes']
-        indexes_to_replace = pd.merge(filtered_based,mask_based,how='inner')
+        # if all values are still original in meta_valid, don't use mask_based, because this
+        # can contain no values and make that nothing is filled
+        if len(self.meta_valid) == len(self.meta_valid[self.meta_valid[to_fill]=='original']):
+            indexes_to_replace = filtered_based
+        else:
+            indexes_to_replace = pd.merge(filtered_based,mask_based,how='inner')
         
         # look up the values to replace with in the day_before dataset
         if isinstance(self.data.index[0],dt.datetime):
