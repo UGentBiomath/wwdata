@@ -1400,10 +1400,10 @@ class HydroData():
                     name = str(i.month) + '-' + str(i.day)
                 else:
                     name = str(i)
+                mask_valid = pd.DataFrame((self.meta_valid[column_name][i:i+1] == 'original').values,columns=[name])
                 daily_profile = pd.merge(daily_profile,
-                                         pd.DataFrame(self.data[column_name][i:i+1]\
-                                         [self.meta_valid[column_name]=='original'].values,
-                                                      columns=[name]),
+                                         pd.DataFrame(self.data[column_name][i:i+1].values,
+                                                      columns=[name]).where(mask_valid),
                                          left_index=True, right_index=True,how='outer')
         else:
             if only_checked:
