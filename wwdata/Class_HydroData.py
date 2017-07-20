@@ -151,7 +151,7 @@ class HydroData():
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
             try:
-                self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid))
+                self.meta_valid[data_name] = pd.Series(['original']*len(self.meta_valid),index=self.index())
         #self.meta_valid.drop(data_name,axis=1)
             except:
                 pass
@@ -537,7 +537,7 @@ class HydroData():
                     column + '. The original column was kept.')
 
 
-    def tag_nan(self,data_name,clear=False):
+    def tag_nan(self,data_name,arange=None,clear=False):
         """
         adds a tag 'filtered' in self.meta_valid for every NaN value in the given
         column
@@ -546,6 +546,8 @@ class HydroData():
         ----------
         data_name : str
             column name of the column to apply the function to
+        arange : array of two values
+            the range within which nan values need to be tagged
         clear : bool
             when true, resets the tags in meta_valid for the data in column
             data_name
@@ -556,19 +558,41 @@ class HydroData():
 
         """
         self._plot='valid'
-        len_orig = len(self.data[data_name])
 
         if clear:
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
-
-        self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
-                                     'filtered','original')
-        len_new = self.data[data_name].count()
-
+        
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+        
+        if arange == None:
+            len_orig = len(self.data[data_name])
+            self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
+                                                  'filtered','original')
+            len_new = self.data[data_name].count()
+    
+        else:
+            # check if arange has the right type
+            try:
+                len_orig = len(self.data[data_name][arange[0]:arange[1]])
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.") 
+                
+            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(np.isnan(self.data[data_name][arange[0]:arange[1]]),
+                                                                       'filtered','original')
+            len_new = self.data[data_name][arange[0]:arange[1]].count()
+    
         print(str(len_orig-len_new) + ' NaN values detected and tagged as filtered.')
 
-    def tag_doubles(self,data_name,bound,clear=False,inplace=False,log_file=None,
+    def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
                        plot=False,final=False):
         '''CONFIRMED
         deletes double values that subsequently occur in a measurement series.
@@ -616,10 +640,24 @@ class HydroData():
                                  data_type=self.data_type,experiment_tag=self.tag,
                                  time_unit=self.time_unit)
         # Make a mask with False values for double values to be dropped
-        mask = abs(self.data[data_name].dropna().diff()) >= bound
+        bound_mask = abs(self.data[data_name].dropna().diff()) >= bound
         # Make sure the indexes are still the same in the mask and df_temp, so the
-        # taggin can happen
-        mask = mask.reindex(df_temp.index()).fillna(True)
+        # tagging can happen
+        bound_mask = bound_mask.reindex(df_temp.index()).fillna(True)
+        # Make a mask with False values where data needs to be filtered
+        if arange == None:
+            mask = bound_mask
+        else:
+            try:
+                range_mask = (self.index() < arange[0]) + (arange[1] < self.index())
+                mask = bound_mask + range_mask
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.")
 
         # Update the index of self.meta_valid
         if clear:
@@ -629,13 +667,14 @@ class HydroData():
         # Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
+        
         if log_file == None:
             _print_removed_output(len_orig,len_new,'filtered')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else:
             raise TypeError('Provide the location of the log file \
-                            as a string type, or leave the argument if \
+                            as a string type, or drop the argument if \
                             no log file is needed.')
 
         self.meta_valid[data_name][mask==False] = 'filtered'
@@ -892,22 +931,22 @@ class HydroData():
             if data_name == None:
                 df_temp = self.data.rolling(window=window,center=True).mean()
             elif isinstance(data_name,str):
-                df_temp.data[data_name] = self.data[data_name].\
+                df_temp.data[data_name] = self.data[data_name].interpolate().\
                                         rolling(window=window,center=True).mean()
             else:
                 for name in data_name:
-                    df_temp.data[name] = self.data[name].\
+                    df_temp.data[name] = self.data[name].interpolate().\
                                         rolling(window=window,center=True).mean()
 
         elif inplace == True:
             if data_name == None:
                 self.data = self.data.rolling(window=window,center=True).mean()
             elif isinstance(data_name,str):
-                self.data[data_name] = self.data[data_name].\
+                self.data[data_name] = self.data[data_name].interpolate().\
                                         rolling(window=window,center=True).mean()
             else:
                 for name in data_name:
-                    self.data[name] = self.data[name].\
+                    self.data[name] = self.data[name].interpolate().\
                                         rolling(window=window,center=True).mean()
         if plot == True:
             fig = plt.figure(figsize=(16,6))
@@ -1231,7 +1270,7 @@ class HydroData():
             if 'True', filtered values are excluded from calculation and plotting;
             default to 'False'
             if a value in one column is filtered, the corresponding value in the second
-            column gets also excluded!
+            column also gets excluded!
 
         Returns
         -------
@@ -1247,9 +1286,9 @@ class HydroData():
             arange = [(self.data.index[0] + dt.timedelta(arange[0]-1)),
                       (self.data.index[0] + dt.timedelta(arange[1]-1))]
 
-        if arange[0] < self.time[0] or arange[1] > self.time[-1]:
-            raise IndexError('Index out of bounds. Check whether the values of '+ \
-            '"arange" are within the index range of the data.')
+        #if arange[0] < self.time[0] or arange[1] > self.time[-1]:
+        #    raise IndexError('Index out of bounds. Check whether the values of '+ \
+        #    '"arange" are within the index range of the data.')
 
         self.data = self.data.sort_index()
         if only_checked:
@@ -1263,7 +1302,7 @@ class HydroData():
 
         else:
             corr_data = pd.DataFrame(self.data[arange[0]:arange[1]][[data_1,data_2]].values)
-
+            
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
@@ -1272,7 +1311,7 @@ class HydroData():
             model = sm.OLS(corr_data[data_1],corr_data[data_2])
             results = model.fit()
             slope = results.params[data_2]
-            intercept = 0
+            intercept = 0.0
             r_sq = results.rsquared
 
         else:
