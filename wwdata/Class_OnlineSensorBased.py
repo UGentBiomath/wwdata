@@ -866,6 +866,8 @@ class OnlineSensorBased(HydroData):
         from the day before the range starts. These data values are based on 
         the self.filled dataset and therefor can contain filled datapoints as well. 
         This happens within the range given by arange.
+        !! IMPORTANT !!
+        This function will not work on datasets with non-equidistant data points!
         
         Parameters
         ----------

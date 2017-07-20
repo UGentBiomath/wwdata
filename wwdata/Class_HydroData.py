@@ -1251,6 +1251,7 @@ class HydroData():
             raise IndexError('Index out of bounds. Check whether the values of '+ \
             '"arange" are within the index range of the data.')
 
+        self.data = self.data.sort_index()
         if only_checked:
             #create new pd.Dataframes for original values in range,
             #merge only rows in which both values are original
@@ -1287,7 +1288,7 @@ class HydroData():
             ax = fig.add_subplot(111)
             ax.plot(self.data[data_2][arange[0]:arange[1]],
                     self.data[data_1][arange[0]:arange[1]],'bo',markersize=4)
-            ax.plot(x,y)
+            ax.plot(y,x)
             ax.legend()
 
         return slope,intercept,r_sq
