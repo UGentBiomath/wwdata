@@ -27,6 +27,7 @@ import numpy as np
 import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 import warnings as wn
+import random as rn
 
 from wwdata.Class_HydroData import HydroData
 #from data_reading_functions import _print_removed_output,_log_removed_output
@@ -56,7 +57,9 @@ class OnlineSensorBased(HydroData):
                            data_type=data_type,experiment_tag=experiment_tag,
                            time_unit=time_unit)
         self.filled = pd.DataFrame(index=self.index())
-        self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
+        self.meta_filled = pd.DataFrame(self.meta_valid.copy(),index=self.data.index)
+        self.filling_error = pd.DataFrame(index = self.data.columns,
+                                          columns=['imputation error [%]'])
     
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -221,10 +224,10 @@ class OnlineSensorBased(HydroData):
         should wrong labels have been assigned at some point
         """
         if data_name == None:
-            self.meta_filled = pd.DataFrame(self.meta_valid,index=self.data.index)
+            self.meta_filled = pd.DataFrame(self.meta_valid.copy(),index=self.data.index)
         else:
             try:
-                self.meta_filled[data_name] = self.meta_valid[data_name]
+                self.meta_filled[data_name] = self.meta_valid[data_name].copy()
             except:
                 pass
                 #wn.warn(data_name + ' is not contained in self.meta_valid yet, so cannot\
@@ -244,7 +247,11 @@ class OnlineSensorBased(HydroData):
                 pass                
                 #wn.warn('self.filled already contains a column named ' + 
                 #    column + '. The original columns was kept.')
-        
+    
+    #####################
+    ###   FILLING
+    #####################
+    
     def fill_missing_interpolation(self,to_fill,range_,arange,method='index',plot=False,
                                    clear=False):
         """
@@ -259,8 +266,10 @@ class OnlineSensorBased(HydroData):
         range_ : int
             the maximum range that the absence of values can be to still
             allow interpolation to fill in values
+        arange : array of two values
+            the range within which missing/filtered values need to be replaced
         method : str
-            interpolation method to be used by the .interpolate function. See
+	    interpolation method to be used by the .interpolate function. See
             pandas docstrings for more info
         plot : bool
             whether or not to plot the new dataset
@@ -562,6 +571,7 @@ class OnlineSensorBased(HydroData):
         ###
         slope,intercept,r_sq = self.get_correlation(to_use,to_fill,corr_range,
                                                     zero_intercept=zero_intercept)
+
         if intercept < 0:
                 wn.warn('The intercept was calculated to be lower than '+ \
                 '0, which might lead to negative data values when data is replaced '+ \
@@ -573,7 +583,7 @@ class OnlineSensorBased(HydroData):
         if filtered_only:
             indexes_to_replace = pd.DataFrame(self.meta_valid.\
                                             loc[arange[0]:arange[1]].\
-                                            loc[self.meta_filled[to_fill] == 'filtered'].index.values)
+                                            loc[self.meta_valid[to_fill] == 'filtered'].index.values)
             self.filled.loc[indexes_to_replace[0],to_fill] = \
                             self.data.loc[indexes_to_replace[0],to_use]*slope + intercept
             # Adjust in the self.meta_filled dataframe
@@ -662,7 +672,7 @@ class OnlineSensorBased(HydroData):
                 Run calc_daily_profile() to get an average daily profile for " + to_fill)
         except AttributeError:
             raise AttributeError("self.daily_profile doesn't exist yet, meaning "+
-            "there is not data available to replace other data with. Run "+
+            "there is no data available to replace other data with. Run "+
             "calc_daily_profile() to get an average daily profile for " + to_fill)
   
         # Give warning when replacing data from rain events and at the same time
@@ -962,11 +972,29 @@ class OnlineSensorBased(HydroData):
         # and convert indices to relative ones per day; parallel for 
         # self.meta_filled
         
+        # check if arange[0] is equal to beginning of the dataset; if this is 
+        # the case, change it to one day further for the coming code to work
+        
+    
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
+            if arange[0] < self.time[0]+oneday:
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
+                #arange[0] = arange[0] + oneday
+                #wn.warn("The range for replacement given in the arange argument "+\
+                #        "included the first day of data. The range was adjusted to"+\
+                #        "start one day later.")
             time = pd.Series((self.filled[to_fill][arange[0]-oneday:arange[0]].index).time)    
         elif isinstance(self.data.index[0],float):
             oneday = 1
+            if arange[0] < self.time[0]+oneday:
+                raise IndexError("No data from the day before available, "+\
+                                 "adjust the range for replacement.")
+                #arange[0] = arange[0] + oneday
+                #wn.warn("The range for replacement given in the arange argument "+\
+                #        "included the first day of data. The range was adjusted to"+\
+                #        "start one day later.")
             time = pd.Series(self.filled[to_fill][arange[0]-oneday:arange[0]].index).apply(lambda x: x-int(x))
             
         day_before = pd.DataFrame(self.filled[to_fill][arange[0]-oneday:arange[0]].values,
@@ -974,8 +1002,6 @@ class OnlineSensorBased(HydroData):
         day_before.columns = ['data']
         day_before = day_before.reset_index().drop_duplicates('index',keep='first').\
                      set_index('index')
-        #day_before_meta = self.meta_filled[to_fill][arange[0]-1:arange[0]]
-        #day_before_meta.index = pd.Series(day_before_meta.index).apply(lambda x: x-int(x))
         
         range_to_replace[0] = range_to_replace[0] * len(day_before)
         range_to_replace[1] = range_to_replace[1] * len(day_before)
@@ -1036,7 +1062,276 @@ class OnlineSensorBased(HydroData):
             self.plot_analysed(to_fill)
             
         return None
+    
+
+    #####################
+    ###   CHECKING
+    #####################
+    
+    def _create_gaps(self,data_name,range_,number,max_size,reset=False,user_output=False):
+        """
+        Randomly creates gaps in the data by introducing fake 'filtered' tags in 
+        meta_valid. This artificial creation of gaps can be filled later to
+        test the reliability of the filling algorithms.
         
+        Parameters
+        ----------
+        data_name : string
+            name of the column containing the data to create gaps in
+        range_ : 2-element array
+            the range within which gaps need to be created
+        number : int
+            number of gaps to create
+        max_size : int
+            maximum size of the gaps, expressed in data points
+        reset : boolean
+            if True, the meta_valid dataframe is set back to 'original' values
+            
+        Returns
+        -------
+        None; creates a self.meta_valid dataframe containing 'fake' tags 
+        creating artificial gaps in the data.
+        
+        !!!
+        Watch out when using this on the original dataset, as tags might be 
+        changed or removed when using this function.
+        !!!
+        """
+        # create a new meta_valid dataframe with original values
+        if reset:
+            self._reset_meta_valid(data_name)
+        
+        # get index locations of range_
+        try:
+            list_ = list(self.meta_valid.index)
+            ilocs = [list_.index(range_[0]),
+                     list_.index(range_[1])]
+        
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.meta_valid.index[0])) + " and range_ argument type " + \
+            str(type(range_[0])) + ". Try changing the type of the range_ " + \
+            "values to one compatible with " + str(type(self.meta_valid.index[0])) + \
+            " slicing.")
+                 
+        # create random positions where to create gaps
+        positions = [rn.randrange(ilocs[0],ilocs[1]) for _ in range(number)]
+        
+        # create random sizes with maximum size of max_size
+        sizes = [rn.randrange(0,max_size) for _ in range(len(positions))]
+        
+        # define integer indexes where gaps need to be created (i.e. 'filtered' 
+        # in meta_valid)
+        locs = [np.arange(x,x+y) for x,y in zip(positions,sizes)]
+        locations = np.concatenate([x for x in locs])
+        # replace values when higher than length of the dataset with the maximum position
+        locations = np.clip(locations,ilocs[0],ilocs[1])
+        
+        # create gaps by replacing data with 0; not nan, because this will 
+        # complicate comparison with filled values when using check_filling_error
+        self.data[data_name].iloc[locations] = 0
+        # create gaps in meta_valid
+        self.meta_valid.iloc[locations] = 'filtered'
+    
+        if user_output:
+            left = self.meta_valid.groupby(data_name).size()['original']*100/len(self.meta_valid)
+            print(str(left)+" % of datapoints left after creating gaps")
+    
+    def _calculate_filling_error(self,data_name,filling_function,test_data_range,
+                                 nr_small_gaps=0,max_size_small_gaps=0,
+                                 nr_large_gaps=0,max_size_large_gaps=0,
+                                 **options):
+        """
+        Calculates a filling error based on the articial and random creation of
+        gaps in a dataset, subsequent filling of those gaps with a defined 
+        algorithm and comparison of the filling results with the original data.
+        Because this happens randomly, results differ every time this function
+        is used. To get an average of the errors, run check_filling_error.
+        
+        Parameters
+        ----------
+        please refer to the check_filling_error docstring for the parameter
+        definitions.
+        
+        Returns
+        -------
+        Average filling error
+        
+        """
+
+        orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
+        gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
+        gaps.get_highs(data_name,0.9)
+        
+                
+        # create gaps; 
+        if nr_small_gaps == 0:
+            gaps._create_gaps(data_name,options['arange'],nr_large_gaps,max_size_large_gaps,reset=True)
+        elif nr_large_gaps == 0:
+            gaps._create_gaps(data_name,options['arange'],nr_small_gaps,max_size_small_gaps,reset=True)
+        else:
+            gaps._create_gaps(data_name,options['arange'],nr_small_gaps,max_size_small_gaps,reset=True)
+            gaps._create_gaps(data_name,options['arange'],nr_large_gaps,max_size_large_gaps,reset=False)
+        
+        # create a column in gaps.filled containing the artificial gaps; this 
+        # avoids calling of the add_to_filled function in the filling functions
+        # which would reset gaps.filled to the original dataset and make 
+        # comparing after data imputation impossible
+        gaps.filled = pd.DataFrame(gaps.data[data_name].copy(),columns = [data_name], 
+                                   index = gaps.data.index) 
+        
+        # fill gaps 
+        try:
+            if filling_function == 'fill_missing_interpolation':
+                gaps.fill_missing_interpolation(options['to_fill'],options['range_'],
+                                                options['arange']) 
+
+            elif filling_function == 'fill_missing_ratio':
+                gaps.fill_missing_ratio(options['to_fill'],options['to_use'],
+                                        options['ratio'],options['arange'])
+
+            elif filling_function == 'fill_missing_correlation':
+                gaps.fill_missing_correlation(options['to_fill'],options['to_use'],
+                                              options['arange'],options['corr_range'],
+                                              options['zero_intercept'])
+                
+
+            elif filling_function == 'fill_missing_standard':
+                gaps.calc_daily_profile(options['to_fill'],options['arange'])
+                gaps.fill_missing_standard(options['to_fill'],options['arange'])
+                
+            elif filling_function == 'fill_missing_model':
+                gaps.fill_missing_model(options['to_fill'],options['to_use'],
+                                        options['arange'])
+
+            elif filling_function == 'fill_missing_daybefore':
+                # make a copy of options, because otherwise the object keeps on changing
+                # in every for-iteration of the check_filling_error function
+                arange = [options['arange'].copy()[0],
+                          options['arange'].copy()[1]]
+                # check if there is a 'day before' to do filling; this will not be
+                # the case, because length of the dataset and to_fill range are the
+                # same, but checking in this way still needs to happen because of
+                # the for-loop in the check_filling_error function
+                if isinstance(gaps.time[0],dt.datetime):
+                    oneday = dt.timedelta(1)
+                    if options['arange'][0] < gaps.time[0]+oneday:
+                        arange[0] = options['arange'].copy()[0] + oneday    
+                elif isinstance(gaps.time[0],float):
+                    oneday = 1
+                    if options['arange'][0] < gaps.time[0]+oneday:
+                        arange[0] = options['arange'].copy()[0] + oneday
+                        
+                gaps.fill_missing_daybefore(options['to_fill'],arange,
+                                            options['range_to_replace'].copy())
+                
+            else:
+                raise ValueError("Entered filling function is not available for testing.") 
+
+        except:
+            raise TypeError("Filling function could not be executed. Check "+\
+                            "docstring of the filling function to provide "+\
+                            "appropriate arguments.")   
+         
+        indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
+        deviations = (abs(orig.data[data_name][indexes_to_compare] - 
+                          gaps.filled[data_name][indexes_to_compare])/ \
+                      orig.data[data_name][indexes_to_compare])
+        # drop inf values and calculate average
+        avg_deviation = deviations.drop(deviations[deviations.values == np.inf].index).mean()*100
+        
+        if avg_deviation == 100.000000:
+            # if avg deviation is 100, this means that gaps.filled was 0 on all
+            # indexes to compare, which is exactly the same as was defined `
+            # befor the filling, i.e. no data were filled.
+            return None
+        else:
+            return avg_deviation
+            
+    def check_filling_error(self,nr_iterations,data_name,filling_function,
+                            test_data_range,
+                            nr_small_gaps=0,max_size_small_gaps=0,
+                            nr_large_gaps=0,max_size_large_gaps=0,
+                            **options):
+        """
+        Uses the _calculate_filling_error function (refer to that docstring for
+        more specific info) to calculate the error on the data points that are 
+        filled with a certain algorithm.
+        Because _calculate_filling_error inserts random gaps, results differ 
+        every time it is used. Check_filling_error averages this out.
+        
+        !! Important !!
+        When checking for the error on data filling, a period (arange argument) 
+        with mostly reliable data should be used. If for example large gaps are
+        already present in the given data, this will heavily influence the 
+        returned error, as filled values will be compared with the values from 
+        the data gap.
+        
+        Parameters
+        ----------
+        nr_iterations : int
+            The number of iterations to run for the calculation of the imputation
+            error
+        data_name : string
+            name of the column containing the data the filling reliability needs 
+            to be checked for.
+        filling function : str, wdata filling function 
+            the name of the filling function to be tested for reliability
+        test_data_range : array of two values
+            an array containing the start and end point of the test data to be used.
+            IMPORTANT: for testing filling with correlation, this range needs to
+            include the range for correlation calculation and the filling range.
+        nr_small_gaps / nr_large_gaps: int    
+            the number of small/large gaps to create in the dataset for testing
+        max_size_small_gaps / max_size_large_gaps: int
+            the maximum size of the gaps inserted in the data, expressed in data
+            points
+        **options: 
+            Arguments for the filling function; refer to the relevant filling 
+            function to know what arguments to give
+                
+        Returns
+        -------
+        None; adds the average filling error the self.filling_error dataframe
+        
+        """
+        # shut off warnings, to avoid e.g. warning about replacing datapoints 
+        # in wet weather
+        wn.filterwarnings("ignore")
+        
+        if nr_small_gaps == 0 and nr_large_gaps == 0 :
+                raise ValueError("No information was provided to make the gaps "+\
+                                 "with. Please specify the number of small or "+\
+                                 "large gaps you want to create for testing")
+        
+        filling_errors = pd.Series([])
+        for iteration in range(0,nr_iterations):
+            iter_error = self._calculate_filling_error(data_name,filling_function,test_data_range,
+                                                       nr_small_gaps=nr_small_gaps,
+                                                       max_size_small_gaps=max_size_small_gaps,
+                                                       nr_large_gaps=nr_large_gaps,
+                                                       max_size_large_gaps=max_size_large_gaps,
+                                                       **options)
+            #print(options_filling_function)
+            if iter_error == None:
+                # turn warnings on again
+                wn.filterwarnings("always")
+                raise ValueError("Checking of the filling function could not "+\
+                                 "be executed. Check docstring of the filling "+\
+                                 "function to provide appropriate arguments.")
+                
+            filling_errors = filling_errors.append(pd.Series([iter_error]))
+            
+        avg = filling_errors.dropna().mean()
+        
+        self.filling_error.ix[data_name] = avg
+        print('Average deviation of imputed points from the original ones is '+\
+              str(avg)+"%. This value is also saved in self.filling_error.")
+        
+        # turn warnings on again
+        wn.filterwarnings("always")
+        
+    
 #==============================================================================
 # LOOKUP FUNCTIONS
 #==============================================================================
