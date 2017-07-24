@@ -941,7 +941,7 @@ class HydroData():
             slopes = df_temp.calc_slopes(xdata,data_name,time_unit=time_unit)
         len_new = df_temp.data[data_name].count()
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'moving slope filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else :
@@ -1123,7 +1123,7 @@ class HydroData():
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'moving average filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else :
