@@ -1112,7 +1112,7 @@ class OnlineSensorBased(HydroData):
             str(type(self.meta_valid.index[0])) + " and range_ argument type " + \
             str(type(range_[0])) + ". Try changing the type of the range_ " + \
             "values to one compatible with " + str(type(self.meta_valid.index[0])) + \
-            " slicing.")         
+            " slicing.")
                  
         # create random positions where to create gaps
         positions = [rn.randrange(ilocs[0],ilocs[1]) for _ in range(number)]
@@ -1158,6 +1158,7 @@ class OnlineSensorBased(HydroData):
         Average filling error
         
         """
+
         orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
         gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
         gaps.get_highs(data_name,0.9)
