@@ -849,7 +849,9 @@ class OnlineSensorBased(HydroData):
                                             loc[arange[0]:arange[1]].index.values,
                                             columns=['indexes'])
                                             
-        if isinstance(self.data.index[0],dt.datetime):
+        if not isinstance(model_values['time'][0],type(self.data.index[0])):
+            # if datatype of time of modeled vs data values doesn't match, convert to absolute values
+            # (floats)
             try:
                 indexes_to_replace['abs_indexes'] = absolute_to_relative(indexes_to_replace['indexes'],
                                                     start_date=self.data.index[0],unit=unit)
@@ -860,8 +862,9 @@ class OnlineSensorBased(HydroData):
                 'range in which you want to replace values, or check if filtered '+ \
                 'values actually exist in the meta_filled dataset.')
             
-        elif isinstance(self.data.index[0],float):
-            indexes_to_replace['time_index'] = indexes_to_replace['indexes'].apply(find_nearest_time,args=(model_values,'time'))
+        else:
+            indexes_to_replace['time_index'] = indexes_to_replace['indexes'].\
+                                               apply(find_nearest_time,args=(model_values,'time'))
             
         indexes_to_replace['values'] = indexes_to_replace['time_index'].apply(vlookup_day,args=(model_values,'data'))
         
@@ -1347,6 +1350,8 @@ class OnlineSensorBased(HydroData):
 
 def find_nearest_time(value,df,column):
     """
+    
+    value : float
     """
     return (np.abs(df[column]-value)).argmin()
 
