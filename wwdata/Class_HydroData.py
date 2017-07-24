@@ -795,7 +795,7 @@ class HydroData():
 
         len_new = mask_tagging.sum()
 
-        print(str(len_orig-len_new) + 'values ' + method + ' ' + str(limit) + ' detected and tagged as filtered.')
+        _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
         
         if plot == True:
             self.plot_analysed(data_name)
