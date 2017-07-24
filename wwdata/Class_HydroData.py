@@ -590,7 +590,7 @@ class HydroData():
                                                                        'filtered','original')
             len_new = self.data[data_name][arange[0]:arange[1]].count()
     
-        print(str(len_orig-len_new) + ' NaN values detected and tagged as filtered.')
+        _print_removed_output(len_orig,len_new,'NaN tagging')
 
     def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
                        plot=False,final=False):
@@ -671,7 +671,7 @@ class HydroData():
         len_new = df_temp.data[data_name].count()
         
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'double value tagging')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else:
@@ -782,7 +782,7 @@ class HydroData():
 
         len_new = mask_tagging.sum()
 
-        print(str(len_orig-len_new) + 'values ' + method + ' ' + str(limit) + ' detected and tagged as filtered.')
+        _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
         
         if plot == True:
             self.plot_analysed(data_name)
@@ -1760,9 +1760,9 @@ class HydroData():
 def total_seconds(timedelta_value):
     return timedelta_value.total_seconds()
 
-def _print_removed_output(original,new,type_):
+def _print_removed_output(original,new,function):
     """
-    function printing the output of functions that remove datapoints.
+    function printing the output of functions that tag datapoints.
 
     Parameters
     ----------
@@ -1770,13 +1770,11 @@ def _print_removed_output(original,new,type_):
         original length of the dataset
     new : int
         length of the new dataset
-    type_ : str
-        'removed' or 'dropped'
+    function : str
+        info on the function used to filter the data
 
     """
-    print('Original dataset:',original,'datapoints')
-    print('New dataset:',new,'datapoints')
-    print(original-new,'datapoints ',type_)
+    print(str(original-new) + ' values detected and tagged as filtered by function ' + function)
 
 def _log_removed_output(log_file,original,new,type_):
     """
