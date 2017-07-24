@@ -607,8 +607,8 @@ class HydroData():
 
     def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
                        plot=False,final=False):
-        '''CONFIRMED
-        deletes double values that subsequently occur in a measurement series.
+        '''
+        tags double values that subsequently occur in a measurement series.
         This is relevant in case a sensor has failed and produces a constant
         signal. A band is provided within which the signal can vary and still
         be filtered out
@@ -621,6 +621,8 @@ class HydroData():
             boundary value of the band to use. When the difference between a
             point and the next one is smaller then the bound value, the latter
             datapoint is tagged as 'filtered'.
+        arange : array of two values
+            the range within which double values need to be tagged
         clear : bool
             if True, the tags added to datapoints before will be removed and put
             back to 'original'.
@@ -721,9 +723,85 @@ class HydroData():
 
         if not final:
             return None
+        
+        
+    def tag_extremes(self,data_name,arange=None,limit=0,method='below',
+                     clear=False,plot=False):
+        """
+        Tags values above or below a given limit.
+        
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to be tagged
+        arange : array of two values
+            the range within which extreme values need to be tagged 
+        limit : int/float
+            limit below or above which values need to be tagged
+        method : 'below' or 'above'
+            below tags all the values below the given limit, above tags
+            the values above the limit
+        clear : bool
+            if True, the tags added before will be removed and put
+            back to 'original'.
+        plot : bool
+             whether or not to make a plot of the newly tagged data points
+        
+        Returns
+        -------
+        None; 
+        """
+        if clear:
+            self._reset_meta_valid(data_name)
+        self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
+
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+
+        if arange == None:
+            len_orig = len(self.data[data_name])
+            mask_valid = np.where(self.meta_valid[data_name] == 'filtered',True,False)
+            if method == 'below':
+                mask_tagging = np.where(self.data[data_name]<limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name] = np.where(mask,'filtered','original')
+            elif method == 'above':
+                mask_tagging = np.where(self.data[data_name]>limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name] = np.where(mask,'filtered','original')
+
+        else:
+            # check if arange has the right type
+            try:
+                len_orig = len(self.data[data_name][arange[0]:arange[1]])
+                mask_valid = np.where(self.meta_valid[data_name][arange[0]:arange[1]] == 'filtered',True,False)
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.") 
+            if method == 'below':
+                mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]<limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name][arange[0]:arange[1]] = np.where(mask,'filtered','original')
+            elif method == 'above':
+                mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]>limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name][arange[0]:arange[1]] = np.where(mask,'filtered','original')
+
+        len_new = mask_tagging.sum()
+
+        print(str(len_orig-len_new) + 'values ' + method + ' ' + str(limit) + ' detected and tagged as filtered.')
+        
+        if plot == True:
+            self.plot_analysed(data_name)
 
     def calc_slopes(self,xdata,ydata,time_unit=None,slope_range=None):
-        """CONFIRMED
+        """
         Calculates slopes for given xdata and data_name; if a time unit is given as
         an argument, the time values (xdata) will first be converted to this
         unit, which will then be used to calculate the slopes with.
@@ -867,9 +945,9 @@ class HydroData():
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else :
-            raise TypeError('Please provide the location of the log file as \
-                                a string type, or leave the argument if no log \
-                                file is needed.')
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
+                            'file is needed.')
         # Create new temporary object, where the dropped datapoints are replaced
         # by nan values
         df_temp_2 = self.__class__(self.data.copy(),timedata_column=self.timename,
