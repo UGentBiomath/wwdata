@@ -1639,7 +1639,7 @@ class HydroData():
 
         #create new object with only the values within the given time range
         df = self.__class__(self.data[time_range[0]:time_range[1]].copy(),timedata_column=self.timename,
-                                   experiment_tag=self.tag,time_unit=self.time_unit)
+                            experiment_tag=self.tag,time_unit=self.time_unit)
 
         if self._plot == 'filled':
             df.meta_filled = self.meta_filled[time_range[0]:time_range[1]].copy()
