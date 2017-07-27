@@ -1330,7 +1330,7 @@ class HydroData():
             ax = fig.add_subplot(111)
             ax.plot(self.data[data_2][arange[0]:arange[1]],
                     self.data[data_1][arange[0]:arange[1]],'bo',markersize=4,
-                   label='Data)
+                   label='Data')
             ax.plot(y,x,label='Linear fit')
             ax.legend(fontsize=15,loc)
             ax.tick_params(labelsize=15)

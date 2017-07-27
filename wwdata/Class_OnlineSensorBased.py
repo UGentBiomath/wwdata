@@ -218,7 +218,6 @@ class OnlineSensorBased(HydroData):
             #                color='grey', alpha='0.3')
             #ax.fill_between(to_return['day'],to_return['mean'],(to_return['mean']-to_return['std']),
             #                color='grey', alpha='0.3')
-            ax.set_title(column_name)
             ax.tick_params(labelsize=15)
             ax.set_ylabel(column_name,size=20)
             ax.set_xlabel('Time',size=20)
