@@ -158,7 +158,7 @@ class OnlineSensorBased(HydroData):
                     'Check self.units to make sure everything is still okay.')
         return None
     
-    def calc_daily_average(self,column_name,time='float',plot=False):
+    def calc_daily_average(self,column_name,arange,plot=False):
         """
         calculates the daily average of values in the given column and returns them as a 2D-array,
         containing the days and the average values on the respective days. Plotting is possible.
@@ -167,8 +167,8 @@ class OnlineSensorBased(HydroData):
         ----------
         column_name : str
             name of the column containing the data to calculate the average values for
-        time : str
-            type of the time indication. Available: "float"
+        arange : array of two values
+            the range within which daily averages need to be calculated
         plot : bool
             plot or not
     
@@ -178,8 +178,15 @@ class OnlineSensorBased(HydroData):
             pandas dataframe, containing the daily means with standard deviations
             for the selected column
         """
-        self.daily_average = {}             
-        series = self.data[column_name]   
+        self.daily_average = {}
+        try:
+            series = self.data[column_name][arange[0]:arange[1]].copy()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")   
         
         if isinstance(series.index[0],float):
             days = np.arange(series.index[0],series.index[-1],1)
