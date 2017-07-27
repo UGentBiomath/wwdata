@@ -1170,7 +1170,7 @@ class OnlineSensorBased(HydroData):
 
         orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
         gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
-        gaps.get_highs(data_name,0.9)
+        gaps.get_highs(data_name,0.9,[test_data_range[0],test_data_range[1]])
         
                 
         # create gaps; 
