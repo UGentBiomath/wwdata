@@ -190,8 +190,8 @@ class OnlineSensorBased(HydroData):
             to_return.columns = ['day','mean','std']
  
         elif isinstance(self.data.index[0],pd.tslib.Timestamp):
-            means = series.resample('d').mean()
-            stds = series.resample('d').std()
+            means = series.resample('d').mean().dropna()
+            stds = series.resample('d').std().dropna()
             
             to_return = pd.DataFrame([means.index,means.values,stds.values]).transpose()
             to_return.columns = ['day','mean','std']
@@ -213,8 +213,8 @@ class OnlineSensorBased(HydroData):
             #                color='grey', alpha='0.3')
             ax.set_title(column_name)
             ax.tick_params(labelsize=20)
-            ax.set_xlabel(column_name,size=20)
-            ax.set_ylabel('Time',size=20)
+            ax.set_ylabel(column_name,size=20)
+            ax.set_xlabel('Time',size=20)
         
         self.daily_average[column_name] = to_return
         
