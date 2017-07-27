@@ -1331,7 +1331,9 @@ class HydroData():
             ax.plot(self.data[data_2][arange[0]:arange[1]],
                     self.data[data_1][arange[0]:arange[1]],'bo',markersize=4)
             ax.plot(y,x)
-            ax.legend()
+            ax.legend(fontsize=20)
+            ax.set_ylabel(data_1,size=20)
+            ax.set_xlabel(data_2,size=20)
         
         print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
         return slope,intercept,r_sq
