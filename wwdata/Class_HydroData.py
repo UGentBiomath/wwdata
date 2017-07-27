@@ -502,7 +502,7 @@ class HydroData():
                     self.data[data_name][self.highs['highs']==1],
                     '.b',label='high')
             ax.legend()
-            ax.tick_params(labelsize=20)
+            ax.tick_params(labelsize=15)
             ax.set_title(data_name,size=20)
             ax.set_ylabel('Time',size=20)
 
@@ -962,7 +962,7 @@ class HydroData():
             ax.legend(fontsize=16)
             ax.set_xlabel(self.timename,fontsize=14)
             ax.set_ylabel(data_name,fontsize=14)
-            ax.tick_params(labelsize=14)
+            ax.tick_params(labelsize=15)
 
         if inplace == False:
             return df_temp
@@ -1113,9 +1113,9 @@ class HydroData():
             ax.plot(self.time,self.data[data_name],'g--',label='original data')
             ax.plot(self.time,df_temp.data[data_name],'b-',label='filtered data')
             ax.legend(fontsize=16)
-            ax.set_xlabel(self.timename,fontsize=14)
-            ax.set_ylabel(data_name,fontsize=14)
-            ax.tick_params(labelsize=14)
+            ax.set_xlabel(self.timename,fontsize=20)
+            ax.set_ylabel(data_name,fontsize=20)
+            ax.tick_params(labelsize=15)
 
         if inplace:
             self.data[data_name] = df_temp.data[data_name]
@@ -1329,11 +1329,13 @@ class HydroData():
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
             ax.plot(self.data[data_2][arange[0]:arange[1]],
-                    self.data[data_1][arange[0]:arange[1]],'bo',markersize=4)
-            ax.plot(y,x)
-            ax.legend(fontsize=20)
-            ax.set_ylabel(data_1,size=20)
-            ax.set_xlabel(data_2,size=20)
+                    self.data[data_1][arange[0]:arange[1]],'bo',markersize=4,
+                   label='Data)
+            ax.plot(y,x,label='Linear fit')
+            ax.legend(fontsize=15,loc)
+            ax.tick_params(labelsize=15)
+            ax.set_ylabel(data_1,size=17)
+            ax.set_xlabel(data_2,size=17)
         
         print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
         return slope,intercept,r_sq
@@ -1497,7 +1499,7 @@ class HydroData():
                 ax.fill_between(mean_day.index,mean_day['avg'],
                                 mean_day['avg']-mean_day['std'],
                                 color='grey', alpha=0.3)
-            ax.tick_params(labelsize=20)
+            ax.tick_params(labelsize=15)
             ax.set_xlim(mean_day.index[0],mean_day.index[-1])
             ax.set_title(column_name,size=20)
             ax.set_xlabel('Time',size=20)
