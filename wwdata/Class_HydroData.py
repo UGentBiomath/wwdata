@@ -502,6 +502,9 @@ class HydroData():
                     self.data[data_name][self.highs['highs']==1],
                     '.b',label='high')
             ax.legend()
+            ax.tick_params(labelsize=20)
+            ax.set_title(data_name,size=20)
+            ax.set_ylabel('Time',size=20)
 
     def _reset_highs(self):
         """
@@ -1329,7 +1332,8 @@ class HydroData():
                     self.data[data_1][arange[0]:arange[1]],'bo',markersize=4)
             ax.plot(y,x)
             ax.legend()
-
+        
+        print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
         return slope,intercept,r_sq
 
 #==============================================================================
@@ -1491,8 +1495,10 @@ class HydroData():
                 ax.fill_between(mean_day.index,mean_day['avg'],
                                 mean_day['avg']-mean_day['std'],
                                 color='grey', alpha=0.3)
+            ax.tick_params(labelsize=20)
             ax.set_xlim(mean_day.index[0],mean_day.index[-1])
-            ax.set_title(column_name)
+            ax.set_title(column_name,size=20)
+            ax.set_xlabel('Time',size=20)
             return fig,ax
 
     ##############
@@ -1602,8 +1608,8 @@ class HydroData():
                 str(float(df.meta_valid[data_name].count())))
 
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
-        ax.set_xlabel(self.timename,fontsize=14)
-        ax.set_ylabel(data_name,fontsize=14)
+        ax.set_xlabel(self.timename,fontsize=20)
+        ax.set_ylabel(data_name,fontsize=20)
         ax.tick_params(labelsize=14)
 
 

@@ -212,6 +212,9 @@ class OnlineSensorBased(HydroData):
             #ax.fill_between(to_return['day'],to_return['mean'],(to_return['mean']-to_return['std']),
             #                color='grey', alpha='0.3')
             ax.set_title(column_name)
+            ax.tick_params(labelsize=20)
+            ax.set_xlabel(column_name,size=20)
+            ax.set_ylabel('Time',size=20)
         
         self.daily_average[column_name] = to_return
         
