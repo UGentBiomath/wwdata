@@ -664,7 +664,7 @@ class HydroData():
             mask = bound_mask
         else:
             try:
-                range_mask = (self.index() < arange[0]) + (arange[1] < self.index())
+                range_mask = (self.index() < arange[0]) | (arange[1] < self.index())
                 mask = bound_mask + range_mask
             except TypeError:
                 raise TypeError("Slicing not possible for index type " + \
