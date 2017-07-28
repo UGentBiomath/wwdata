@@ -869,8 +869,9 @@ class HydroData():
 
         return slopes
 
-    def moving_slope_filter(self,xdata,data_name,cutoff,time_unit=None,clear=False,
-                            inplace=False,log_file=None,plot=False,final=False):
+    def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
+                            clear=False,inplace=False,log_file=None,plot=False,
+                            final=False):
         """CONFIRMED
         Filters out datapoints based on the difference between the slope in one
         point and the next (sudden changes like noise get filtered out), based
@@ -886,6 +887,8 @@ class HydroData():
             name of the column containing the data that needs to be filtered
         cutoff: int
             the cutoff value to compare the slopes with to apply the filtering.
+        arange : array of two values
+            the range within which the moving slope filter needs to be applied 
         time_unit : str
             time unit to be used for the slope calculation (in case this is
             based on time); if None, slopes are calculated based on the values
@@ -919,14 +922,22 @@ class HydroData():
         what values are filtered
         """
         self._plot = 'valid'
-        len_orig = self.data[data_name].count()
-
+        try:
+            len_orig = self.data[data_name][arange[0]:arange[1]].count()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
+        
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
         # Make temporary object for operations
-        df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                 experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                 timedata_column=self.timename,experiment_tag=self.tag,
+                                 time_unit=self.time_unit)
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
@@ -950,8 +961,9 @@ class HydroData():
                             'file is needed.')
         # Create new temporary object, where the dropped datapoints are replaced
         # by nan values
-        df_temp_2 = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                   experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp_2 = self.__class__(self.data.copy(),
+                                   timedata_column=self.timename,experiment_tag=self.tag,
+                                   time_unit=self.time_unit)
         df_temp_2.data[data_name] = df_temp.data[data_name]
         df_temp_2._update_time()
         # Update the self.meta_valid dataframe, to contain False values for dropped
@@ -979,7 +991,7 @@ class HydroData():
         if not final:
             return None
 
-    def simple_moving_average(self,data_name=None,window=10,inplace=False,
+    def simple_moving_average(self,arange,window,data_name=None,inplace=False,
                               plot=True):
         """CONFIRMED
         Calculate the Simple Moving Average of a dataseries from a dataframe,
@@ -987,13 +999,15 @@ class HydroData():
 
         Parameters
         ----------
+        arange : array of two values
+            the range within which the moving average needs to be calculated
+        window : int
+            the number of values from the dataset that are used to take the
+            average at the current point. Defaults to 10
         data_name : str or array of str
             name of the column(s) containing the data that needs to be
             smoothened. If None, smoothened data is computed for the whole
             dataframe. Defaults to None
-        window : int
-            the number of values from the dataset that are used to take the
-            average at the current point. Defaults to 10
         inplace : bool
             indicates whether a new dataframe is created and returned or whether
             the operations are executed on the existing dataframe (nothing is
@@ -1008,17 +1022,27 @@ class HydroData():
             either a new object (inplace=False) or an adjusted object, con-
             taining the smoothened data values
         """
-
-        if len(self.data) < window:
+        try:
+            original = self.data[arange[0]:arange[1]].copy()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
+        
+        if len(original) < window:
             raise ValueError("Window width exceeds number of datapoints!")
 
         if plot == True:
-            original = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                      experiment_tag=self.tag,time_unit=self.time_unit)
+            original = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                      timedata_column=self.timename,experiment_tag=self.tag,
+                                      time_unit=self.time_unit)
 
         if inplace == False:
-            df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                  experiment_tag=self.tag,time_unit=self.time_unit)
+            df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                     timedata_column=self.timename, experiment_tag=self.tag,
+                                     time_unit=self.time_unit)
             if data_name == None:
                 df_temp = self.data.rolling(window=window,center=True).mean()
             elif isinstance(data_name,str):
@@ -1055,7 +1079,7 @@ class HydroData():
         if inplace == False:
             return df_temp
 
-    def moving_average_filter(self,data_name,window,cutoff_frac,clear=False,
+    def moving_average_filter(self,data_name,window,cutoff_frac,arange,clear=False,
                               inplace=False,log_file=None,plot=False,final=False):
         """
         Filters out the peaks/outliers in a dataset by comparing its values to a
@@ -1073,6 +1097,8 @@ class HydroData():
             the cutoff value (in fraction 0-1) to compare the data and smoothened
             data: a deviation higher than a certain percentage drops the data-
             point.
+        arange : array of two values
+            the range within which the moving average filter needs to be applied
         clear : bool
             if True, the tags added to datapoints before will be removed and put
             back to 'original'.
@@ -1097,16 +1123,24 @@ class HydroData():
         None (if inplace=True)
         """
         self._plot = 'valid'
-        len_orig = self.data[data_name].count()
+        try:
+            len_orig = self.data[data_name][arange[0]:arange[1]].count()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
 
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
         # Make temporary object for operations
-        df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                 experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                 timedata_column=self.timename,experiment_tag=self.tag,
+                                 time_unit=self.time_unit)
         # Make a hydropy object with the smoothened data
-        smooth_data = self.simple_moving_average(data_name,window,inplace=False,
+        smooth_data = self.simple_moving_average(arange,window,data_name,inplace=False,
                                                  plot=False)
         # Make a mask by comparing smooth and original data, using the given
         # cut-off percentage
