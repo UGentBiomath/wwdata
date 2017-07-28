@@ -870,7 +870,7 @@ class HydroData():
         return slopes
 
     def moving_slope_filter(self,xdata,data_name,cutoff,time_unit=None,clear=False,
-                            inplace=False,log_file=None,plot=True,final=False):
+                            inplace=False,log_file=None,plot=False,final=False):
         """CONFIRMED
         Filters out datapoints based on the difference between the slope in one
         point and the next (sudden changes like noise get filtered out), based
@@ -1055,8 +1055,8 @@ class HydroData():
         if inplace == False:
             return df_temp
 
-    def moving_average_filter(self,data_name,window,cutoff_perc,clear=False,
-                              inplace=False,log_file=None,plot=True,final=False):
+    def moving_average_filter(self,data_name,window,cutoff_frac,clear=False,
+                              inplace=False,log_file=None,plot=False,final=False):
         """
         Filters out the peaks/outliers in a dataset by comparing its values to a
         smoothened representation of the dataset (Moving Average Filtering). The
@@ -1069,8 +1069,8 @@ class HydroData():
         window : int
             the number of values from the dataset that are used to take the
             average at the current point.
-        cutoff_perc: float
-            the cutoff value (in percentage) to compare the data and smoothened
+        cutoff_frac: float
+            the cutoff value (in fraction 0-1) to compare the data and smoothened
             data: a deviation higher than a certain percentage drops the data-
             point.
         clear : bool
@@ -1110,10 +1110,9 @@ class HydroData():
                                                  plot=False)
         # Make a mask by comparing smooth and original data, using the given
         # cut-off percentage
-        mask = (self.data[data_name] + cutoff_perc*self.data[data_name] >\
-                smooth_data.data[data_name]) & \
-                (self.data[data_name] - cutoff_perc*self.data[data_name] <\
-                smooth_data.data[data_name])
+        mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
+                smooth_data.data[data_name]) < cutoff_frac
+        
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
