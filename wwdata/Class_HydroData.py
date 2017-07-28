@@ -466,7 +466,7 @@ class HydroData():
 
         return std
 
-    def get_highs(self,data_name,bound_value,method='percentile',plot=False):
+    def get_highs(self,data_name,bound_value,arange,method='percentile',plot=False):
         """
         creates a dataframe with tags indicating what indices have data-values
         higher than a certain value; example: the definition/tagging of rain
@@ -476,32 +476,45 @@ class HydroData():
             name of the column to execute the function on
         bound_value : float
             the boundary value above which points will be tagged
+        arange : array of two values
+            the range within which high values need to be tagged
         method: str (value or percentile)
             when percentile, the bound value is a given percentile above which
             data points will be tagged, when value, bound_values is used directly
             to tag data points.
         """
         self._reset_highs()
+        try:
+            data_to_use = self.data[data_name][arange[0]:arange[1]].copy()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")   
 
         # get indexes where flow is higher then bound_value
         if method is 'value':
             bound_value = bound_value
         elif method is 'percentile':
-            bound_value = self.data[data_name].dropna().quantile(bound_value)
+            bound_value = data_to_use.dropna().quantile(bound_value)
 
-        indexes = self.data.loc[self.data[data_name] > bound_value].index
+        indexes = data_to_use.loc[data_to_use > bound_value].index
         self.highs['highs'].loc[indexes] = 1
 
         if plot:
             fig = plt.figure(figsize=(16,6))
             ax = fig.add_subplot(111)
-            ax.plot(self.time[self.highs['highs']==0],
-                    self.data[data_name][self.highs['highs']==0],
+            ax.plot(data_to_use[self.highs['highs']==0].index,
+                    data_to_use[self.highs['highs']==0],
                     '-g')
-            ax.plot(self.time[self.highs['highs']==1],
-                    self.data[data_name][self.highs['highs']==1],
+            ax.plot(data_to_use[self.highs['highs']==1].index,
+                    data_to_use[self.highs['highs']==1],
                     '.b',label='high')
-            ax.legend()
+            ax.legend(fontsize=17)
+            ax.tick_params(labelsize=15)
+            ax.set_ylabel(data_name,size=17)
+            ax.set_xlabel('Time',size=17)
 
     def _reset_highs(self):
         """
@@ -959,7 +972,7 @@ class HydroData():
             ax.legend(fontsize=16)
             ax.set_xlabel(self.timename,fontsize=14)
             ax.set_ylabel(data_name,fontsize=14)
-            ax.tick_params(labelsize=14)
+            ax.tick_params(labelsize=15)
 
         if inplace == False:
             return df_temp
@@ -1110,9 +1123,9 @@ class HydroData():
             ax.plot(self.time,self.data[data_name],'g--',label='original data')
             ax.plot(self.time,df_temp.data[data_name],'b-',label='filtered data')
             ax.legend(fontsize=16)
-            ax.set_xlabel(self.timename,fontsize=14)
-            ax.set_ylabel(data_name,fontsize=14)
-            ax.tick_params(labelsize=14)
+            ax.set_xlabel(self.timename,fontsize=20)
+            ax.set_ylabel(data_name,fontsize=20)
+            ax.tick_params(labelsize=15)
 
         if inplace:
             self.data[data_name] = df_temp.data[data_name]
@@ -1326,10 +1339,17 @@ class HydroData():
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
             ax.plot(self.data[data_2][arange[0]:arange[1]],
-                    self.data[data_1][arange[0]:arange[1]],'bo',markersize=4)
-            ax.plot(y,x)
-            ax.legend()
-
+                    self.data[data_1][arange[0]:arange[1]],'bo',markersize=4,
+                   label='Data')
+            ax.plot(y,x,label='Linear fit')
+            ax.legend(fontsize=15)
+            ax.tick_params(labelsize=15)
+            ax.set_ylabel(data_1,size=17)
+            ax.set_xlabel(data_2,size=17)
+            #fig.text(1,0.9,'Slope: '+str(slope) + '\nIntercept: '+str(intercept)+'\nR$^2$: '+str(r_sq),color='black',verticalalignment='bottom', bbox={'edgecolor':'black','pad':10,'fill':False}, horizontalalignment='left',fontsize=17)
+            fig.tight_layout()
+            print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
+            
         return slope,intercept,r_sq
 
 #==============================================================================
@@ -1491,8 +1511,10 @@ class HydroData():
                 ax.fill_between(mean_day.index,mean_day['avg'],
                                 mean_day['avg']-mean_day['std'],
                                 color='grey', alpha=0.3)
+            ax.tick_params(labelsize=15)
             ax.set_xlim(mean_day.index[0],mean_day.index[-1])
-            ax.set_title(column_name)
+            ax.set_ylabel(column_name,size=17)
+            ax.set_xlabel('Time',size=17)
             return fig,ax
 
     ##############
@@ -1602,8 +1624,8 @@ class HydroData():
                 str(float(df.meta_valid[data_name].count())))
 
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
-        ax.set_xlabel(self.timename,fontsize=14)
-        ax.set_ylabel(data_name,fontsize=14)
+        ax.set_xlabel(self.timename,fontsize=20)
+        ax.set_ylabel(data_name,fontsize=20)
         ax.tick_params(labelsize=14)
 
 

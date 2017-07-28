@@ -158,7 +158,7 @@ class OnlineSensorBased(HydroData):
                     'Check self.units to make sure everything is still okay.')
         return None
     
-    def calc_daily_average(self,column_name,time='float',plot=False):
+    def calc_daily_average(self,column_name,arange,plot=False):
         """
         calculates the daily average of values in the given column and returns them as a 2D-array,
         containing the days and the average values on the respective days. Plotting is possible.
@@ -167,8 +167,8 @@ class OnlineSensorBased(HydroData):
         ----------
         column_name : str
             name of the column containing the data to calculate the average values for
-        time : str
-            type of the time indication. Available: "float"
+        arange : array of two values
+            the range within which daily averages need to be calculated
         plot : bool
             plot or not
     
@@ -178,8 +178,15 @@ class OnlineSensorBased(HydroData):
             pandas dataframe, containing the daily means with standard deviations
             for the selected column
         """
-        self.daily_average = {}             
-        series = self.data[column_name]   
+        self.daily_average = {}
+        try:
+            series = self.data[column_name][arange[0]:arange[1]].copy()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")   
         
         if isinstance(series.index[0],float):
             days = np.arange(series.index[0],series.index[-1],1)
@@ -190,8 +197,8 @@ class OnlineSensorBased(HydroData):
             to_return.columns = ['day','mean','std']
  
         elif isinstance(self.data.index[0],pd.tslib.Timestamp):
-            means = series.resample('d').mean()
-            stds = series.resample('d').std()
+            means = series.resample('d').mean().dropna()
+            stds = series.resample('d').std().dropna()
             
             to_return = pd.DataFrame([means.index,means.values,stds.values]).transpose()
             to_return.columns = ['day','mean','std']
@@ -211,7 +218,9 @@ class OnlineSensorBased(HydroData):
             #                color='grey', alpha='0.3')
             #ax.fill_between(to_return['day'],to_return['mean'],(to_return['mean']-to_return['std']),
             #                color='grey', alpha='0.3')
-            ax.set_title(column_name)
+            ax.tick_params(labelsize=15)
+            ax.set_ylabel(column_name,size=20)
+            ax.set_xlabel('Time',size=20)
         
         self.daily_average[column_name] = to_return
         
@@ -1161,7 +1170,7 @@ class OnlineSensorBased(HydroData):
 
         orig = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
         gaps = self.__class__(self.data[test_data_range[0]:test_data_range[1]].copy())
-        gaps.get_highs(data_name,0.9)
+        gaps.get_highs(data_name,0.9,[test_data_range[0],test_data_range[1]])
         
                 
         # create gaps; 
