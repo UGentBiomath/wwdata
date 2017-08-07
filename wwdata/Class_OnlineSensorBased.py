@@ -375,7 +375,7 @@ class OnlineSensorBased(HydroData):
         # FILLING
         ###
         # Use the .interpolate() method to interpolate for the nan values just created
-        # the limit argument makes sure that only the values than can be filled by 
+        # the limit argument makes sure that only the values that can be filled by 
         # interpolation are filled; needed to prevent other, already present NaN values
         # from also getting filled!!
         self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_)
@@ -384,7 +384,7 @@ class OnlineSensorBased(HydroData):
         self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_interpol'
         
         # Set all points still tagged filtered in the self.filled dataset to NaN
-        self.filled.loc[self.meta_filled[to_fill] == 'filtered'] = np.nan 
+        #self.filled.loc[self.meta_filled[to_fill] == 'filtered'] = np.nan 
         
         if plot:
             self.plot_analysed(to_fill)

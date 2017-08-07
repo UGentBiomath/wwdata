@@ -1678,8 +1678,8 @@ class HydroData():
             df.meta_filled = self.meta_filled[time_range[0]:time_range[1]].copy()
             df.filled = self.filled[time_range[0]:time_range[1]].copy()
             ax.plot(df.time[df.meta_filled[data_name]=='original'],
-                df.data[data_name][df.meta_filled[data_name]=='original'],
-                '.g',label='original')
+                    df.filled[data_name][df.meta_filled[data_name]=='original'],
+                    '.g',label='original')
             if only_checked == False:
                 if (df.meta_filled[data_name]=='filtered').any():
                     ax.plot(df.time[df.meta_filled[data_name]=='filtered'],
