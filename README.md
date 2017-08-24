@@ -1,5 +1,5 @@
 # The wwdata package
-*GNU APGL Licensed*
+*GNU GPL Licensed*
 
 ## Premise and background
 The wwdata (wastewater data) package is meant to make data analysis, validation and filling of data gaps more streamlined. It contains code to do all this, while also providing simple visualisations of the whole procedure. 
