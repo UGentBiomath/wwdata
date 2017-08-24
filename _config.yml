@@ -1,0 +1,8 @@
+title: wwdata
+description: Python package to analyse, validate, fill and visualise data acquired in the context of (waste)water treatment
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-dinky
+
+gems:
+  - jekyll-mentions
