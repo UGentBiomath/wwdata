@@ -8,7 +8,7 @@ setup(name='wwdata',
 	  url='https://cdmulde.github.io/wwdata/',
  	  author='Chaim De Mulder',
 	  author_email='demulderchaim@gmail.com',
-	  license='GNU AGPL',
+	  license='GNU GPL',
 	  classifiers=[
 		'Intended audience :: water professionals',
 		'Topic :: data analysis'],
