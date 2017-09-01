@@ -9,8 +9,8 @@ update: all
 pin: True
 
 # set the default branch
-#  branch : empty ; default: empty, the default branch on GitHub
-
+# default: empty, the default branch on GitHub
+branch : feature_cookiecutter 
 
 # update schedule
 # default: empty
