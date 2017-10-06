@@ -4,3 +4,5 @@ dateutils
 scipy
 matplotlib
 statsmodels
+xlrd
+warnings
