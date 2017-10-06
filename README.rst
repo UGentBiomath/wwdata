@@ -29,7 +29,7 @@ The package contains one class and three subclasses, all in separate .py files. 
 The workflow of the package is as follows: a dataset is read in as a pandas DataFrame and made into the relevant Class object, after which all below functions become available to use on the data. Generally speaking, several steps are taken:
 * Formatting of the data: converting strings to floats, time units to the right values, setting the index the way you want it...<br>
 
-![](https://github.com/UGentBiomath/wwdata/blob/master/figs/data01.png?raw=true)
+![](./figs/data01.png)
 
 * Validate/filter the data: by use of several filter functions, data points are given a tag (kept in a separate DataFrame, self.meta_valid) that indicates whether the user deems them valid or not to continue using.<br>
 
