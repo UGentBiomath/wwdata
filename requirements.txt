@@ -4,3 +4,4 @@ dateutils
 scipy
 matplotlib
 statsmodels
+tkinter
