@@ -23,3 +23,4 @@ deploy:
 install: true
 language: python
 python: 3.5
+script: echo "okay"
