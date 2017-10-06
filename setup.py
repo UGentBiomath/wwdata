@@ -18,6 +18,7 @@ requirements = [
     'scipy'
     'matplotlib'
     'statsmodels'
+    'xlrd'
 ]
 
 setup_requirements = [
