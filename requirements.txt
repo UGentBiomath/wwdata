@@ -5,3 +5,5 @@ scipy
 matplotlib
 statsmodels
 xlrd
+Tcl
+tkinter
