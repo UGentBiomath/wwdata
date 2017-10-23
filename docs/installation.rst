@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install wwdata, run this command in your terminal:
+To install wwdata, run this fancy command in your terminal:
 
 .. code-block:: console
 
     $ pip install wwdata
 
-This is the preferred method to install wwdata, as it will always install the most recent stable release. 
+This is the preferred method to install wwdata, as it will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
