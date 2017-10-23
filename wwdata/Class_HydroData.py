@@ -603,12 +603,12 @@ class HydroData():
                                                                        'filtered','original')
             len_new = self.data[data_name][arange[0]:arange[1]].count()
     
-        print(str(len_orig-len_new) + ' NaN values detected and tagged as filtered.')
+        _print_removed_output(len_orig,len_new,'NaN tagging')
 
     def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
                        plot=False,final=False):
-        '''CONFIRMED
-        deletes double values that subsequently occur in a measurement series.
+        '''
+        tags double values that subsequently occur in a measurement series.
         This is relevant in case a sensor has failed and produces a constant
         signal. A band is provided within which the signal can vary and still
         be filtered out
@@ -621,6 +621,8 @@ class HydroData():
             boundary value of the band to use. When the difference between a
             point and the next one is smaller then the bound value, the latter
             datapoint is tagged as 'filtered'.
+        arange : array of two values
+            the range within which double values need to be tagged
         clear : bool
             if True, the tags added to datapoints before will be removed and put
             back to 'original'.
@@ -662,7 +664,7 @@ class HydroData():
             mask = bound_mask
         else:
             try:
-                range_mask = (self.index() < arange[0]) + (arange[1] < self.index())
+                range_mask = (self.index() < arange[0]) | (arange[1] < self.index())
                 mask = bound_mask + range_mask
             except TypeError:
                 raise TypeError("Slicing not possible for index type " + \
@@ -682,7 +684,7 @@ class HydroData():
         len_new = df_temp.data[data_name].count()
         
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'double value tagging')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else:
@@ -721,9 +723,85 @@ class HydroData():
 
         if not final:
             return None
+        
+        
+    def tag_extremes(self,data_name,arange=None,limit=0,method='below',
+                     clear=False,plot=False):
+        """
+        Tags values above or below a given limit.
+        
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to be tagged
+        arange : array of two values
+            the range within which extreme values need to be tagged 
+        limit : int/float
+            limit below or above which values need to be tagged
+        method : 'below' or 'above'
+            below tags all the values below the given limit, above tags
+            the values above the limit
+        clear : bool
+            if True, the tags added before will be removed and put
+            back to 'original'.
+        plot : bool
+             whether or not to make a plot of the newly tagged data points
+        
+        Returns
+        -------
+        None; 
+        """
+        if clear:
+            self._reset_meta_valid(data_name)
+        self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
+
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+
+        if arange == None:
+            len_orig = len(self.data[data_name])
+            mask_valid = np.where(self.meta_valid[data_name] == 'filtered',True,False)
+            if method == 'below':
+                mask_tagging = np.where(self.data[data_name]<limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name] = np.where(mask,'filtered','original')
+            elif method == 'above':
+                mask_tagging = np.where(self.data[data_name]>limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name] = np.where(mask,'filtered','original')
+
+        else:
+            # check if arange has the right type
+            try:
+                len_orig = len(self.data[data_name][arange[0]:arange[1]])
+                mask_valid = np.where(self.meta_valid[data_name][arange[0]:arange[1]] == 'filtered',True,False)
+            except TypeError:
+                raise TypeError("Slicing not possible for index type " + \
+                                str(type(self.data.index[0])) + " and arange "+\
+                                "argument type " + str(type(arange[0])) + " or " +\
+                                str(type(arange[1])) + ". Try changing the type "+\
+                                "of the arange values to one compatible with " + \
+                                str(type(self.data.index[0])) + " slicing.") 
+            if method == 'below':
+                mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]<limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name][arange[0]:arange[1]] = np.where(mask,'filtered','original')
+            elif method == 'above':
+                mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]>limit,True,False)
+                mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
+                self.meta_valid[data_name][arange[0]:arange[1]] = np.where(mask,'filtered','original')
+
+        len_new = mask_tagging.sum()
+
+        _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
+        
+        if plot == True:
+            self.plot_analysed(data_name)
 
     def calc_slopes(self,xdata,ydata,time_unit=None,slope_range=None):
-        """CONFIRMED
+        """
         Calculates slopes for given xdata and data_name; if a time unit is given as
         an argument, the time values (xdata) will first be converted to this
         unit, which will then be used to calculate the slopes with.
@@ -791,8 +869,9 @@ class HydroData():
 
         return slopes
 
-    def moving_slope_filter(self,xdata,data_name,cutoff,time_unit=None,clear=False,
-                            inplace=False,log_file=None,plot=True,final=False):
+    def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
+                            clear=False,inplace=False,log_file=None,plot=False,
+                            final=False):
         """CONFIRMED
         Filters out datapoints based on the difference between the slope in one
         point and the next (sudden changes like noise get filtered out), based
@@ -808,6 +887,8 @@ class HydroData():
             name of the column containing the data that needs to be filtered
         cutoff: int
             the cutoff value to compare the slopes with to apply the filtering.
+        arange : array of two values
+            the range within which the moving slope filter needs to be applied 
         time_unit : str
             time unit to be used for the slope calculation (in case this is
             based on time); if None, slopes are calculated based on the values
@@ -841,14 +922,22 @@ class HydroData():
         what values are filtered
         """
         self._plot = 'valid'
-        len_orig = self.data[data_name].count()
-
+        try:
+            len_orig = self.data[data_name][arange[0]:arange[1]].count()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
+        
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
         # Make temporary object for operations
-        df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                 experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                 timedata_column=self.timename,experiment_tag=self.tag,
+                                 time_unit=self.time_unit)
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
@@ -863,17 +952,18 @@ class HydroData():
             slopes = df_temp.calc_slopes(xdata,data_name,time_unit=time_unit)
         len_new = df_temp.data[data_name].count()
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'moving slope filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else :
-            raise TypeError('Please provide the location of the log file as \
-                                a string type, or leave the argument if no log \
-                                file is needed.')
+            raise TypeError('Please provide the location of the log file as '+ \
+                            'a string type, or leave the argument if no log '+ \
+                            'file is needed.')
         # Create new temporary object, where the dropped datapoints are replaced
         # by nan values
-        df_temp_2 = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                   experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp_2 = self.__class__(self.data.copy(),
+                                   timedata_column=self.timename,experiment_tag=self.tag,
+                                   time_unit=self.time_unit)
         df_temp_2.data[data_name] = df_temp.data[data_name]
         df_temp_2._update_time()
         # Update the self.meta_valid dataframe, to contain False values for dropped
@@ -901,7 +991,7 @@ class HydroData():
         if not final:
             return None
 
-    def simple_moving_average(self,data_name=None,window=10,inplace=False,
+    def simple_moving_average(self,arange,window,data_name=None,inplace=False,
                               plot=True):
         """CONFIRMED
         Calculate the Simple Moving Average of a dataseries from a dataframe,
@@ -909,13 +999,15 @@ class HydroData():
 
         Parameters
         ----------
+        arange : array of two values
+            the range within which the moving average needs to be calculated
+        window : int
+            the number of values from the dataset that are used to take the
+            average at the current point. Defaults to 10
         data_name : str or array of str
             name of the column(s) containing the data that needs to be
             smoothened. If None, smoothened data is computed for the whole
             dataframe. Defaults to None
-        window : int
-            the number of values from the dataset that are used to take the
-            average at the current point. Defaults to 10
         inplace : bool
             indicates whether a new dataframe is created and returned or whether
             the operations are executed on the existing dataframe (nothing is
@@ -930,17 +1022,27 @@ class HydroData():
             either a new object (inplace=False) or an adjusted object, con-
             taining the smoothened data values
         """
-
-        if len(self.data) < window:
+        try:
+            original = self.data[arange[0]:arange[1]].copy()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
+        
+        if len(original) < window:
             raise ValueError("Window width exceeds number of datapoints!")
 
         if plot == True:
-            original = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                      experiment_tag=self.tag,time_unit=self.time_unit)
+            original = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                      timedata_column=self.timename,experiment_tag=self.tag,
+                                      time_unit=self.time_unit)
 
         if inplace == False:
-            df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                  experiment_tag=self.tag,time_unit=self.time_unit)
+            df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                     timedata_column=self.timename, experiment_tag=self.tag,
+                                     time_unit=self.time_unit)
             if data_name == None:
                 df_temp = self.data.rolling(window=window,center=True).mean()
             elif isinstance(data_name,str):
@@ -977,8 +1079,8 @@ class HydroData():
         if inplace == False:
             return df_temp
 
-    def moving_average_filter(self,data_name,window,cutoff_perc,clear=False,
-                              inplace=False,log_file=None,plot=True,final=False):
+    def moving_average_filter(self,data_name,window,cutoff_frac,arange,clear=False,
+                              inplace=False,log_file=None,plot=False,final=False):
         """
         Filters out the peaks/outliers in a dataset by comparing its values to a
         smoothened representation of the dataset (Moving Average Filtering). The
@@ -991,10 +1093,12 @@ class HydroData():
         window : int
             the number of values from the dataset that are used to take the
             average at the current point.
-        cutoff_perc: float
-            the cutoff value (in percentage) to compare the data and smoothened
+        cutoff_frac: float
+            the cutoff value (in fraction 0-1) to compare the data and smoothened
             data: a deviation higher than a certain percentage drops the data-
             point.
+        arange : array of two values
+            the range within which the moving average filter needs to be applied
         clear : bool
             if True, the tags added to datapoints before will be removed and put
             back to 'original'.
@@ -1019,23 +1123,30 @@ class HydroData():
         None (if inplace=True)
         """
         self._plot = 'valid'
-        len_orig = self.data[data_name].count()
+        try:
+            len_orig = self.data[data_name][arange[0]:arange[1]].count()
+        except TypeError:
+            raise TypeError("Slicing not possible for index type " + \
+            str(type(self.data.index[0])) + " and arange argument type " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            "values to one compatible with " + str(type(self.data.index[0])) + \
+            " slicing.")
 
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
         # Make temporary object for operations
-        df_temp = self.__class__(self.data.copy(),timedata_column=self.timename,
-                                 experiment_tag=self.tag,time_unit=self.time_unit)
+        df_temp = self.__class__(self.data[arange[0]:arange[1]].copy(),
+                                 timedata_column=self.timename,experiment_tag=self.tag,
+                                 time_unit=self.time_unit)
         # Make a hydropy object with the smoothened data
-        smooth_data = self.simple_moving_average(data_name,window,inplace=False,
+        smooth_data = self.simple_moving_average(arange,window,data_name,inplace=False,
                                                  plot=False)
         # Make a mask by comparing smooth and original data, using the given
         # cut-off percentage
-        mask = (self.data[data_name] + cutoff_perc*self.data[data_name] >\
-                smooth_data.data[data_name]) & \
-                (self.data[data_name] - cutoff_perc*self.data[data_name] <\
-                smooth_data.data[data_name])
+        mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
+                smooth_data.data[data_name]) < cutoff_frac
+        
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
@@ -1045,7 +1156,7 @@ class HydroData():
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
         if log_file == None:
-            _print_removed_output(len_orig,len_new,'filtered')
+            _print_removed_output(len_orig,len_new,'moving average filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
         else :
@@ -1561,7 +1672,7 @@ class HydroData():
 
         #create new object with only the values within the given time range
         df = self.__class__(self.data[time_range[0]:time_range[1]].copy(),timedata_column=self.timename,
-                                   experiment_tag=self.tag,time_unit=self.time_unit)
+                            experiment_tag=self.tag,time_unit=self.time_unit)
 
         if self._plot == 'filled':
             df.meta_filled = self.meta_filled[time_range[0]:time_range[1]].copy()
@@ -1704,9 +1815,9 @@ class HydroData():
 def total_seconds(timedelta_value):
     return timedelta_value.total_seconds()
 
-def _print_removed_output(original,new,type_):
+def _print_removed_output(original,new,function):
     """
-    function printing the output of functions that remove datapoints.
+    function printing the output of functions that tag datapoints.
 
     Parameters
     ----------
@@ -1714,13 +1825,11 @@ def _print_removed_output(original,new,type_):
         original length of the dataset
     new : int
         length of the new dataset
-    type_ : str
-        'removed' or 'dropped'
+    function : str
+        info on the function used to filter the data
 
     """
-    print('Original dataset:',original,'datapoints')
-    print('New dataset:',new,'datapoints')
-    print(original-new,'datapoints ',type_)
+    print(str(original-new) + ' values detected and tagged as filtered by function ' + function)
 
 def _log_removed_output(log_file,original,new,type_):
     """

@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""Top-level package for wwdata."""
+
+__author__ = """Chaim De Mulder"""
+__email__ = 'demulderchaim@gmail.com'
+__version__ = '0.1.0'
+
+
 from .Class_HydroData import HydroData
 from .Class_LabExperimBased import LabExperimBased
 print('LabExperimBased imported')

@@ -1,0 +1,7 @@
+pandas
+numpy
+dateutils
+scipy
+matplotlib
+statsmodels
+xlrd  
