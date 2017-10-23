@@ -4,4 +4,4 @@ dateutils
 scipy
 matplotlib
 statsmodels
-xlrd
+xlrd  
