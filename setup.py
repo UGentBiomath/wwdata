@@ -37,7 +37,7 @@ setup(
     long_description=readme + '\n\n' + history,
     author="Chaim De Mulder",
     author_email='demulderchaim@gmail.com',
-    url='https://github.com/cdemulde/wwdata',
+    url='https://github.com/UGentBIOMATH/wwdata',
     packages=find_packages(include=['wwdata']),
     include_package_data=True,
     install_requires=requirements,
