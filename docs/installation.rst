@@ -8,7 +8,7 @@ Installation
 Stable release
 --------------
 
-To install wwdata, run this fancy command in your terminal:
+To install wwdata, run this command in your terminal:
 
 .. code-block:: console
 
