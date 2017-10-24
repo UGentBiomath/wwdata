@@ -7,7 +7,7 @@ wwdata
         :target: https://pypi.python.org/pypi/wwdata
 
 .. image:: https://img.shields.io/travis/cdemulde/wwdata.svg
-        :target: https://travis-ci.org/UGentBiomath/wwdata
+        :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
 
 .. image:: https://readthedocs.org/projects/wwdata/badge/?version=latest
         :target: https://wwdata.readthedocs.io/en/latest/?badge=latest
