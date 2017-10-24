@@ -28,7 +28,7 @@ The package contains one class and three subclasses, all in separate .py files. 
 
 The workflow of the package is as shown in Figure 1.
 
-![](./figs/packagestructure_rel.png?raw=true)
+.. image:: ./figs/packagestructure_rel.png
 
 For the workflow with code and more specific examples included, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
 
