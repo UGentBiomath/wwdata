@@ -3,5 +3,5 @@ numpy==1.13.3
 dateutils==0.6.6
 scipy==0.19.1
 matplotlib==2.1.0
-statsmodels
+statsmodels==0.8.0
 xlrd  
