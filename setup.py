@@ -19,7 +19,7 @@ requirements = [
     'matplotlib',
     'statsmodels',
     'xlrd',
-    #'tkinter'
+    'tkinter'
 ]
 
 setup_requirements = [

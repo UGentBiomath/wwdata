@@ -29,7 +29,7 @@ The package contains one class and three subclasses, all in separate .py files. 
 * online data from lab experiments (LabSensorBased)
 * offline data obtained from lab experiments (LabExperimentBased).
 
-Jupyter notbeook files (.ipynb) illustrate the use of the available functions. The most developed class is the OnlineSensorBased one. The workflow of this class is shown in Figure 1. Main premises are to never delete data but to tag it and to be able to check the reliability when gaps in datasets are filled.
+Jupyter notbeook files (.ipynb) illustrate the use of the available functions. The most developed class is the OnlineSensorBased one. The workflow of this class is shown in below Figure, where OSB represents an OnlineSensorBased object. Main premises are to never delete data but to tag it and to be able to check the reliability when gaps in datasets are filled.
 
 .. image:: ./figs/packagestructure_rel.png
     :width: 200px
