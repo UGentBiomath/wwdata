@@ -10,7 +10,7 @@ wwdata
         :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
 
 .. image:: https://readthedocs.org/projects/wwdata/badge/?version=latest
-        :target: https://wwdata.readthedocs.io/en/latest/?badge=latest
+        :target: https://wwdata.readthedocs.io/en/latest/?badge=master
         :alt: Documentation Status
 
 .. image:: https://pyup.io/repos/github/UGentBiomath/wwdata/shield.svg
