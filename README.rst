@@ -32,8 +32,7 @@ The package contains one class and three subclasses, all in separate .py files. 
 Jupyter notbeook files (.ipynb) illustrate the use of the available functions. The most developed class is the OnlineSensorBased one. The workflow of this class is shown in below Figure, where OSB represents an OnlineSensorBased object. Main premises are to never delete data but to tag it and to be able to check the reliability when gaps in datasets are filled.
 
 .. image:: ./figs/packagestructure_rel.png
-    :width: 200px
-    :scale: 50 %
+    :align: center
 
 For the workflow with code and more specific examples included, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
 
