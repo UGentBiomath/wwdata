@@ -17,8 +17,8 @@ wwdata
      :target: https://pyup.io/repos/github/UGentBiomath/wwdata/
      :alt: Updates
 
-.. image:: https://zenodo.org/badge/97218131.svg
-    :target: https://zenodo.org/badge/latestdoi/97218131
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1035739.svg
+     :target: https://doi.org/10.5281/zenodo.1035739
 
 
 Data analysis package aimed at data obtained in the context of (waste)water
