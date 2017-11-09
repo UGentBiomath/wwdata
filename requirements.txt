@@ -1,6 +1,6 @@
 pandas==0.21.0
 numpy==1.13.3
-dateutils
+dateutils==0.6.6
 scipy
 matplotlib
 statsmodels
