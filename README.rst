@@ -24,7 +24,7 @@ wwdata
 Data analysis package aimed at data obtained in the context of (waste)water
 
 * Free software: GNU General Public License v3
-* Documentation: https://wwdata.readthedocs.io
+* Documentation: https://ugentbiomath.github.io/wwdata-docs/
 * Funding: Waterboard De Dommel
 * Context: PhD research at BIOMATH, Ghent University
 
