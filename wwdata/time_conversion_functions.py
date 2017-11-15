@@ -14,9 +14,7 @@
     GNU Affero General Public License for more details.
 
     You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-@authors: chaimdemulder, stijnvanhoey
-contact: chaim.demulder@ugent.be
+    along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 import pandas as pd
@@ -27,13 +25,13 @@ def make_month_day_array():
     """
     makes a dataframe containing two columns, one with the number of the month,
     one with the day of the month. Useful in creating datetime objects based on
-    e.g. date serial numbers from the Window Date System 
+    e.g. date serial numbers from the Window Date System
     (http://excelsemipro.com/2010/08/date-and-time-calculation-in-excel/)
-    
+
     Returns
     -------
-    pd.DataFrame : 
-        dataframe with number of the month and number of the day of the month 
+    pd.DataFrame :
+        dataframe with number of the month and number of the day of the month
         for a whole year
     """
     days_in_months = [31,28,31,30,31,30,31,31,30,31,30,31]
@@ -45,28 +43,28 @@ def make_month_day_array():
             days.append(j)
             months.append(month)
         month += 1
-    
+
     month_day_array = pd.DataFrame()
     month_day_array['month'] = months
     month_day_array['day'] = days
-    
-    return month_day_array        
+
+    return month_day_array
 
 def get_absolute_time(value,date_type='WindowsDateSystem'):
     """
-    Converts a coded time to the absolute date at which the experiment was 
+    Converts a coded time to the absolute date at which the experiment was
     conducted.
-    
+
     Parameters
     ----------
     value : int or float
         a code for a certain point in time
     date_type : str
-        type of coding used for the time point, probably depending on the 
-        software which was used to acquire the data, e.g. the Windows Date 
+        type of coding used for the time point, probably depending on the
+        software which was used to acquire the data, e.g. the Windows Date
         System (here as default, see also:
         http://excelsemipro.com/2010/08/date-and-time-calculation-in-excel/)
-    
+
     Returns
     -------
     datetime.datetime
@@ -86,11 +84,11 @@ def get_absolute_time(value,date_type='WindowsDateSystem'):
         minutes = int(60*decimals)
         decimals = 60*decimals - minutes
         seconds = int(60*decimals)
-    
+
         timestamp = dt.datetime(year_current,month,day_in_month,hour,minutes,
                                 seconds)
     return timestamp
-   
+
 def to_days(timedelta):
     """
     timedelta : timedelta value
@@ -121,17 +119,17 @@ def timedelta_to_abs(timedelta,unit='d'):
     timedelta : array of timedelta values
     """
     if unit == 'd':
-        return map(to_days,timedelta) 
+        return map(to_days,timedelta)
     elif unit == 'hr':
-        return map(to_hours,timedelta) 
+        return map(to_hours,timedelta)
     elif unit == 'min':
-        return map(to_minutes,timedelta) 
+        return map(to_minutes,timedelta)
     elif unit == 'sec':
-        return map(to_seconds,timedelta) 
-    
+        return map(to_seconds,timedelta)
+
 def _get_datetime_info(string):
     """
-    
+
     parameter
     --------
     string containing date and time info (format as received from EHV)
@@ -163,6 +161,5 @@ def to_datetime_singlevalue(time):
     This function takes care of that, to a certain extent.
 
     """
-    time_info = _get_datetime_info(time) 
+    time_info = _get_datetime_info(time)
     return make_datetime(time_info)
-    
