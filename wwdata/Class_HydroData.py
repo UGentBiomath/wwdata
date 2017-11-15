@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 """
     Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
+
     Copyright (C) 2016 Chaim De Mulder
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+    GNU General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-@authors: chaimdemulder, stijnvanhoey
-contact: chaim.demulder@ugent.be
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 #import sys
@@ -491,7 +489,7 @@ class HydroData():
             str(type(self.data.index[0])) + " and arange argument type " + \
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")   
+            " slicing.")
 
         # get indexes where flow is higher then bound_value
         if method is 'value':
@@ -575,18 +573,18 @@ class HydroData():
         if clear:
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
-        
+
         if not data_name in self.meta_valid.columns:
             # if the data_name column doesn't exist yet in the meta_valid dataset,
             # add it
             self.add_to_meta_valid([data_name])
-        
+
         if arange == None:
             len_orig = len(self.data[data_name])
             self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
                                                   'filtered','original')
             len_new = self.data[data_name].count()
-    
+
         else:
             # check if arange has the right type
             try:
@@ -597,12 +595,12 @@ class HydroData():
                                 "argument type " + str(type(arange[0])) + " or " +\
                                 str(type(arange[1])) + ". Try changing the type "+\
                                 "of the arange values to one compatible with " + \
-                                str(type(self.data.index[0])) + " slicing.") 
-                
+                                str(type(self.data.index[0])) + " slicing.")
+
             self.meta_valid[data_name][arange[0]:arange[1]] = np.where(np.isnan(self.data[data_name][arange[0]:arange[1]]),
                                                                        'filtered','original')
             len_new = self.data[data_name][arange[0]:arange[1]].count()
-    
+
         _print_removed_output(len_orig,len_new,'NaN tagging')
 
     def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
@@ -682,7 +680,7 @@ class HydroData():
         # Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
-        
+
         if log_file == None:
             _print_removed_output(len_orig,len_new,'double value tagging')
         elif type(log_file) == str:
@@ -723,19 +721,19 @@ class HydroData():
 
         if not final:
             return None
-        
-        
+
+
     def tag_extremes(self,data_name,arange=None,limit=0,method='below',
                      clear=False,plot=False):
         """
         Tags values above or below a given limit.
-        
+
         Parameters
         ----------
         data_name : str
             name of the column containing the data to be tagged
         arange : array of two values
-            the range within which extreme values need to be tagged 
+            the range within which extreme values need to be tagged
         limit : int/float
             limit below or above which values need to be tagged
         method : 'below' or 'above'
@@ -746,10 +744,10 @@ class HydroData():
             back to 'original'.
         plot : bool
              whether or not to make a plot of the newly tagged data points
-        
+
         Returns
         -------
-        None; 
+        None;
         """
         if clear:
             self._reset_meta_valid(data_name)
@@ -783,7 +781,7 @@ class HydroData():
                                 "argument type " + str(type(arange[0])) + " or " +\
                                 str(type(arange[1])) + ". Try changing the type "+\
                                 "of the arange values to one compatible with " + \
-                                str(type(self.data.index[0])) + " slicing.") 
+                                str(type(self.data.index[0])) + " slicing.")
             if method == 'below':
                 mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]<limit,True,False)
                 mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
@@ -796,7 +794,7 @@ class HydroData():
         len_new = mask_tagging.sum()
 
         _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
-        
+
         if plot == True:
             self.plot_analysed(data_name)
 
@@ -888,7 +886,7 @@ class HydroData():
         cutoff: int
             the cutoff value to compare the slopes with to apply the filtering.
         arange : array of two values
-            the range within which the moving slope filter needs to be applied 
+            the range within which the moving slope filter needs to be applied
         time_unit : str
             time unit to be used for the slope calculation (in case this is
             based on time); if None, slopes are calculated based on the values
@@ -930,7 +928,7 @@ class HydroData():
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
-        
+
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
@@ -1030,7 +1028,7 @@ class HydroData():
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
-        
+
         if len(original) < window:
             raise ValueError("Window width exceeds number of datapoints!")
 
@@ -1146,7 +1144,7 @@ class HydroData():
         # cut-off percentage
         mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
                 smooth_data.data[data_name]) < cutoff_frac
-        
+
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
@@ -1426,7 +1424,7 @@ class HydroData():
 
         else:
             corr_data = pd.DataFrame(self.data[arange[0]:arange[1]][[data_1,data_2]].values)
-            
+
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
@@ -1460,7 +1458,7 @@ class HydroData():
             #fig.text(1,0.9,'Slope: '+str(slope) + '\nIntercept: '+str(intercept)+'\nR$^2$: '+str(r_sq),color='black',verticalalignment='bottom', bbox={'edgecolor':'black','pad':10,'fill':False}, horizontalalignment='left',fontsize=17)
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
-            
+
         return slope,intercept,r_sq
 
 #==============================================================================

@@ -14,9 +14,7 @@
     GNU Affero General Public License for more details.
 
     You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-@authors: chaimdemulder, stijnvanhoey
-contact: chaim.demulder@ugent.be
+    along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 import sys
@@ -30,7 +28,7 @@ import xlrd
 
 def list_files(path,ext):
     """
-    
+
     """
     if ext == 'excel':
         files = [f for f in listdir(path) if '.xls' in f]
@@ -41,9 +39,9 @@ def list_files(path,ext):
     else:
         print('No files with',ext,'extension found in directory',path,'Please \
         choose one of the following: text, excel, csv')
-        
+
         return None
-        
+
     return files
 
 def remove_empty_lines(path,ext):
@@ -66,7 +64,7 @@ def find_and_replace(path,ext,replace):
     Finds the files with a certain extension in a directory and applies a find-
     replace action to those files. Removes the old files and produces files with
     a prefix stating the replacing value.
-    
+
     Parameters
     ----------
     path : str
@@ -74,7 +72,7 @@ def find_and_replace(path,ext,replace):
     ext : str
         the extension of the files to be searched (excel, text or csv)
     replace : array of str
-        the first value of replace is the string to be replaced by the second 
+        the first value of replace is the string to be replaced by the second
         value of replace.
     """
     files = list_files(path,ext)
@@ -93,36 +91,36 @@ def find_and_replace(path,ext,replace):
         # Write the file out again
         with open(filepath, 'w') as file:
             file.write(filedata)
-        
+
         #data = pd.read_csv(filepath,sep='\t')
         #data.replace(to_replace=replace[0],value=replace[1],inplace=True)
         #data.to_csv(filepath,sep='\t',index=False,index_label=False)
-    
+
     return None
-    
+
 def sort_data(data,based_on,reset_index=[False,'new_index_name'],
               convert_to_timestamp=[True,'time_name','%d.%m.%Y %H:%M:%S']):
     """
-    Sorts a dataset based on values in one of the columns and splits them in 
+    Sorts a dataset based on values in one of the columns and splits them in
     different dataframes, returned in the form of one dictionary
-    
+
     Parameters
     ----------
     data : pd.dataframe
         the dataframe containing the data that needs to be sorted
     based_on : str
-        the name of the column that contains the names or values the sorting 
+        the name of the column that contains the names or values the sorting
         should be based on
     reset_index : [bool,str]
         array indicating if the index of the sorted datasets should be reset to
         a new one; if first element is true, the second element is the title of
         the column to use as new index; default: False
-        
+
     Returns
     -------
-    dict : 
-        A dictionary of pandas dataframes with as labels those acquired from the 
-        based_on column        
+    dict :
+        A dictionary of pandas dataframes with as labels those acquired from the
+        based_on column
     """
     dictionary = {}
     measurement_codes = pd.Series(data[based_on].ravel()).unique()
@@ -140,14 +138,14 @@ def sort_data(data,based_on,reset_index=[False,'new_index_name'],
         elif reset_index[0] == True & convert_to_timestamp[0] == False:
             dictionary[i].set_index(reset_index[1],inplace=True)
         print('Sorting',i,'...')
-    
+
     return dictionary
-    
+
 def _get_header_length(read_file,ext='text',comment='#'):
     """
     Determines the amount of rows that are part of the header in a file that is
-    already opened and readable    
-    
+    already opened and readable
+
     Parameters
     ----------
     read_file : opened file
@@ -156,15 +154,15 @@ def _get_header_length(read_file,ext='text',comment='#'):
         the extension (in words) of the file the headerlength needs to be found
         for
     comment : str
-        comment symbol used in the files 
+        comment symbol used in the files
 
     Returns
-    ------- 
+    -------
     headerlength : int
         the amount of rows that are part of the header in the read file
-    
-    """        
-    
+
+    """
+
     headerlength = 0
     header_test = comment
     counter = 0
@@ -173,12 +171,12 @@ def _get_header_length(read_file,ext='text',comment='#'):
             header_test = str(read_file.sheet_by_index(0).cell_value(counter,0))[0]
             headerlength += 1
             counter +=1
-            
+
     elif ext == 'text' or ext == 'csv':
         while header_test == comment:
             header_test = read_file.readline()[0]
             headerlength += 1
-     
+
     return headerlength-1
 
 
@@ -186,16 +184,16 @@ def read_mat(path):
     """
     Reads in .mat datafiles and returns them as pd.DataFrame
     http://stackoverflow.com/questions/24762122/read-matlab-data-file-into-python-need-to-export-to-csv
-    
+
     """
-    
+
     #Also write separate script for converting all .mat files in one dir to .csv files
 
 def _get_header_length(read_file,ext='text',comment='#'):
     """
     Determines the amount of rows that are part of the header in a file that is
-    already opened and readable    
-    
+    already opened and readable
+
     Parameters
     ----------
     read_file : opened file
@@ -204,15 +202,15 @@ def _get_header_length(read_file,ext='text',comment='#'):
         the extension (in words) of the file the headerlength needs to be found
         for
     comment : str
-        comment symbol used in the files 
+        comment symbol used in the files
 
     Returns
-    ------- 
+    -------
     headerlength : int
         the amount of rows that are part of the header in the read file
-    
-    """        
-    
+
+    """
+
     headerlength = 0
     header_test = comment
     counter = 0
@@ -221,31 +219,31 @@ def _get_header_length(read_file,ext='text',comment='#'):
             header_test = str(read_file.sheet_by_index(0).cell_value(counter,0))[0]
             headerlength += 1
             counter +=1
-            
+
     elif ext == 'text':
         while header_test == comment:
             header_test = read_file.readline()[0]
             headerlength += 1
-     
+
     return headerlength-1
 
 def _open_file(filepath,ext='text'):
     """
-    Opens file of a given extension in readable mode   
-    
+    Opens file of a given extension in readable mode
+
     Parameters
     ----------
     filepath : str
         the complete path to the file to be opened in read mode
     ext : str
-        the extension (in words) of the file that needs to be opened in read 
+        the extension (in words) of the file that needs to be opened in read
         mode
-    
+
     Returns
-    ------- 
+    -------
     The opened file in read mode
-    
-    """        
+
+    """
     if ext == 'text' or ext == 'zrx' or ext == 'csv':
         return open(filepath, 'r')
     elif ext == 'excel':
@@ -253,8 +251,8 @@ def _open_file(filepath,ext='text'):
 
 def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='.'):
     """
-    Read a file of given extension and save it as a pandas dataframe   
-    
+    Read a file of given extension and save it as a pandas dataframe
+
     Parameters
     ----------
     filepath : str
@@ -263,12 +261,12 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='
         the extension (in words) of the file that needs to be read and saved
     skiprows : int
         number of rows to skip when reading a file
-    
+
     Returns
-    ------- 
+    -------
     A pandas dataframe containing the data from the given file
-    
-    """   
+
+    """
     if ext == 'text':
         return pd.read_table(filepath,skiprows=skiprows,decimal='.',low_memory=False,index_col=None)
     elif ext == 'excel':
@@ -276,11 +274,11 @@ def _read_file(filepath,ext='text',skiprows=0,sep='\t',encoding='utf8',decimal='
     elif ext == 'csv':
         return pd.read_csv(filepath,sep=sep,skiprows=skiprows,encoding=encoding,
                            error_bad_lines=False,low_memory=False,index_col=None)
-        
+
 def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal='.'):
     """
     Reads all files in a given directory, joins them and returns one pd.dataframe
-    
+
     Parameters
     ----------
     path : str
@@ -294,18 +292,18 @@ def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal
     comment : str
         comment symbol used in the files
     sort : array of bool and str
-        if first element is true, apply the sort function to sort the data 
-        based on the tags in the column mentioned in the second element of the 
+        if first element is true, apply the sort function to sort the data
+        based on the tags in the column mentioned in the second element of the
         sort array
-    
+
     Returns
     -------
-    pd.dataframe: 
+    pd.dataframe:
         pandas dataframe containin concatenated files in the given directory
     """
     #Initialisations
     data = pd.DataFrame()
-  
+
     #Select files based on extension and sort files alphabetically to make sure
     #they are added to each other in the correct order
     #files = list_files(path,ext)
@@ -322,14 +320,14 @@ def join_files(path,files,ext='text',sep=',',comment='#',encoding='utf8',decimal
                                 ignore_index=True)
         print('Adding file',file_name,'to dataframe')
     data.to_csv('joined_files',sep=sep)
-    
+
     return data
 
 def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd(),fillna=True):
         """
-        writes a text-file that is compatible with WEST. Adds the units as 
+        writes a text-file that is compatible with WEST. Adds the units as
         they are given in the 'units' argument.
-        
+
         Parameters
         ----------
         df : pd.DataFrame
@@ -343,9 +341,9 @@ def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd(),fillna=Tru
         filepath : str
             directory to save the files in; defaults to the current one
         fillna : bool
-            when True, replaces nan values with 0 values (this might avoid 
+            when True, replaces nan values with 0 values (this might avoid
             WEST problems later one).
-        
+
         Returns
         -------
         None; writes files
@@ -353,12 +351,12 @@ def write_to_WEST(df,file_normal,file_west,units,filepath=os.getcwd(),fillna=Tru
         if fillna:
             df = df.fillna(0)
         df.to_csv(os.path.join(filepath,file_normal),sep='\t')
-        
+
         f = open(os.path.join(filepath,file_normal),'r')
         columns = f.readline()
         temp = f.read()
         f.close()
-        
+
         f = open(os.path.join(filepath,file_west), 'w')
         f.write('#.t' + columns)
         unit_line = '#d\t'

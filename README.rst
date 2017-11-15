@@ -24,11 +24,16 @@ wwdata
 Data analysis package aimed at data obtained in the context of (waste)water
 
 * Free software: GNU General Public License v3
-* Documentation: https://wwdata.readthedocs.io.
+* Documentation: https://wwdata.readthedocs.io
+* Funding: Waterboard De Dommel
+* Context: PhD research at BIOMATH, Ghent University
+
+Structure
+---------
 
 The package contains one class and three subclasses, all in separate .py files. Division in subclasses is based on the type of data:
 
-* online data from full scale wastewater treatment plants (OnlineSensorBased)
+* online data from full scale installations (OnlineSensorBased)
 * online data from lab experiments (LabSensorBased)
 * offline data obtained from lab experiments (LabExperimentBased).
 
@@ -37,7 +42,11 @@ Jupyter notbeook files (.ipynb) illustrate the use of the available functions. T
 .. image:: ./figs/packagestructure_rel.png
     :align: center
 
-For the workflow with code and more specific examples included, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
+
+Examples
+--------
+
+For the workflow with code and more specific examples, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
 
 
 Credits
