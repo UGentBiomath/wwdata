@@ -1,4 +1,4 @@
-pandas
+pandas==0.21.0
 numpy
 dateutils
 scipy
