@@ -1382,7 +1382,8 @@ class HydroData():
         ----------
         data_1 and data_2 : str
             names of the data columns containing the data between which the
-            correlation will be calculated.
+            correlation will be calculated. data_1: independent data; data_2:
+            dependent data
         arange : array
             array containing the beginning and end value between which the
             correlation needs to be calculated
@@ -1428,28 +1429,29 @@ class HydroData():
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
-        if zero_intercept == True:
-            import statsmodels.api as sm
-            model = sm.OLS(corr_data[data_1],corr_data[data_2])
-            results = model.fit()
-            slope = results.params[data_2]
-            intercept = 0.0
-            r_sq = results.rsquared
 
-        else:
-            regres = self.data[[data_1,data_2]][arange[0]:arange[1]].dropna()
-            slope, intercept, r_value, p_value, std_err = sp.stats.linregress(regres)
-            r_sq = r_value**2
+        import statsmodels.api as sm
+        Y = corr_data[data_2]
+        X = corr_data[data_1]
+
+        if zero_intercept == False:
+            X = sm.add_constant(X)
+
+        model = sm.OLS(Y,X)
+        results = model.fit()
+        slope = results.params[data_1]
+        intercept = results.params['const']
+        r_sq = results.rsquared
 
         if plot:
-            x = np.arange(self.data[data_1][arange[0]:arange[1]].min(),
-                          self.data[data_1][arange[0]:arange[1]].max())
+            x = np.arange(data[data_1][arange[0]:arange[1]].min(),
+                          data[data_1][arange[0]:arange[1]].max())
             y = slope * x + intercept
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
-            ax.plot(self.data[data_2][arange[0]:arange[1]],
-                    self.data[data_1][arange[0]:arange[1]],'bo',markersize=4,
-                   label='Data')
+            ax.plot(data[data_2][arange[0]:arange[1]],
+                    data[data_1][arange[0]:arange[1]],'bo',markersize=4,
+                    label='Data')
             ax.plot(y,x,label='Linear fit')
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
