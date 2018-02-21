@@ -170,7 +170,7 @@ class HydroData():
         if isinstance(self.index()[1],str):
             wn.warn('Rows may change order using this function based on '+ \
             'string values. Convert to datetime, int or float and use '+ \
-            '.sort_index() or .sort_value() to avoid. (see also hp.to_datetime())')
+            '.sort_index() or .sort_value() to avoid. (see also ww.to_datetime())')
 
     def replace(self,to_replace,value,inplace=False):
         """CONFIRMED
@@ -599,7 +599,7 @@ class HydroData():
                                 "of the arange values to one compatible with " + \
                                 str(type(self.data.index[0])) + " slicing.")
 
-            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(np.isnan(self.data[data_name][arange[0]:arange[1]]),
+            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(pd.isnull(self.data[data_name][arange[0]:arange[1]]),
                                                                        'filtered','original')
             len_new = self.data[data_name][arange[0]:arange[1]].count()
 
@@ -971,11 +971,11 @@ class HydroData():
         # tracking the nan values in df_temp_2
         if data_name in self.meta_valid.columns:
             temp_1 = self.meta_valid[data_name].isin(['filtered'])
-            temp_2 = np.where(np.isnan(df_temp_2.data[data_name]),True,False)
+            temp_2 = np.where(pd.isnull(df_temp_2.data[data_name]),True,False)
             temp_3 = temp_1 | temp_2
             self.meta_valid[data_name] = np.where(temp_3,'filtered','original')
         else:
-            self.meta_valid[data_name] = np.isnan(df_temp_2.data[data_name])
+            self.meta_valid[data_name] = pd.isnull(df_temp_2.data[data_name])
             self.meta_valid[data_name] = np.where(self.meta_valid[data_name],'filtered','original')
 
         if plot == True:
@@ -1173,11 +1173,11 @@ class HydroData():
         # datapoints. This is done by tracking the nan values in df_temp_2
         if data_name in self.meta_valid.columns:
             temp_1 = self.meta_valid[data_name].isin(['filtered'])
-            temp_2 = np.where(np.isnan(df_temp_2.data[data_name]),True,False)
+            temp_2 = np.where(pd.isnull(df_temp_2.data[data_name]),True,False)
             temp_3 = temp_1 | temp_2
             self.meta_valid[data_name] = np.where(temp_3,'filtered','original')
         else:
-            self.meta_valid[data_name] = np.isnan(df_temp_2.data[data_name])
+            self.meta_valid[data_name] = pd.isnull(df_temp_2.data[data_name])
             self.meta_valid[data_name] = np.where(self.meta_valid[data_name],'filtered','original')
 
         if plot:
