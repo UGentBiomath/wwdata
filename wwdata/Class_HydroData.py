@@ -583,7 +583,7 @@ class HydroData():
 
         if arange == None:
             len_orig = len(self.data[data_name])
-            self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
+            self.meta_valid[data_name] = np.where(pd.isnull(self.data[data_name]),
                                                   'filtered','original')
             len_new = self.data[data_name].count()
 
