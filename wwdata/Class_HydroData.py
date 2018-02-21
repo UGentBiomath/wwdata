@@ -638,7 +638,7 @@ class HydroData():
              whether or not to make a plot of the newly tagged data points
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
@@ -908,7 +908,7 @@ class HydroData():
             new, filtered dataset
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
@@ -1114,7 +1114,7 @@ class HydroData():
             new, filtered dataset
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
