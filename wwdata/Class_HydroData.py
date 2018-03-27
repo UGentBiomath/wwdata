@@ -1444,15 +1444,15 @@ class HydroData():
         r_sq = results.rsquared
 
         if plot:
-            x = np.arange(data[data_1][arange[0]:arange[1]].min(),
-                          data[data_1][arange[0]:arange[1]].max())
+            x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
+                          self.data[data_2][arange[0]:arange[1]].max())
             y = slope * x + intercept
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
-            ax.plot(data[data_2][arange[0]:arange[1]],
-                    data[data_1][arange[0]:arange[1]],'bo',markersize=4,
-                    label='Data')
-            ax.plot(y,x,label='Linear fit')
+            ax.plot(self.data[data_2][arange[0]:arange[1]],
+                    self.data[data_1][arange[0]:arange[1]],'o',markerfacecolor=None,
+		    markeredgewith=1,markeredgecolor='b',markersize=4,label='Data')
+            ax.plot(x,y,'k',label='Linear fit')
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
             ax.set_ylabel(data_1,size=17)
