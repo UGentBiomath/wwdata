@@ -1460,7 +1460,8 @@ class HydroData():
             #fig.text(1,0.9,'Slope: '+str(slope) + '\nIntercept: '+str(intercept)+'\nR$^2$: '+str(r_sq),color='black',verticalalignment='bottom', bbox={'edgecolor':'black','pad':10,'fill':False}, horizontalalignment='left',fontsize=17)
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
-            
+            return fig, ax
+
         return slope,intercept,r_sq
 
 #==============================================================================
