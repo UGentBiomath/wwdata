@@ -170,7 +170,7 @@ class HydroData():
         if isinstance(self.index()[1],str):
             wn.warn('Rows may change order using this function based on '+ \
             'string values. Convert to datetime, int or float and use '+ \
-            '.sort_index() or .sort_value() to avoid. (see also hp.to_datetime())')
+            '.sort_index() or .sort_value() to avoid. (see also ww.to_datetime())')
 
     def replace(self,to_replace,value,inplace=False):
         """CONFIRMED
@@ -491,7 +491,7 @@ class HydroData():
             str(type(self.data.index[0])) + " and arange argument type " + \
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")   
+            " slicing.")
 
         # get indexes where flow is higher then bound_value
         if method is 'value':
@@ -575,18 +575,18 @@ class HydroData():
         if clear:
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
-        
+
         if not data_name in self.meta_valid.columns:
             # if the data_name column doesn't exist yet in the meta_valid dataset,
             # add it
             self.add_to_meta_valid([data_name])
-        
+
         if arange == None:
             len_orig = len(self.data[data_name])
-            self.meta_valid[data_name] = np.where(np.isnan(self.data[data_name]),
+            self.meta_valid[data_name] = np.where(pd.isnull(self.data[data_name]),
                                                   'filtered','original')
             len_new = self.data[data_name].count()
-    
+
         else:
             # check if arange has the right type
             try:
@@ -597,12 +597,12 @@ class HydroData():
                                 "argument type " + str(type(arange[0])) + " or " +\
                                 str(type(arange[1])) + ". Try changing the type "+\
                                 "of the arange values to one compatible with " + \
-                                str(type(self.data.index[0])) + " slicing.") 
-                
-            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(np.isnan(self.data[data_name][arange[0]:arange[1]]),
+                                str(type(self.data.index[0])) + " slicing.")
+
+            self.meta_valid[data_name][arange[0]:arange[1]] = np.where(pd.isnull(self.data[data_name][arange[0]:arange[1]]),
                                                                        'filtered','original')
             len_new = self.data[data_name][arange[0]:arange[1]].count()
-    
+
         _print_removed_output(len_orig,len_new,'NaN tagging')
 
     def tag_doubles(self,data_name,bound,arange=None,clear=False,inplace=False,log_file=None,
@@ -638,7 +638,7 @@ class HydroData():
              whether or not to make a plot of the newly tagged data points
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
@@ -682,7 +682,7 @@ class HydroData():
         # Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
-        
+
         if log_file == None:
             _print_removed_output(len_orig,len_new,'double value tagging')
         elif type(log_file) == str:
@@ -723,19 +723,19 @@ class HydroData():
 
         if not final:
             return None
-        
-        
+
+
     def tag_extremes(self,data_name,arange=None,limit=0,method='below',
                      clear=False,plot=False):
         """
         Tags values above or below a given limit.
-        
+
         Parameters
         ----------
         data_name : str
             name of the column containing the data to be tagged
         arange : array of two values
-            the range within which extreme values need to be tagged 
+            the range within which extreme values need to be tagged
         limit : int/float
             limit below or above which values need to be tagged
         method : 'below' or 'above'
@@ -746,10 +746,10 @@ class HydroData():
             back to 'original'.
         plot : bool
              whether or not to make a plot of the newly tagged data points
-        
+
         Returns
         -------
-        None; 
+        None;
         """
         if clear:
             self._reset_meta_valid(data_name)
@@ -783,7 +783,7 @@ class HydroData():
                                 "argument type " + str(type(arange[0])) + " or " +\
                                 str(type(arange[1])) + ". Try changing the type "+\
                                 "of the arange values to one compatible with " + \
-                                str(type(self.data.index[0])) + " slicing.") 
+                                str(type(self.data.index[0])) + " slicing.")
             if method == 'below':
                 mask_tagging = np.where(self.data[data_name][arange[0]:arange[1]]<limit,True,False)
                 mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
@@ -796,7 +796,7 @@ class HydroData():
         len_new = mask_tagging.sum()
 
         _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
-        
+
         if plot == True:
             self.plot_analysed(data_name)
 
@@ -888,7 +888,7 @@ class HydroData():
         cutoff: int
             the cutoff value to compare the slopes with to apply the filtering.
         arange : array of two values
-            the range within which the moving slope filter needs to be applied 
+            the range within which the moving slope filter needs to be applied
         time_unit : str
             time unit to be used for the slope calculation (in case this is
             based on time); if None, slopes are calculated based on the values
@@ -908,7 +908,7 @@ class HydroData():
             new, filtered dataset
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
@@ -930,7 +930,7 @@ class HydroData():
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
-        
+
         #if plot == True:
         #    original = self.__class__(self.data.copy(),timedata_column=self.timename,
         #                              experiment_tag=self.tag,time_unit=self.time_unit)
@@ -971,11 +971,11 @@ class HydroData():
         # tracking the nan values in df_temp_2
         if data_name in self.meta_valid.columns:
             temp_1 = self.meta_valid[data_name].isin(['filtered'])
-            temp_2 = np.where(np.isnan(df_temp_2.data[data_name]),True,False)
+            temp_2 = np.where(pd.isnull(df_temp_2.data[data_name]),True,False)
             temp_3 = temp_1 | temp_2
             self.meta_valid[data_name] = np.where(temp_3,'filtered','original')
         else:
-            self.meta_valid[data_name] = np.isnan(df_temp_2.data[data_name])
+            self.meta_valid[data_name] = pd.isnull(df_temp_2.data[data_name])
             self.meta_valid[data_name] = np.where(self.meta_valid[data_name],'filtered','original')
 
         if plot == True:
@@ -1030,7 +1030,7 @@ class HydroData():
             str(type(arange[0])) + ". Try changing the type of the arange " + \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
-        
+
         if len(original) < window:
             raise ValueError("Window width exceeds number of datapoints!")
 
@@ -1114,7 +1114,7 @@ class HydroData():
             new, filtered dataset
         final : bool
             if true, the values are actually replaced with nan values (either
-            inplace or in a new hp object)
+            inplace or in a new wwdata object)
 
         Returns
         -------
@@ -1146,7 +1146,7 @@ class HydroData():
         # cut-off percentage
         mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
                 smooth_data.data[data_name]) < cutoff_frac
-        
+
         # Update the index of self.meta_valid
         if clear:
             self._reset_meta_valid(data_name)
@@ -1173,11 +1173,11 @@ class HydroData():
         # datapoints. This is done by tracking the nan values in df_temp_2
         if data_name in self.meta_valid.columns:
             temp_1 = self.meta_valid[data_name].isin(['filtered'])
-            temp_2 = np.where(np.isnan(df_temp_2.data[data_name]),True,False)
+            temp_2 = np.where(pd.isnull(df_temp_2.data[data_name]),True,False)
             temp_3 = temp_1 | temp_2
             self.meta_valid[data_name] = np.where(temp_3,'filtered','original')
         else:
-            self.meta_valid[data_name] = np.isnan(df_temp_2.data[data_name])
+            self.meta_valid[data_name] = pd.isnull(df_temp_2.data[data_name])
             self.meta_valid[data_name] = np.where(self.meta_valid[data_name],'filtered','original')
 
         if plot:
@@ -1384,7 +1384,8 @@ class HydroData():
         ----------
         data_1 and data_2 : str
             names of the data columns containing the data between which the
-            correlation will be calculated.
+            correlation will be calculated. data_1: independent data; data_2:
+            dependent data
         arange : array
             array containing the beginning and end value between which the
             correlation needs to be calculated
@@ -1426,22 +1427,23 @@ class HydroData():
 
         else:
             corr_data = pd.DataFrame(self.data[arange[0]:arange[1]][[data_1,data_2]].values)
-            
+
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
-        if zero_intercept == True:
-            import statsmodels.api as sm
-            model = sm.OLS(corr_data[data_1],corr_data[data_2])
-            results = model.fit()
-            slope = results.params[data_2]
-            intercept = 0.0
-            r_sq = results.rsquared
 
-        else:
-            regres = self.data[[data_1,data_2]][arange[0]:arange[1]].dropna()
-            slope, intercept, r_value, p_value, std_err = sp.stats.linregress(regres)
-            r_sq = r_value**2
+        import statsmodels.api as sm
+        Y = corr_data[data_2]
+        X = corr_data[data_1]
+
+        if zero_intercept == False:
+            X = sm.add_constant(X)
+
+        model = sm.OLS(Y,X)
+        results = model.fit()
+        slope = results.params[data_1]
+        intercept = results.params['const']
+        r_sq = results.rsquared
 
         if plot:
             x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
