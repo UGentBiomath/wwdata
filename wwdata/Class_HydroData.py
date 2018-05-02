@@ -1426,24 +1426,27 @@ class HydroData():
             corr_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
 
         else:
-            corr_data = pd.DataFrame(self.data[arange[0]:arange[1]][[data_1,data_2]].values)
+            corr_data = pd.DataFrame(self.data[[data_1,data_2]][arange[0]:arange[1]])
 
         corr_data.columns = data_1,data_2
         corr_data = corr_data[[data_1,data_2]].dropna()
 
 
         import statsmodels.api as sm
-        Y = corr_data[data_2]
-        X = corr_data[data_1]
+        X = corr_data[data_2]
+        Y = corr_data[data_1]
 
         if zero_intercept == False:
             X = sm.add_constant(X)
 
         model = sm.OLS(Y,X)
         results = model.fit()
-        slope = results.params[data_1]
-        intercept = results.params['const']
+        slope = results.params[data_2]
         r_sq = results.rsquared
+        if zero_intercept:
+            intercept = 0
+        else:
+            intercept = results.params['const']
 
         if plot:
             x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
@@ -1451,9 +1454,9 @@ class HydroData():
             y = slope * x + intercept
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
-            ax.plot(self.data[data_2][arange[0]:arange[1]],
-                    self.data[data_1][arange[0]:arange[1]],'o',markerfacecolor=None,
-		    markeredgewith=1,markeredgecolor='b',markersize=4,label='Data')
+            ax.plot(corr_data[data_2][arange[0]:arange[1]],
+                    corr_data[data_1][arange[0]:arange[1]],'o',markerfacecolor=None,
+                    markeredgewidth=1,markeredgecolor='b',markersize=4,label='Data')
             ax.plot(x,y,'k',label='Linear fit')
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
@@ -1463,7 +1466,7 @@ class HydroData():
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
             return fig, ax
-
+               
         return slope,intercept,r_sq
 
 #==============================================================================
