@@ -1433,15 +1433,15 @@ class HydroData():
 
 
         import statsmodels.api as sm
-        X = corr_data[data_2]
-        Y = corr_data[data_1]
+        X = corr_data[data_1]
+        Y = corr_data[data_2]
 
         if zero_intercept == False:
             X = sm.add_constant(X)
 
         model = sm.OLS(Y,X)
         results = model.fit()
-        slope = results.params[data_2]
+        slope = results.params[data_1]
         r_sq = results.rsquared
         if zero_intercept:
             intercept = 0
@@ -1449,22 +1449,42 @@ class HydroData():
             intercept = results.params['const']
 
         if plot:
-            x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
-                          self.data[data_2][arange[0]:arange[1]].max())
-            y = slope * x + intercept
+            x = corr_data[data_1].copy().sort_values(inplace=False)
+            #x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
+            #              self.data[data_2][arange[0]:arange[1]].max())
+            #y = slope * x + intercept
+            if zero_intercept: 
+                y = results.predict(x)
+                exog = x
+            else:
+                x2 = sm.add_constant(x)
+                y = results.predict(x2)
+                exog = x2
+                
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
-            ax.plot(corr_data[data_2][arange[0]:arange[1]],
-                    corr_data[data_1][arange[0]:arange[1]],'o',markerfacecolor=None,
+            # plot data
+            ax.plot(corr_data[data_1],corr_data[data_2],'o',markerfacecolor=None,
                     markeredgewidth=1,markeredgecolor='b',markersize=4,label='Data')
+            # plot predictions
             ax.plot(x,y,'k',label='Linear fit')
+            # plot prediction intervals
+            from statsmodels.stats.outliers_influence import summary_table
+            st, data, ss2 = summary_table(results, alpha=0.05)
+            lower = data[:,6]
+            lower.sort()
+            upper = data[:,7]
+            upper.sort()
+            ax.fill_between(x.astype(float), lower, upper, color='k', alpha=0.2,
+                            label='Prediction interval (95%)')
+            
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
             ax.set_ylabel(data_1,size=17)
             ax.set_xlabel(data_2,size=17)
-            #fig.text(1,0.9,'Slope: '+str(slope) + '\nIntercept: '+str(intercept)+'\nR$^2$: '+str(r_sq),color='black',verticalalignment='bottom', bbox={'edgecolor':'black','pad':10,'fill':False}, horizontalalignment='left',fontsize=17)
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
+            
             return fig, ax
                
         return slope,intercept,r_sq
