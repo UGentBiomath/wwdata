@@ -791,7 +791,7 @@ class HydroData():
                 mask = pd.DataFrame(np.transpose([mask_tagging,mask_valid])).any(axis=1)
                 self.meta_valid[data_name][arange[0]:arange[1]] = np.where(mask,'filtered','original')
 
-        len_new = mask_tagging.sum()
+        len_new = len_orig - mask_tagging.sum()
 
         _print_removed_output(len_orig,len_new,'tagging of extremes ('+method+')')
 
