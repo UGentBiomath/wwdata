@@ -677,7 +677,12 @@ class HydroData():
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
 
-        # Do the actual filtering, based on the mask
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+        
+	# Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
 
