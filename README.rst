@@ -24,7 +24,7 @@ wwdata
 Data analysis package aimed at data obtained in the context of (waste)water
 
 * Free software: GNU General Public License v3
-* Documentation: https://wwdata.readthedocs.io
+* Documentation: https://ugentbiomath.github.io/wwdata-docs/
 * Funding: Waterboard De Dommel
 * Context: PhD research at BIOMATH, Ghent University
 
@@ -52,7 +52,9 @@ For the workflow with code and more specific examples, check out the Showcase Ju
 Credits
 ---------
 
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+This package was created with support from Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template, as well as this `GitHub page`_, provided by Daler_ and explaining how to use sphinx documentation generation in combination with GitHub Pages.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+.. _`GitHub page`: http://daler.github.io/sphinxdoc-test/includeme.html
+.. _`Daler`: https://github.com/daler

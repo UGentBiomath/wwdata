@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-    time_conversion_functions provides functionalities for converting certain types of time data to other types, in the context of the wwdata package.
-    Copyright (C) 2016 Chaim De Mulder
+time_conversion_functions provides functionalities for converting certain types of time data to other types, in the context of the wwdata package.
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 import pandas as pd
@@ -23,7 +23,7 @@ import datetime as dt
 
 def make_month_day_array():
     """
-    makes a dataframe containing two columns, one with the number of the month,
+    Returns a dataframe containing two columns, one with the number of the month,
     one with the day of the month. Useful in creating datetime objects based on
     e.g. date serial numbers from the Window Date System
     (http://excelsemipro.com/2010/08/date-and-time-calculation-in-excel/)
@@ -130,8 +130,8 @@ def timedelta_to_abs(timedelta,unit='d'):
 def _get_datetime_info(string):
     """
 
-    parameter
-    --------
+    Parameters
+    ----------
     string containing date and time info (format as received from EHV)
     """
     array = string.split()
@@ -141,8 +141,8 @@ def _get_datetime_info(string):
 
 def make_datetime(array):
     """
-    parameter
-    --------
+    Parameters
+    ----------
     array with elements
         0: year (yy)
         1: month (mm)

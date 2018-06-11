@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-    Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
+Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
 
-    Copyright (C) 2016 Chaim De Mulder
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 #import sys
@@ -34,24 +34,26 @@ import wwdata.data_reading_functions #imports the functions in data_reading_func
 
 class HydroData():
     """
+    Attributes
+    ----------
+    timedata_column : str
+        name of the column containing the time data
+    data_type : str
+        type of data provided
+    experiment_tag : str
+        A tag identifying the experiment; can be a date or a code used by
+        the producer/owner of the data.
+    time_unit : str
+        The time unit in which the time data is given
+    units : array
+        The units of the variables in the columns
     """
+
     def __init__(self,data,timedata_column='index',data_type='WWTP',
                  experiment_tag='No tag given',time_unit=None,
                  units=[]):
         """
         initialisation of a HydroData object.
-
-        Attributes
-        ----------
-        timedata_column : str
-            name of the column containing the time data
-        experiment_tag : str
-            A tag identifying the experiment; can be a date or a code used by
-            the producer/owner of the data.
-        time_unit : str
-            The time unit in which the time data is given
-        units : array
-            The units of the variables in the columns
         """
         if isinstance(data, pd.DataFrame):
             self.data = data.copy()
@@ -78,12 +80,18 @@ class HydroData():
         #'missing!')
 
     def set_tag(self,tag):
-        """CONFIRMED
+        """
+        Sets the tag element of the HydroData object to the given tag
+
+        Returns
+        -------
+        None
         """
         self.tag = tag
 
     def set_units(self,units):
         """
+        Set the units element of the HydroData object to a given dataframe
         """
         if isinstance(units, pd.DataFrame):
             self.units = units.copy()
@@ -95,24 +103,24 @@ class HydroData():
 
     def set_time_unit(self,unit):
         """
-        """
+        Sets the time_unit element of the HydroData object to a given unit
 
+        Returns
+        -------
+        None
+        """
         self.time_unit = unit
 
     def head(self, n=5):
-        """CONFIRMED
-        piping pandas head function"""
+        """piping pandas head function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.head.html for documentation"""
         return self.data.head(n)
 
     def tail(self, n=5):
-        """CONFIRMED
-        piping pandas tail function"""
+        """piping pandas tail function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.tail.html for documentation"""
         return self.data.tail(n)
 
     def index(self):
-        """
-        piping pandas index function
-        """
+        """piping pandas index function, see http://pandas.pydata.org/pandas-docs/version/0.22/generated/pandas.Index.html for documentation"""
         return self.data.index
 
     #####################
@@ -158,8 +166,12 @@ class HydroData():
 
     def drop_index_duplicates(self):
         """
-        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN
-        THEM!! Also updates the meta_valid dataframe
+        drop rows with a duplicate index. Also updates the meta_valid dataframe
+
+        Note
+        ----
+        It is assumed that the dropped rows containt the same data as their index-
+        based duplicate, i.e. that no data is lost using the function. 
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()
@@ -171,8 +183,7 @@ class HydroData():
             '.sort_index() or .sort_value() to avoid. (see also ww.to_datetime())')
 
     def replace(self,to_replace,value,inplace=False):
-        """CONFIRMED
-        piping pandas replace function"""
+        """piping pandas replace function, see http://pandas.pydata.org/pandas-docs/version/0.22/generated/pandas.DataFrame.replace.html for documentation"""
         if inplace == False:
             return self.__class__(self.data.replace(to_replace,value,inplace=False),
                                   self.data.timename,self.data_type,
@@ -183,11 +194,19 @@ class HydroData():
     def set_index(self,keys,key_is_time=False,drop=True,inplace=False,
                   verify_integrity=False,save_prev_index=True):
         """
-        piping pandas set_index function, including the option to define the new index
-        as being the time data
+        piping and extending pandas set_index function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.set_index.html for documentation
+
+        Notes
+        ----------
         key_is_time : bool
             when true, the new index will we known as the time data from here on
+
         (other arguments cfr pd.set_index)
+
+        Returns
+        -------
+        HydroData object (if inplace=False)
+        None (if inplace=True)
         """
         if save_prev_index:
             self.prev_index = self.data.index
@@ -260,10 +279,10 @@ class HydroData():
 
     def to_datetime(self,time_column='index',time_format='%dd-%mm-%yy',
                     unit='D'):
-        """CONFIRMED
-        flexibly piping pandas to_datetime function
+        """
+        Piping and modifying pandas to_datetime function
 
-        Parameter
+        Parameters
         ---------
         time_column : str
             column name of the column where values need to be converted to date-
@@ -298,7 +317,7 @@ class HydroData():
         converts a pandas series with datetime timevalues to relative timevalues
         in the given unit, starting from 0
 
-        parameters
+        Parameters
         ----------
         time_data : str
             name of the column containing the time data. If this is the index
@@ -470,6 +489,8 @@ class HydroData():
         higher than a certain value; example: the definition/tagging of rain
         events.
 
+        Parameters
+        ----------
         data_name : str
             name of the column to execute the function on
         bound_value : float
@@ -480,6 +501,10 @@ class HydroData():
             when percentile, the bound value is a given percentile above which
             data points will be tagged, when value, bound_values is used directly
             to tag data points.
+
+        Returns
+        -------
+        None
         """
         self._reset_highs()
         try:
@@ -875,7 +900,7 @@ class HydroData():
     def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
                             clear=False,inplace=False,log_file=None,plot=False,
                             final=False):
-        """CONFIRMED
+        """
         Filters out datapoints based on the difference between the slope in one
         point and the next (sudden changes like noise get filtered out), based
         on a given cut off value. Replaces the dropped values with NaN values.
@@ -996,7 +1021,7 @@ class HydroData():
 
     def simple_moving_average(self,arange,window,data_name=None,inplace=False,
                               plot=True):
-        """CONFIRMED
+        """
         Calculate the Simple Moving Average of a dataseries from a dataframe,
         using a window within which the datavalues are averaged.
 
@@ -1523,9 +1548,10 @@ class HydroData():
             that is already present
 
         Returns
-        ------
-        None; creates a dictionary self.daily_profile containing information
-        on the average day as calculated.
+        -------
+        None
+            creates a dictionary self.daily_profile containing information
+            on the average day as calculated.
         """
         # several checks to make sure the right types, columns... are used
         try:
