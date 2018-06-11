@@ -166,8 +166,12 @@ class HydroData():
 
     def drop_index_duplicates(self):
         """
-        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN
-        THEM!! Also updates the meta_valid dataframe
+        drop rows with a duplicate index. Also updates the meta_valid dataframe
+
+        Note
+        ----
+        It is assumed that the dropped rows containt the same data as their index-
+        based duplicate, i.e. that no data is lost using the function. 
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()
