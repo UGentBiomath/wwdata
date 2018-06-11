@@ -130,8 +130,8 @@ def timedelta_to_abs(timedelta,unit='d'):
 def _get_datetime_info(string):
     """
 
-    parameter
-    --------
+    Parameters
+    ----------
     string containing date and time info (format as received from EHV)
     """
     array = string.split()
@@ -141,8 +141,8 @@ def _get_datetime_info(string):
 
 def make_datetime(array):
     """
-    parameter
-    --------
+    Parameters
+    ----------
     array with elements
         0: year (yy)
         1: month (mm)

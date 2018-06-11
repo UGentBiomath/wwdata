@@ -96,7 +96,7 @@ class OnlineSensorBased(HydroData):
         drop rows with a duplicate index. Also updates the meta_valid,
         meta_filled and filled dataframes
 
-        Remark
+
         ------
         This operation assumes the dropped rows have the same data in them and
         therefor no data is lost.
@@ -136,7 +136,7 @@ class OnlineSensorBased(HydroData):
         filled : bool
             if true, use self.filled to calculate proportions from
 
-        Remark
+        Note
         ------
         !!Order of columns in Q and conc must match!!
 
@@ -1316,7 +1316,7 @@ class OnlineSensorBased(HydroData):
             Arguments for the filling function; refer to the relevant filling
             function to know what arguments to give
 
-        Remark
+        Note
         ------
         When checking for the error on data filling, a period (arange argument)
         with mostly reliable data should be used. If for example large gaps are

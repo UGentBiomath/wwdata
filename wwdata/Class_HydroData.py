@@ -192,7 +192,7 @@ class HydroData():
         """
         piping and extending pandas set_index function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.set_index.html for documentation
 
-        Parameters
+        Notes
         ----------
         key_is_time : bool
             when true, the new index will we known as the time data from here on
@@ -278,7 +278,7 @@ class HydroData():
         """
         Piping and modifying pandas to_datetime function
 
-        Parameter
+        Parameters
         ---------
         time_column : str
             column name of the column where values need to be converted to date-
@@ -313,7 +313,7 @@ class HydroData():
         converts a pandas series with datetime timevalues to relative timevalues
         in the given unit, starting from 0
 
-        parameters
+        Parameters
         ----------
         time_data : str
             name of the column containing the time data. If this is the index
