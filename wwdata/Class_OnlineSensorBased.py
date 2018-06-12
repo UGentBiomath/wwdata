@@ -387,24 +387,24 @@ class OnlineSensorBased(HydroData):
         # FILLING
         ###
         # Use the .interpolate() method to interpolate for the nan values just created
-        # the limit argument makes sure that only the values that can be filled by 
+        # the limit argument makes sure that only the values that can be filled by
         # interpolation are filled; needed to prevent other, already present NaN values
         # from also getting filled!!
         self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
-        
+
         # Adjust in the self.meta_filled dataframe
         self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_interpol'
 
         # Set all points still tagged filtered in the self.filled dataset to NaN
-        #self.filled.loc[self.meta_filled[to_fill] == 'filtered'] = np.nan 
-        
+        #self.filled.loc[self.meta_filled[to_fill] == 'filtered'] = np.nan
+
         if plot:
             self.plot_analysed(to_fill)
 
         return None
 
     def fill_missing_ratio(self,to_fill,to_use,ratio,arange,
-                             filtered_only=True,plot=False,clear=False):#,use_smoothing=True):
+                             only_checked=True,plot=False,clear=False):#,use_smoothing=True):
         """
         Fills the missing values in a dataset (to_fill), based on the ratio this
         data shows when comparing to other data (to_use). This happens within
@@ -422,7 +422,7 @@ class OnlineSensorBased(HydroData):
             in the to_fill data column
         arange : array of two values
             the range within which missing/filtered values need to be replaced
-        filtered_only : boolean
+        only_checked : boolean
             if True, fills only the datapoints labeled as filtered. If False,
             fills/replaces all datapoints in the given range
         plot : bool
@@ -492,7 +492,7 @@ class OnlineSensorBased(HydroData):
         ###
         # FILLING
         ###
-        if filtered_only:
+        if only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_valid.\
                                     loc[arange[0]:arange[1]].\
                                     loc[self.meta_filled[to_fill] == 'filtered'].index.values)
@@ -500,7 +500,7 @@ class OnlineSensorBased(HydroData):
             # Adjust in the self.meta_filled dataframe
             self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_ratio'
 
-        if not filtered_only:
+        if not only_checked:
             self.filled.loc[arange[0]:arange[1],to_fill] = self.data.loc[arange[0]:arange[1],to_use]*ratio
             # Adjust in the self.meta_valid dataframe
             self.meta_filled[to_fill].loc[arange[0]:arange[1]] = 'filled_ratio'
@@ -511,7 +511,7 @@ class OnlineSensorBased(HydroData):
         return None
 
     def fill_missing_correlation(self,to_fill,to_use,arange,corr_range,
-                                 zero_intercept=False,filtered_only=True,
+                                 zero_intercept=False,only_checked=True,
                                  plot=False,clear=False):
         """
         Fills the missing values in a dataset (to_fill), based on the correlation
@@ -529,7 +529,7 @@ class OnlineSensorBased(HydroData):
             the range within which missing/filtered values need to be replaced
         corr_range : array of two values
             the range to use for the calculation of the correlation
-        filtered_only : boolean
+        only_checked : boolean
             if True, fills only the datapoints labeled as filtered. If False,
             fills/replaces all datapoints in the given range
         plot : bool
@@ -610,7 +610,7 @@ class OnlineSensorBased(HydroData):
         ###
         # FILLING
         ###
-        if filtered_only:
+        if only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_valid.\
                                             loc[arange[0]:arange[1]].\
                                             loc[self.meta_valid[to_fill] == 'filtered'].index.values)
@@ -619,7 +619,7 @@ class OnlineSensorBased(HydroData):
             # Adjust in the self.meta_filled dataframe
             self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_correlation'
 
-        if not filtered_only:
+        if not only_checked:
             self.filled.loc[arange[0]:arange[1],to_fill] = \
                             self.data.loc[arange[0]:arange[1],to_use]*slope + intercept
             # Adjust in the self.meta_filled dataframe
@@ -630,7 +630,7 @@ class OnlineSensorBased(HydroData):
 
         return None
 
-    def fill_missing_standard(self,to_fill,arange,filtered_only=True,plot=False,
+    def fill_missing_standard(self,to_fill,arange,only_checked=True,plot=False,
                               clear=False):
         """
         Fills the missing values in a dataset (to_fill), based on the average
@@ -643,7 +643,7 @@ class OnlineSensorBased(HydroData):
             name of the column with data to fill
         arange : array of two values
             the range within which missing/filtered values need to be replaced
-        filtered_only : boolean
+        only_checked : boolean
             if True, fills only the datapoints labeled as filtered. If False,
             fills/replaces all datapoints in the given range
         plot : bool
@@ -734,12 +734,12 @@ class OnlineSensorBased(HydroData):
         ###
         # FILLING
         ###
-        if filtered_only:
+        if only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_filled.\
                                             loc[arange[0]:arange[1]].\
                                             loc[self.meta_filled[to_fill] == 'filtered'].index.values,
                                             columns=['indexes'])
-        elif not filtered_only:
+        elif not only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_filled.loc[arange[0]:arange[1]].index.values,
                                               columns=['indexes'])
 
@@ -761,7 +761,7 @@ class OnlineSensorBased(HydroData):
 
         return None
 
-    def fill_missing_model(self,to_fill,to_use,arange,filtered_only=True,
+    def fill_missing_model(self,to_fill,to_use,arange,only_checked=True,
                            unit='d',plot=False,clear=False):
         """
         Fills the missing values in a dataset (to_fill), based on the modeled
@@ -776,7 +776,7 @@ class OnlineSensorBased(HydroData):
             data can be replaced
         arange : array of two values
             the range within which missing/filtered values need to be replaced
-        filtered_only : boolean
+        only_checked : boolean
             if True, fills only the datapoints labeled as filtered. If False,
             fills/replaces all datapoints in the given range
         unit : str
@@ -860,12 +860,12 @@ class OnlineSensorBased(HydroData):
         ###
         # FILLING
         ###
-        if filtered_only:
+        if only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_filled.\
                                             loc[arange[0]:arange[1]].\
                                             loc[self.meta_filled[to_fill] == 'filtered'].index.values,
                                             columns=['indexes'])
-        if not filtered_only:
+        if not only_checked:
             indexes_to_replace = pd.DataFrame(self.meta_filled.\
                                             loc[arange[0]:arange[1]].index.values,
                                             columns=['indexes'])
@@ -903,7 +903,7 @@ class OnlineSensorBased(HydroData):
         return None
 
     def fill_missing_daybefore(self,to_fill,arange,range_to_replace=[1,4],
-                               filtered_only=True,plot=False,clear=False):
+                               only_checked=True,plot=False,clear=False):
         """
         Fills the missing values in a dataset (to_fill), based on the data values
         from the day before the range starts. These data values are based on
@@ -923,7 +923,7 @@ class OnlineSensorBased(HydroData):
             gaps in data) where missing datapoints can be replaced using this
             function, i.e. using values of the last day before measurements
             went bad.
-        filtered_only : boolean
+        only_checked : boolean
             if True, fills only the datapoints labeled as filtered. If False,
             fills/replaces all datapoints in the given range
         plot : bool
@@ -1058,11 +1058,11 @@ class OnlineSensorBased(HydroData):
         ###
         # Based on the mask and whether a datapoint is filtered, replace with
         # nan values
-        if filtered_only:
+        if only_checked:
             filtered_based = pd.DataFrame(self.meta_valid.loc[arange[0]:arange[1]].\
                                            loc[self.meta_filled[to_fill] == 'filtered'].index.values,
                                            columns = ['indexes'])
-        if not filtered_only:
+        if not only_checked:
             filtered_based = pd.DataFrame(self.meta_filled.loc[arange[0]:arange[1]].index.values,
                                            columns=['indexes'])
 
