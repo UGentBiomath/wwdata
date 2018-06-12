@@ -171,7 +171,7 @@ class HydroData():
         Note
         ----
         It is assumed that the dropped rows containt the same data as their index-
-        based duplicate, i.e. that no data is lost using the function. 
+        based duplicate, i.e. that no data is lost using the function.
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()
@@ -325,9 +325,10 @@ class HydroData():
         unit : str
             unit to which to convert the time values (sec, min, hr or d)
 
-        output
-        ------
-
+        Returns
+        -------
+        None if inplace is True
+        HydroData object if inplace it False
         """
         if time_data == 'index':
             timedata = self.time
