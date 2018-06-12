@@ -6,7 +6,7 @@ wwdata
 .. image:: https://img.shields.io/pypi/v/wwdata.svg
         :target: https://pypi.python.org/pypi/wwdata
 
-.. image:: https://img.shields.io/travis/cdemulde/wwdata.svg
+.. image:: https://img.shields.io/travis/cdemulde/wwdata.svg?branch=master
         :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
 
 .. image:: https://readthedocs.org/projects/wwdata-docs/badge/
