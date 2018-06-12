@@ -20,14 +20,15 @@ tester {
 body {
     font-family: sans-serif;
     font-size: 100%;
-    background-color: #11303d;
+    background-color: #000080/*#11303d*/;
     color: #000;
     margin: 0;
     padding: 0;
 }
 
 div.document {
-    background-color: #1c4e63;
+    background-color: #ffffff /*#0000b3 /*#1c4e63*/;
+    opacity: 0.95;
 }
 
 div.documentwrapper {
@@ -41,6 +42,7 @@ div.bodywrapper {
 
 div.body {
     background-color: #ffffff;
+    opacity: .95;
     color: #000000;
     padding: 0 20px 30px 20px;
 }
@@ -59,7 +61,7 @@ div.footer a {
 }
 
 div.related {
-    background-color: #133f52;
+    background-color: #000099/*#133f52*/;
     line-height: 30px;
     color: #ffffff;
 }
@@ -72,8 +74,8 @@ div.sphinxsidebar {
 }
 
 div.sphinxsidebar h3 {
-    font-family: 'Trebuchet MS', sans-serif;
-    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+    color: #000080 /*#ffffff*/;
     font-size: 1.4em;
     font-weight: normal;
     margin: 0;
@@ -81,12 +83,12 @@ div.sphinxsidebar h3 {
 }
 
 div.sphinxsidebar h3 a {
-    color: #ffffff;
+    color: #000080/*#ffffff*/;
 }
 
 div.sphinxsidebar h4 {
-    font-family: 'Trebuchet MS', sans-serif;
-    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+    color: #000080/*#ffffff*/;
     font-size: 1.3em;
     font-weight: normal;
     margin: 5px 0 0 0;
@@ -108,7 +110,7 @@ div.sphinxsidebar ul {
 }
 
 div.sphinxsidebar a {
-    color: #98dbcc;
+    color: #000099/*#98dbcc*/;
 }
 
 div.sphinxsidebar input {
@@ -145,7 +147,7 @@ div.body h3,
 div.body h4,
 div.body h5,
 div.body h6 {
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family: 'Arial', sans-serif;
     background-color: #f2f2f2;
     font-weight: normal;
     color: #20435c;
@@ -155,13 +157,13 @@ div.body h6 {
 }
 
 div.body h1 {
-  background-color: #cccccc
+  /*background-color: #ffffff*/
 }
 div.body h2 {
-  background-color: #d9d9d9
+  /*background-color: #ffffff*/
 }
 div.body h3 {
-  background-color: #e6e6e6
+  /*background-color: #ffffff*/
 }
 
 div.body h1 { margin-top: 0; font-size: 200%; }
@@ -233,10 +235,10 @@ p.admonition-title:after {
 
 pre {
     padding: 5px;
-    background-color: #eeffcc;
+    background-color: #ccd9ff/*#eeffcc*/;
     color: #333333;
     line-height: 120%;
-    border: 1px solid #ac9;
+    border: 1px solid #0e1bff;
     border-left: none;
     border-right: none;
 }
@@ -248,7 +250,7 @@ code {
 }
 
 th {
-    background-color: #ede;
+    background-color: #ccd8ff;
 }
 
 .warning code {

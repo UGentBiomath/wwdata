@@ -345,6 +345,7 @@ table.docutils td, table.docutils th {
     border-left: 0;
     border-right: 0;
     border-bottom: 1px solid #aaa;
+    min-width: 110px;
 }
 
 table.footnote td, table.footnote th {

@@ -96,8 +96,8 @@ class OnlineSensorBased(HydroData):
         drop rows with a duplicate index. Also updates the meta_valid,
         meta_filled and filled dataframes
 
-
-        ------
+        Note
+        ----
         This operation assumes the dropped rows have the same data in them and
         therefor no data is lost.
         """

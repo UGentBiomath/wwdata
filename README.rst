@@ -6,11 +6,11 @@ wwdata
 .. image:: https://img.shields.io/pypi/v/wwdata.svg
         :target: https://pypi.python.org/pypi/wwdata
 
-.. image:: https://img.shields.io/travis/cdemulde/wwdata.svg
+.. image:: https://img.shields.io/travis/cdemulde/wwdata.svg?branch=master
         :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
 
-.. image:: https://readthedocs.org/projects/wwdata/badge/?version=master
-        :target: https://wwdata.readthedocs.io/en/master/
+.. image:: https://readthedocs.org/projects/wwdata-docs/badge/
+        :target: https://wwdata-docs.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 .. image:: https://pyup.io/repos/github/UGentBiomath/wwdata/shield.svg
