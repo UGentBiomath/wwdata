@@ -1,19 +1,19 @@
 """
-    Class_OnlineSensorBased provides functionalities for data handling of data obtained with online sensors in the field of (waste)water treatment.
-    Copyright (C) 2016 Chaim De Mulder
+Class_OnlineSensorBased provides functionalities for data handling of data obtained with online sensors in the field of (waste)water treatment.
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 #import sys
@@ -38,7 +38,17 @@ class OnlineSensorBased(HydroData):
 
     Attributes
     ----------
-    (see HydroData docstring)
+    timedata_column : str
+        name of the column containing the time data
+    data_type : str
+        type of data provided
+    experiment_tag : str
+        A tag identifying the experiment; can be a date or a code used by
+        the producer/owner of the data.
+    time_unit : str
+        The time unit in which the time data is given
+    units : array
+        The units of the variables in the columns
 
     """
     def __init__(self,data,timedata_column='index',data_type='WWTP',
@@ -46,10 +56,6 @@ class OnlineSensorBased(HydroData):
         """
         initialisation of a FullScaleSensorBased object, based on a previously defined
         HydroData object.
-
-        Parameters
-        ----------
-        (currently no additional data needed to the HydroData object creation)
         """
         HydroData.__init__(self,data=data,timedata_column=timedata_column,
                            data_type=data_type,experiment_tag=experiment_tag,
@@ -87,8 +93,13 @@ class OnlineSensorBased(HydroData):
 
     def drop_index_duplicates(self):
         """
-        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN
-        THEM!! Also updates the meta_valid, meta_filled and filled dataframes
+        drop rows with a duplicate index. Also updates the meta_valid,
+        meta_filled and filled dataframes
+
+        Note
+        ----
+        This operation assumes the dropped rows have the same data in them and
+        therefor no data is lost.
         """
         #self.data = self.data.groupby(self.index()).first()
         #self.meta_valid = self.meta_valid.groupby(self.meta_valid.index).first()
@@ -108,7 +119,7 @@ class OnlineSensorBased(HydroData):
 
     def calc_total_proportional(self,Q_tot,Q,conc,new_name='new',unit='mg/l',
                                 filled=False):
-        """CONFIRMED
+        """
         Calculates the total concentration of an incoming flow, based on the
         given total flow and the separate incoming flows and concentrations
 
@@ -124,6 +135,9 @@ class OnlineSensorBased(HydroData):
             name of the column to be added
         filled : bool
             if true, use self.filled to calculate proportions from
+
+        Note
+        ------
         !!Order of columns in Q and conc must match!!
 
         Returns
@@ -1279,13 +1293,6 @@ class OnlineSensorBased(HydroData):
         Because _calculate_filling_error inserts random gaps, results differ
         every time it is used. Check_filling_error averages this out.
 
-        !! Important !!
-        When checking for the error on data filling, a period (arange argument)
-        with mostly reliable data should be used. If for example large gaps are
-        already present in the given data, this will heavily influence the
-        returned error, as filled values will be compared with the values from
-        the data gap.
-
         Parameters
         ----------
         nr_iterations : int
@@ -1309,9 +1316,18 @@ class OnlineSensorBased(HydroData):
             Arguments for the filling function; refer to the relevant filling
             function to know what arguments to give
 
+        Note
+        ------
+        When checking for the error on data filling, a period (arange argument)
+        with mostly reliable data should be used. If for example large gaps are
+        already present in the given data, this will heavily influence the
+        returned error, as filled values will be compared with the values from
+        the data gap.
+
         Returns
         -------
-        None; adds the average filling error the self.filling_error dataframe
+        None
+            adds the average filling error the self.filling_error dataframe
 
         """
         # shut off warnings, to avoid e.g. warning about replacing datapoints
@@ -1357,13 +1373,22 @@ class OnlineSensorBased(HydroData):
 
 def find_nearest_time(value,df,column):
     """
+    Returns the (time) value in a dataframe column nearest to a given value
 
+    Parameters
+    ----------
     value : float
+        time value to find the closest value for in 'df'
+    df : pd.Dataframe
+        dataframe to use
+    column : str
+        column to check 'value' against
     """
     return (np.abs(df[column]-value)).argmin()
 
 def vlookup_day(value,df,column):
     """
+    Returns the dataframe index of a given value
     """
     return df[column].loc[value]
 

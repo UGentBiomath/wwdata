@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-    Class_LabExperimBased provides functionalities for data handling of data obtained in lab experiments in the field of (waste)water treatment.
-    Copyright (C) 2016 Chaim De Mulder
+Class_LabExperimBased provides functionalities for data handling of data obtained in lab experiments in the field of (waste)water treatment.
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 import sys
@@ -36,8 +36,17 @@ class LabExperimBased(HydroData):
 
     Attributes
     ----------
-    (see HydroData docstring)
-
+    timedata_column : str
+        name of the column containing the time data
+    data_type : str
+        type of the data provided
+    experiment_tag : str
+        A tag identifying the experiment; can be a date or a code used by
+        the producer/owner of the data.
+    time_unit : str
+        The time unit in which the time data is given
+    units : array
+        The units of the variables in the columns
     """
 
     def __init__(self,data,timedata_column='index',data_type='NAT',
@@ -45,10 +54,6 @@ class LabExperimBased(HydroData):
         """
         initialisation of a LabExperimBased object, based on a previously defined
         HydroData object.
-
-        Parameters
-        ----------
-        (currently no additional data needed to the HydroData object creation)
         """
         HydroData.__init__(self,data,timedata_column=timedata_column,data_type=data_type,
                            experiment_tag=experiment_tag,time_unit=time_unit)
