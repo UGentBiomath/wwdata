@@ -9,8 +9,8 @@ wwdata
 .. image:: https://img.shields.io/travis/cdemulde/wwdata.svg
         :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
 
-.. image:: https://readthedocs.org/projects/wwdata/badge/?version=master
-        :target: https://wwdata.readthedocs.io/en/master/
+.. image:: https://readthedocs.org/projects/wwdata-docs/badge/
+        :target: https://wwdata-docs.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 .. image:: https://pyup.io/repos/github/UGentBiomath/wwdata/shield.svg
