@@ -32,7 +32,7 @@ test_requirements = [
 
 setup(
     name='wwdata',
-    version='0.2.0',
+    version='0.1.0',
     description="Data analysis package aimed at data obtained in the context of (waste)water",
     long_description=readme + '\n\n' + history,
     author="Chaim De Mulder",
