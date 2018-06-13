@@ -45,13 +45,13 @@ class HydroData():
         the producer/owner of the data.
     time_unit : str
         The time unit in which the time data is given
-    units : array
+    units : dict
         The units of the variables in the columns
     """
 
     def __init__(self,data,timedata_column='index',data_type='WWTP',
                  experiment_tag='No tag given',time_unit=None,
-                 units=[]):
+                 units={}):
         """
         initialisation of a HydroData object.
         """
@@ -707,7 +707,7 @@ class HydroData():
             # if the data_name column doesn't exist yet in the meta_valid dataset,
             # add it
             self.add_to_meta_valid([data_name])
-        
+
 	# Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
@@ -1482,14 +1482,14 @@ class HydroData():
             #x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
             #              self.data[data_2][arange[0]:arange[1]].max())
             #y = slope * x + intercept
-            if zero_intercept: 
+            if zero_intercept:
                 y = results.predict(x)
                 exog = x
             else:
                 x2 = sm.add_constant(x)
                 y = results.predict(x2)
                 exog = x2
-                
+
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
             # plot data
@@ -1506,16 +1506,16 @@ class HydroData():
             upper.sort()
             ax.fill_between(x.astype(float), lower, upper, color='k', alpha=0.2,
                             label='Prediction interval (95%)')
-            
+
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
             ax.set_ylabel(data_1,size=17)
             ax.set_xlabel(data_2,size=17)
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
-            
+
             return fig, ax
-               
+
         return slope,intercept,r_sq
 
 #==============================================================================

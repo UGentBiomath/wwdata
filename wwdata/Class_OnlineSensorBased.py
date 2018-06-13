@@ -138,12 +138,13 @@ class OnlineSensorBased(HydroData):
 
         Note
         ------
-        !!Order of columns in Q and conc must match!!
+        The order of the columns in Q and conc must match for the function to
+        work properly.
 
         Returns
         -------
         None;
-        creates a hydropy object with added column for the proportional concentration
+        Adds a column with the calculated proportional concentration to self.data
         """
         if filled:
             index = self.filled.index
@@ -162,9 +163,7 @@ class OnlineSensorBased(HydroData):
             self.columns = np.array(self.data.columns)
 
         try:
-            self.units = pd.concat([self.units,
-                                    pd.DataFrame([[new_name,unit]],columns=self.units.columns)],
-                                    ignore_index=True)
+            self.units[new_name] = unit
         except:
             wn.warn('Something might have gone wrong with the updating of the units. '+ \
                     'Check self.units to make sure everything is still okay.')
@@ -363,8 +362,8 @@ class OnlineSensorBased(HydroData):
             " slicing.")
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+\
-            'Make sure you are confident in this replacement method for the '+\
+            wn.warn('Data points obtained during a rain event will be replaced. '+ \
+            'Make sure you are confident in this replacement method for the '+ \
             'filling of gaps in the data during rain events.')
 
         ###

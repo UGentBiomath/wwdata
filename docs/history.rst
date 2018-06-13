@@ -28,7 +28,6 @@ New in version 0.2.0:
 - Extended and improved Jupyter Notebook for documentation.
 - Improved visualisation for *get_correlation*: a prediction band based on the obtained correlation is now included in the produced scatter plot.
 
-Known bugs (see also (open issues on Github)[https://github.com/UGentBiomath/wwdata/issues]):
+Known bugs:
 
-- The ``fill_missing_daybefore`` function uses the data of the day before the given ``arange`` period to fill gaps in the data. This data is not necessarily the data from the actual day before the period where data is filled.
--
+- See (open issues on Github)[https://github.com/UGentBiomath/wwdata/issues])
