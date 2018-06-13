@@ -4,7 +4,7 @@
 
 __author__ = """Chaim De Mulder"""
 __email__ = 'demulderchaim@gmail.com'
-__version__ = '0.1.0'
+__version__ = '0.2.0'
 
 
 from .Class_HydroData import HydroData
