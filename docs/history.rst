@@ -30,4 +30,4 @@ New in version 0.2.0:
 
 Known bugs:
 
-- See (open issues on Github)[https://github.com/UGentBiomath/wwdata/issues])
+- See [open issues on Github](https://github.com/UGentBiomath/wwdata/issues)

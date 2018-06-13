@@ -2,12 +2,11 @@
 wwdata
 ======
 
+.. image:: https://badge.fury.io/py/wwdata.svg
+    :target: https://badge.fury.io/py/wwdata
 
-.. image:: https://img.shields.io/pypi/v/wwdata.svg
-        :target: https://pypi.python.org/pypi/wwdata
-
-.. image:: https://img.shields.io/travis/cdemulde/wwdata.svg?branch=master
-        :target: https://travis-ci.org/UGentBiomath/wwdata?branch=master
+.. image:: https://travis-ci.org/UGentBiomath/wwdata.svg?branch=master
+        :target: https://travis-ci.org/UGentBiomath/wwdata
 
 .. image:: https://readthedocs.org/projects/wwdata-docs/badge/
         :target: https://wwdata-docs.readthedocs.io/en/latest/?badge=latest
@@ -17,8 +16,8 @@ wwdata
      :target: https://pyup.io/repos/github/UGentBiomath/wwdata/
      :alt: Updates
 
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1035739.svg
-     :target: https://doi.org/10.5281/zenodo.1035739
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1288581.svg
+  :target: https://doi.org/10.5281/zenodo.1288581
 
 
 Data analysis package aimed at data obtained in the context of (waste)water
