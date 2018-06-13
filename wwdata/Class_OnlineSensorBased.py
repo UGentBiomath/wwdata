@@ -1287,11 +1287,15 @@ class OnlineSensorBased(HydroData):
                             nr_large_gaps=0,max_size_large_gaps=0,
                             **options):
         """
-        Uses the _calculate_filling_error function (refer to that docstring for
-        more specific info) to calculate the error on the data points that are
-        filled with a certain algorithm.
-        Because _calculate_filling_error inserts random gaps, results differ
-        every time it is used. Check_filling_error averages this out.
+        The workflow of this function is as follows:
+        - create artificial gaps in the data within ``test_data_range``.
+        - apply the specified filling function.
+        - compare the original datapoints with the filled data points and calculate
+        how much the deviate.
+
+        Because the ``_calculate_filling_error`` implicitly used in this function
+        inserts random gaps, results differ every time it is used. ``Check_filling_error``
+        averages this out.
 
         Parameters
         ----------
@@ -1307,22 +1311,27 @@ class OnlineSensorBased(HydroData):
             an array containing the start and end point of the test data to be used.
             IMPORTANT: for testing filling with correlation, this range needs to
             include the range for correlation calculation and the filling range.
-        nr_small_gaps / nr_large_gaps: int
+        nr_small_gaps / nr_large_gaps : int
             the number of small/large gaps to create in the dataset for testing
-        max_size_small_gaps / max_size_large_gaps: int
+        max_size_small_gaps / max_size_large_gaps : int
             the maximum size of the gaps inserted in the data, expressed in data
             points
-        **options:
+        **options : (no specific type, just fill in as keyword arguments)
             Arguments for the filling function; refer to the relevant filling
             function to know what arguments to give
 
-        Note
-        ------
-        When checking for the error on data filling, a period (arange argument)
+        Notes
+        -----
+        - When checking for the error on data filling, a period (``arange`` argument)
         with mostly reliable data should be used. If for example large gaps are
         already present in the given data, this will heavily influence the
         returned error, as filled values will be compared with the values from
         the data gap.
+        - Before using this function, it is good to check how many data points
+        are contained within the defined ``arange``. This will give the user a
+        better idea on how much artificial gaps to create to get a reliable result.
+        For an example, see the Jupyter Notebook included when downloading the
+        ``wwdata`` package.
 
         Returns
         -------
