@@ -36,18 +36,25 @@ class LabSensorBased(HydroData):
 
     Attributes
     ----------
-    (see HydroData docstring)
-
+    Attributes
+    ----------
+    timedata_column : str
+        name of the column containing the time data
+    data_type : str
+        type of data provided
+    experiment_tag : str
+        A tag identifying the experiment; can be a date or a code used by
+        the producer/owner of the data.
+    time_unit : str
+        The time unit in which the time data is given
+    units : array
+        The units of the variables in the columns
     """
 
     def __init__(self,data,experiment_tag='None'):
         """
         initialisation of a LabSensorBased object, based on a previously defined
         HydroData object.
-
-        Parameters
-        ----------
-        (currently no additional data needed to the HydroData object creation)
         """
         HydroData.__init__(self,data,timedata_column,experiment_tag='No tag given')
 
