@@ -186,11 +186,18 @@ class OnlineSensorBased(HydroData):
 
         Returns
         -------
-        pd.Dataframe :
-            pandas dataframe, containing the daily means with standard deviations
-            for the selected column
+        None;
+        Updates the self.daily_average dictionary, containing the daily
+        means with standard deviations for every ``column_name`` this function
+        has been applied to.
         """
-        self.daily_average = {}
+        # test for existence of self.daily_average and create if it doens't
+        # exist yet
+        try:
+            self.daily_average
+        except:
+            self.daily_average = {}
+
         try:
             series = self.data[column_name][arange[0]:arange[1]].copy()
         except TypeError:
@@ -209,11 +216,12 @@ class OnlineSensorBased(HydroData):
             to_return.columns = ['day','mean','std']
 
         elif isinstance(self.data.index[0],pd.tslib.Timestamp):
-            means = series.resample('d').mean().dropna()
-            stds = series.resample('d').std().dropna()
+            means = series.resample('d').mean()#.dropna()
+            stds = series.resample('d').std()#.dropna()
 
             to_return = pd.DataFrame([means.index,means.values,stds.values]).transpose()
             to_return.columns = ['day','mean','std']
+            #to_return.dropna()
 
         if plot==True:
             fig = plt.figure(figsize=(16,6))
