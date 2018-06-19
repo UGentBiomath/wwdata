@@ -99,7 +99,7 @@ class OnlineSensorBased(HydroData):
         Note
         ----
         This operation assumes the dropped rows have the same data in them and
-        therefor no data is lost.
+        therefore no data is lost.
         """
         #self.data = self.data.groupby(self.index()).first()
         #self.meta_valid = self.meta_valid.groupby(self.meta_valid.index).first()

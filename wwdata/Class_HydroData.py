@@ -405,7 +405,7 @@ class HydroData():
 
         Parameters
         ----------
-        name : arary of str
+        name : array of str
             name(s) of the column(s) containing the data to be averaged;
             defaults to ['none'] and will calculate average for every column
 
@@ -420,7 +420,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 mean = df.mean()
             elif isinstance(name,str):
                 mean = df[name].mean()
@@ -429,7 +429,7 @@ class HydroData():
                     mean.append(df[name].mean())
 
         else:
-            if name == None:
+            if name is None:
                 mean = self.data.mean()
             elif isinstance(name,str):
                 mean = self.data[name].mean()
@@ -465,7 +465,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 std = df.std()
             elif isinstance(name,str):
                 std = df[name].std()
@@ -474,7 +474,7 @@ class HydroData():
                     std.append(df[name].std())
 
         else:
-            if name == None:
+            if name is None:
                 std = self.data.std()
             elif isinstance(name,str):
                 std = self.data[name].std()

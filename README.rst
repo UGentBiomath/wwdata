@@ -20,7 +20,7 @@ wwdata
   :target: https://doi.org/10.5281/zenodo.1288581
 
 
-Data analysis package aimed at data obtained in the context of (waste)water
+Data analysis pckage aimed at data obtained in the context of (waste)water
 
 * Free software: GNU General Public License v3
 * Documentation: https://ugentbiomath.github.io/wwdata-docs/
