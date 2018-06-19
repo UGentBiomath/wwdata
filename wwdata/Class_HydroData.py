@@ -170,7 +170,7 @@ class HydroData():
 
         Note
         ----
-        It is assumed that the dropped rows containt the same data as their index-
+        It is assumed that the dropped rows contain the same data as their index-
         based duplicate, i.e. that no data is lost using the function.
         """
         #len_orig = len(self.data)
@@ -199,7 +199,7 @@ class HydroData():
         Notes
         ----------
         key_is_time : bool
-            when true, the new index will we known as the time data from here on
+            when true, the new index will be known as the time data from here on
 
         (other arguments cfr pd.set_index)
 
