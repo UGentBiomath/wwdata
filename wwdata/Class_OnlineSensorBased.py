@@ -284,7 +284,7 @@ class OnlineSensorBased(HydroData):
     ###   FILLING
     #####################
 
-    def fill_missing_interpolation(self,to_fill,range_,arange,method='index', order=None, plot=False,
+    def fill_missing_interpolation(self,to_fill,range_,arange,method='index', plot=False,
                                    clear=False,*kwargs):
         """
         Fills the missing values in a dataset (to_fill), based specified
@@ -398,11 +398,14 @@ class OnlineSensorBased(HydroData):
         # interpolation are filled; needed to prevent other, already present NaN values
         # from also getting filled!!
 
+        if method is 'polynomial' or 'spline':
+            order = input('Please specify an order:')
+            self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
+        else:
+            self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
 
-        #if order is None:
-        self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs, order=order)
-        #else:
-        #self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_,*kwargs, order=order)
+        #self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
+
 
         # Adjust in the self.meta_filled dataframe
         self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_interpol'
