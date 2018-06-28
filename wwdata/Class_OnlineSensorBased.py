@@ -285,7 +285,7 @@ class OnlineSensorBased(HydroData):
     #####################
 
     def fill_missing_interpolation(self,to_fill,range_,arange,method='index', plot=False,
-                                   clear=False,*kwargs):
+                                   clear=False,*kwargs, order=None):
         """
         Fills the missing values in a dataset (to_fill), based specified
         interpolation algorithm (method). This happens only if the number of
@@ -308,7 +308,9 @@ class OnlineSensorBased(HydroData):
         clear : bool
             whether or not to clear the previoulsy filled values and start from
             the self.meta_valid dataset again for this particular dataseries.
-
+        order : int
+            Both of the methods ‘polynomial’ and ‘spline’ require that you also
+            specify an order.
         Returns
         -------
         None;
@@ -398,13 +400,15 @@ class OnlineSensorBased(HydroData):
         # interpolation are filled; needed to prevent other, already present NaN values
         # from also getting filled!!
 
+        #if method is 'polynomial' or 'spline':
+        #    order = int(input('Please specify an order:'))
+        #    self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
+        #else:
+        #    self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
         if method is 'polynomial' or 'spline':
-            order = int(input('Please specify an order:'))
-            self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
-        else:
-            self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
-
-        #self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
+            if order is None:
+                raise(ValueError('Please specify order'))
+        self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
 
 
         # Adjust in the self.meta_filled dataframe
