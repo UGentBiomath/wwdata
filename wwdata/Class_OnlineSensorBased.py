@@ -408,7 +408,6 @@ class OnlineSensorBased(HydroData):
 
         self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,order=order, limit=range_, *kwargs)
 
-
         # Adjust in the self.meta_filled dataframe
         self.meta_filled.loc[indexes_to_replace[0],to_fill] = 'filled_interpol'
 
