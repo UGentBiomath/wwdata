@@ -284,8 +284,8 @@ class OnlineSensorBased(HydroData):
     ###   FILLING
     #####################
 
-    def fill_missing_interpolation(self,to_fill,range_,arange,method='index', plot=False,
-                                   clear=False,order=None, *kwargs):
+    def fill_missing_interpolation(self,to_fill,range_,arange,method='index',order=None, plot=False,
+                                   clear=False, *kwargs):
         """
         Fills the missing values in a dataset (to_fill), based specified
         interpolation algorithm (method). This happens only if the number of
@@ -406,7 +406,7 @@ class OnlineSensorBased(HydroData):
         #else:
         #    self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
 
-        self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
+        self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,order=order, limit=range_, *kwargs)
 
 
         # Adjust in the self.meta_filled dataframe
