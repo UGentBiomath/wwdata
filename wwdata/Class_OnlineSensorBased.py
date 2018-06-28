@@ -399,7 +399,7 @@ class OnlineSensorBased(HydroData):
         # from also getting filled!!
 
         if method is 'polynomial' or 'spline':
-            order = input('Please specify an order:')
+            order = int(input('Please specify an order:'))
             self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
         else:
             self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
