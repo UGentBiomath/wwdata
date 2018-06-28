@@ -555,7 +555,7 @@ class HydroData():
         DataFrame, where all tags are set to 'original'. This makes sure that
         also data that already is very reliable can be used further down the
         process (e.g. filling etc.)
-
++
         Parameters
         ----------
         column_names : array
@@ -984,7 +984,7 @@ class HydroData():
             _print_removed_output(len_orig,len_new,'moving slope filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
-        else :
+        else:
             raise TypeError('Please provide the location of the log file as '+ \
                             'a string type, or leave the argument if no log '+ \
                             'file is needed.')
@@ -1323,12 +1323,18 @@ class HydroData():
         if only_checked == True:
             #create new pd.Dataframes for original values in range,
             #merge only rows in which both values are original
-            data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
+            try:
+                data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
                     index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
-            data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
+                data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
                     index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
-            ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
-            ratio_data.columns = data_1,data_2
+                ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
+                ratio_data.columns = data_1,data_2
+            except KeyError:
+
+                wn.warn('only_checked cannot be fulfilled')
+
+
 
             mean = (ratio_data[data_1]/ratio_data[data_2])\
                     .replace(np.inf,np.nan).mean()
