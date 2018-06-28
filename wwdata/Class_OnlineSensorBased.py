@@ -285,7 +285,7 @@ class OnlineSensorBased(HydroData):
     #####################
 
     def fill_missing_interpolation(self,to_fill,range_,arange,method='index', plot=False,
-                                   clear=False,*kwargs, order=None):
+                                   clear=False,order=None, *kwargs):
         """
         Fills the missing values in a dataset (to_fill), based specified
         interpolation algorithm (method). This happens only if the number of
@@ -405,9 +405,10 @@ class OnlineSensorBased(HydroData):
         #    self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
         #else:
         #    self.filled[to_fill] = self.filled[to_fill].interpolate(method=method,limit=range_,*kwargs)
-        if method is 'polynomial' or 'spline':
-            if order is None:
-                raise(ValueError('Please specify order'))
+
+        #if method is 'polynomial' or 'spline':
+        #    if order is None:
+        #        raise(ValueError('Please specify order'))
         self.filled[to_fill] = self.filled[to_fill].interpolate(method=method, limit=range_, *kwargs, order=order)
 
 
