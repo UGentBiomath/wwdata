@@ -814,9 +814,7 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
+        wn.warn('When making use of filling functions, please make sure to start filling small gaps and progressively move to larger gaps. This ensures the proper working of the package algorithms.')
 
         # several checks on availability of the right columns in the necessary
         # dataframes/dictionaries
