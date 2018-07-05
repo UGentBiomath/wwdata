@@ -1320,26 +1320,46 @@ class HydroData():
             raise IndexError('Index out of bounds. Check whether the values of ' + \
             '"arange" are within the index range of the data.')
 
-        if only_checked == True:
-            #create new pd.Dataframes for original values in range,
-            #merge only rows in which both values are original
+        # original:
+        """
+        if only_checked is True:
+
+            # create new pd.Dataframes for original values in range,
+            # merge only rows in which both values are original
+            data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values, \
+                index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
+            data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
+                index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
+            ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
+            ratio_data.columns = data_1, data_2
+
+             mean = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).mean()
+             std = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).std()
+        """
+
+        if only_checked is True:
             try:
-                data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
-                    index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
-                data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
-                    index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
-                ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
-                ratio_data.columns = data_1,data_2
+                # if self.meta_valid[data_1] and self.meta_valid[data_2] in globals():
+                # type(self.meta_valid[data_1]) is str:
+
+                # create new pd.Dataframes for original values in range,
+                # merge only rows in which both values are original
+                data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1]\
+                            [self.meta_valid[data_1] == 'original'].values,
+                            index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]== 'original'].index)
+                data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2]\
+                            [self.meta_valid[data_2] == 'original'].values,
+                            index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2] == 'original'].index)
+
+                ratio_data = pd.merge(data_1_checked, data_2_checked,left_index=True, right_index=True, how='inner')
+                ratio_data.columns = data_1, data_2
+
+                mean = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).mean()
+                std = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).std()
+
             except KeyError:
-
-                wn.warn('only_checked cannot be fulfilled')
-
-
-
-            mean = (ratio_data[data_1]/ratio_data[data_2])\
-                    .replace(np.inf,np.nan).mean()
-            std = (ratio_data[data_1]/ratio_data[data_2])\
-                    .replace(np.inf,np.nan).std()
+                # else:
+                raise KeyError('only_checked cannot be fulfilled for the self.meta_valid DataFrame')
 
         else:
             mean = (self.data[arange[0]:arange[1]][data_1]/self.data[arange[0]:arange[1]][data_2])\
