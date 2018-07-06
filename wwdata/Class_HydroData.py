@@ -1544,6 +1544,48 @@ class HydroData():
 
         return slope,intercept,r_sq
 
+    def detect_drift(self, arange, max_slope, period=None):
+        # data input or using self.data?
+        """
+        This function calculates the slope of the data in a certain given
+        period by for example fitting a line through it and compare it with
+        the maximum expected slope.
+
+        Parameters
+        ----------
+        arange : 2-element array of ints
+            the range in which to apply the function
+        max_slope : int
+            the maximum slope a signal is expected to have over a certain period
+        period :
+            the period over which a certain slope is allowed
+
+        Returns
+        ----------
+        information about the drift
+        """
+        from scipy import signal
+
+        if period is None or period is arange:
+            detrended_values = signal.detrend(self.data[arange[0]:arange[1]])
+            line_segment = self.data[arange[0]:arange[1]] - detrended_values[:]
+            slope = line_segment[-1] - line_segment[0] / (arange[1]-arange[0])
+
+            if slope > max_slope[0]:
+                print('The actual slope is larger than the specified max slope')
+
+            plt.plot(signal.detrend(self.data[arange[0]:arange[1]]), 'r',
+                     self.data[arange[0]:arange[1]], 'g',
+                     self.data[arange[0]:arange[1]] - signal.detrend(self.data
+                     [arange[0]:arange[1]]), 'y')
+
+
+        else:
+            pass
+
+        return None
+
+
 #==============================================================================
 # DAILY PROFILE CALCULATION
 #==============================================================================
