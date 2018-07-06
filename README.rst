@@ -46,6 +46,7 @@ Examples
 --------
 
 For the workflow with code and more specific examples, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
+MyBinder can be used to view the code and the specific examples. Go to https://mybinder.org/ and use the GitHub URL, https://github.com/UGentBiomath/wwdata. Specify the branch(master, develop etc.). Generate a new MyBinder link if the branch get modified. Example link: https://hub.mybinder.org/user/ugentbiomath-wwdata-faxuev5l/tree
 
 
 Credits
