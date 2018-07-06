@@ -1544,15 +1544,17 @@ class HydroData():
 
         return slope,intercept,r_sq
 
-    def detect_drift(self, arange, max_slope, period=None):
+    def detect_drift(self, data_name, arange, max_slope, period=None):
         # data input or using self.data?
         """
         This function calculates the slope of the data in a certain given
-        period by for example fitting a line through it and compare it with
-        the maximum expected slope.
+        period by fitting a line through it and compare it with the maximum
+        expected slope.
 
         Parameters
         ----------
+        data : str
+            name of the column containing the data to detect drift
         arange : 2-element array of ints
             the range in which to apply the function
         max_slope : int
@@ -1565,20 +1567,18 @@ class HydroData():
         information about the drift
         """
         from scipy import signal
+        series = self.data[data_name][arange[0]:arange[1]].copy()
 
         if period is None or period is arange:
-            detrended_values = signal.detrend(self.data[arange[0]:arange[1]])
-            line_segment = self.data[arange[0]:arange[1]] - detrended_values[:]
-            slope = line_segment[-1] - line_segment[0] / (arange[1]-arange[0])
 
-            if slope > max_slope[0]:
+            detrended_values = signal.detrend(series[:])
+            line_segment = series[:] - detrended_values[:]
+            slope = (int(line_segment[-1]) - int(line_segment[0])) / len(series)
+            print(slope)
+            if slope > max_slope:
                 print('The actual slope is larger than the specified max slope')
 
-            plt.plot(signal.detrend(self.data[arange[0]:arange[1]]), 'r',
-                     self.data[arange[0]:arange[1]], 'g',
-                     self.data[arange[0]:arange[1]] - signal.detrend(self.data
-                     [arange[0]:arange[1]]), 'y')
-
+            #plt.plot(detrended_values, 'r', series[:], 'g', line_segment, 'y')
 
         else:
             pass
