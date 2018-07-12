@@ -1563,7 +1563,7 @@ class HydroData():
         max_slope : int
             the maximum slope a signal is expected to have over a certain period
         period : int
-            the period over which a certain slope is allowed
+            the period, in days, which a certain slope is allowed
         plot : bool
             if true, a plot is made, .......
 
@@ -1586,10 +1586,9 @@ class HydroData():
         series = series.drop(index=series[nan_values].index)
 
         if max_slope is None:
-            print('Please specify a maximum slope')
-            return KeyError
+            return KeyError('Please specify a maximum slope')
 
-        if period is None or period is arange:
+        if period is None or period is arange[1].day - arange[0].day + 1:
             detrended_values = signal.detrend(series)
             line_segment = series - detrended_values[:]
             slope = (int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
@@ -1599,18 +1598,50 @@ class HydroData():
                       ' detected with a slope higher than the maximum one. \n'
                       'Slope detected: {}, maximum slope: {}'.format(slope, max_slope))
 
+            else:
+                print('No drift detected.')
+
+            if plot is True:
+                plt.plot(detrended_values[:], 'r', line_segment, 'y', series[:], 'g')
+
         else:
             if type(period) is int:
-                for n in range(len(series)-period):
-                    pass
-                pass
-            else:
-                print('period must be an integer')
-                return ValueError
-            pass
+                start_index = 0
+                end_index = 0
+                new_index = end_index
+                while series.index.day[new_index] + period <= series.index.day[len(series)-1]:
+                    checked = False
+                    while series.index.day[end_index] < (series.index.day[start_index] + period):
+                        if series.index.day[end_index] == (series.index.day[start_index] + 1):
+                            if checked == False:
+                                new_index = end_index
+                                checked = True
+                        if end_index == len(series)-1:
+                            break
+                        end_index += 1
 
-        if plot is True:
-            print(plt.plot(detrended_values, 'r', line_segment, 'y', series[:], 'g'))
+                    detrended_values = signal.detrend(series[start_index:(end_index-1)])
+                    line_segment = series[start_index:(end_index-1)] - detrended_values[:]
+                    slope = (int(line_segment[-1]) - int(line_segment[0])) / (
+                                arange[1].day - arange[0].day + 1)
+
+                    if slope > max_slope:
+                        print('Based on the specified maximum slope, a drift was'
+                            ' detected with a slope higher than the maximum one.\n'
+                            'Slope detected: {}, maximum slope: {}, period(in days):'
+                            '{}-{}'.format(slope, max_slope, series.index.day[start_index],
+                                            series.index.day[end_index-1]))
+
+                    start_index = new_index
+                    end_index = new_index
+                if plot is True:
+                    pass
+            else:
+                return ValueError('period must be an integer')
+
+
+        #if plot is True:
+        #    print(plt.plot(detrended_values, 'r', line_segment, 'y', series[:], 'g'))
 
         return None
 
