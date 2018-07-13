@@ -1564,7 +1564,8 @@ class HydroData():
         period : int
             the period, in days, which a certain slope is allowed
         plot : bool
-            if true, a plot is made, .......
+            if true, a plot is made of the orginial data, detrended data and
+            slope
 
         Returns
         ----------
@@ -1657,15 +1658,32 @@ class HydroData():
 
                     start_index = new_index
                     end_index = new_index
-                if plot is True:
-                    pass
             else:
                 return ValueError('period must be an integer')
 
-        #if plot is True:
-        #    print(plt.plot(detrended_values, 'r', line_segment, 'y', series[:], 'g'))
-
     def remove_drift(self, data_name, arange, max_slope, period=None, plot=False):
+        """
+        This function calculates the slope of the data in a certain given
+        period by fitting a line through it and compare it with the maximum
+        expected slope.
+
+        Parameters
+        ----------
+        data : str
+            name of the column containing the data to remove drift
+        arange : 2-element array of ints
+            the range in which to apply the function
+        max_slope : int
+            the maximum slope a signal is expected to have over a certain period
+        period : int
+            the period, in days, which a certain slope is allowed
+        plot : bool
+            if true, a plot is made, ...
+
+        Returns
+        ----------
+        the fixed dataset without drift
+        """
         pass
 
 #==============================================================================
