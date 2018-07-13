@@ -1548,7 +1548,6 @@ class HydroData():
         return slope,intercept,r_sq
 
     def detect_drift(self, data_name, arange, max_slope=None, period=None, plot=False):
-        # data input or using self.data?
         """
         This function calculates the slope of the data in a certain given
         period by fitting a line through it and compare it with the maximum
@@ -1570,7 +1569,10 @@ class HydroData():
         Returns
         ----------
         information about the drift
+
+        !!Doesn't check the last day mentioned in the arange!!
         """
+
         from scipy import signal
         series = self.data[data_name][arange[0]:arange[1]].copy()
 
@@ -1601,24 +1603,39 @@ class HydroData():
             else:
                 print('No drift detected.')
 
+            # detrend_values=pd.DataFrame(detrended_values, index=series.index) --> dataframe of detrended values
             if plot is True:
-                plt.plot(detrended_values[:], 'r', line_segment, 'y', series[:], 'g')
+                fig = plt.figure(figsize=(16, 6))
+                ax = fig.add_subplot(111)
+                ax.plot(line_segment, 'b-',label='slope')
+                ax.plot(series, 'g--', label='original data')
+                ax.plot(series.index, detrended_values, 'r', label='detrended values')
+                ax.plot(series-(line_segment-line_segment[0]), 'm', label='without drift(?)') #some interesting plot/data
+                ax.legend(fontsize=16)
+                ax.set_xlabel(self.timename, fontsize=20)
+                ax.set_ylabel(data_name, fontsize=20)
+                ax.tick_params(labelsize=15)
 
         else:
             if type(period) is int:
                 start_index = 0
                 end_index = 0
                 new_index = end_index
+                if plot is True:
+                    fig = plt.figure(figsize=(16,6))
+                    ax = fig.add_subplot(111)
+                    ax.plot(series, 'g--', label='original data')
+
                 while series.index.day[new_index] + period <= series.index.day[len(series)-1]:
                     checked = False
                     while series.index.day[end_index] < (series.index.day[start_index] + period):
                         if series.index.day[end_index] == (series.index.day[start_index] + 1):
-                            if checked == False:
+                            if checked is False:
                                 new_index = end_index
                                 checked = True
+                        end_index += 1
                         if end_index == len(series)-1:
                             break
-                        end_index += 1
 
                     detrended_values = signal.detrend(series[start_index:(end_index-1)])
                     line_segment = series[start_index:(end_index-1)] - detrended_values[:]
@@ -1626,11 +1643,17 @@ class HydroData():
                                 arange[1].day - arange[0].day + 1)
 
                     if slope > max_slope:
-                        print('Based on the specified maximum slope, a drift was'
-                            ' detected with a slope higher than the maximum one.\n'
-                            'Slope detected: {}, maximum slope: {}, period(in days):'
-                            '{}-{}'.format(slope, max_slope, series.index.day[start_index],
-                                            series.index.day[end_index-1]))
+                        print('Drift detected in period {} to {}. \n'
+                              'Slope detected: {}, maximum slope: {}'.format
+                              (series.index.day[start_index], series.index.day
+                              [end_index-1],slope, max_slope))
+
+                        if plot is True:
+                            detrended_values = pd.DataFrame(detrended_values,
+                                index=series.index[start_index:(end_index-1)])
+                            ax.plot(line_segment, 'b-', label='slope')
+                            ax.plot(detrended_values, 'r--', label='detrended values')
+                            ax.plot(series[start_index:(end_index-1)]-(line_segment-line_segment[0]), 'm-') #bad visualisation
 
                     start_index = new_index
                     end_index = new_index
@@ -1639,12 +1662,11 @@ class HydroData():
             else:
                 return ValueError('period must be an integer')
 
-
         #if plot is True:
         #    print(plt.plot(detrended_values, 'r', line_segment, 'y', series[:], 'g'))
 
-        return None
-
+    def remove_drift(self, data_name, arange, max_slope, period=None, plot=False):
+        pass
 
 #==============================================================================
 # DAILY PROFILE CALCULATION
