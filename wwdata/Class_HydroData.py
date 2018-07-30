@@ -1545,7 +1545,7 @@ class HydroData():
 
             return fig, ax
 
-        return slope,intercept,r_sq
+        return slope, intercept, r_sq
 
     def detect_drift(self, data_name, arange, max_slope=None, period=None, plot=False):
         """
@@ -1656,7 +1656,7 @@ class HydroData():
                     end_value = series.index[end_index]
                 else:
                     if n > 0:
-                        list_value.append([start_value, end_value])
+                        list_value.append([start_value, end_value, 'n'])
                     n = 0
 
                 if -max_slope > slope:
@@ -1669,11 +1669,14 @@ class HydroData():
                     end_value = series.index[end_index]
                 else:
                     if m > 0:
-                        list_value.append([start_value, end_value])
+                        list_value.append([start_value, end_value, 'm'])
                     m = 0
 
-                if series.index.day[end_index] == series.index.day[-1] and (n > 0 or m > 0):
-                    list_value.append([start_value, end_value])
+                if series.index.day[end_index] == series.index.day[-1] and n > 0:
+                    list_value.append([start_value, end_value, 'n'])
+                if series.index.day[end_index] == series.index.day[-1] and m > 0:
+                    list_value.append([start_value, end_value, 'm'])
+
                 start_index = new_index
                 end_index = new_index
 
@@ -1681,39 +1684,81 @@ class HydroData():
                 plot = False
                 print('No drift detected')
 
+            for l in range(len(list_value) - 1):
+                if list_value[l][1] > list_value[l + 1][0]:
+                    ind = len(series[:list_value[l][1]])
+                    list_value[l + 1][0] = series.index[ind]
+
             if plot is True:
                 detrended_values = pd.DataFrame()
                 fig = plt.figure(figsize=(16, 6))
                 ax = fig.add_subplot(111)
                 ax.plot(series, 'g--', label='original data')
-                for l in range(len(list_value)-1):
-                    if list_value[l][1] > list_value[l+1][0]:
-                        ind = len(series[:list_value[l][1]])
-                        list_value[l+1][0] = series.index[ind]
 
                 for value in list_value:
                     detrend = signal.detrend(series[value[0]:value[1]])
-                    df = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
-                    detrended_values.append(df)
-                    line_segment = series[value[0]:value[1]] - detrend[:]
-                    ax.plot(line_segment, 'b-', label='slope')
-                    ax.plot(df, 'r--', label='detrended values')
+                    df1 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
+                    detrended_values.append(df1)
+                    line_segment1 = series[value[0]:value[1]] - detrend[:]
+                    ax.plot(line_segment1, 'm--')
 
-                    if line_segment[0] < line_segment[-1]:
-                        #ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[0]), 'm-', label='without drift(?)')
-                        series[value[0]:value[1]] = series[value[0]:value[1]]-(line_segment-line_segment[0])
-                    else:
-                        #ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift(?)')
-                        series[value[0]:value[1]] = series[value[0]:value[1]]-(line_segment-line_segment[-1])
+                    ax.plot(df1)
+                """
+                    detrend = signal.detrend(series[value[0]:value[1]], type='constant')
+                    df2 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
+                    detrended_values.append(df2)
+
+                    b = df2.iloc[-2][0]
+                    a = line_segment1[0]
+                    slope = (b - a) / len(df2)
+                    f = [a]
+                    s = df2
+                    s[:] = a
+                    for val in range(len(df2)-1):
+                        a += slope
+                        f.append(a)
+
+                    ds = pd.DataFrame(f, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
+                    ds = ds[:] + s[:]
+                    ds = ds / 2
+                    ds = ds.squeeze() #from dataframe to series
+
+                    if value[2] == 'n':
+                        #ax.plot(series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
+                        series[value[0]:value[1]] = series[value[0]:value[1]] - line_segment1 + ds #series[value[0]:value[1]] - (line_segment1 - line_segment1[0])
+                    elif value[2]=='m':
+                        #ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
+                        series[value[0]:value[1]] = series[value[0]:value[1]]-(line_segment1-line_segment1[-1])
                 #ax.plot(series, 'k--')
+                """
             self.list_value = list_value
 
+    def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
+        """
+        This function analyse the data before and after a given slope. It
+        gives out useful information about the data that can be used to fix the drift.
+
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to analyse
+        arange1 : 2-element array of ints
+            the range in which to apply the function
+        arange2 : 2-element array of ints
+            the range in which to apply the function
+        plot : bool
+            if true, a plot is made....
+
+        Returns
+        ----------
+        information about the drift
+        """
+        pass
 
     def remove_drift(self, data_name, arange, max_slope, period=None, plot=False):
         """
         This function calculates the slope of the data in a certain given
-        period by fitting a line through it and compare it with the maximum
-        expected slope.
+        period by fitting a line through it and removes the drift.
 
         Parameters
         ----------
@@ -1735,8 +1780,7 @@ class HydroData():
         from scipy import signal
         org_dat = self.data[data_name][arange[0]:arange[1]].copy()#for plotting
 
-        self.detect_drift(data_name=data_name, arange=arange, max_slope=
-                         max_slope, period=period, plot=False)
+        self.detect_drift(data_name=data_name, arange=arange, max_slope=max_slope, period=period, plot=False)
         series = self.data[data_name][arange[0]:arange[1]].copy()
 
         if period is None or period is arange[1].day - arange[0].day + 1:
@@ -1750,13 +1794,45 @@ class HydroData():
                 ax.legend(loc='upper right', shadow=True)
 
         else:
+            """
             for n in range(len(self.list_value)-1):
                 if self.list_value[n][1] > self.list_value[n+1][0]:
                     ind = len(series[:self.list_value[n][1]])
                     self.list_value[n+1][0] = series.index[ind]
+            """
 
-            detrended_values = pd.DataFrame()
             for value in self.list_value:
+                detrend = signal.detrend(series[value[0]:value[1]])
+                df1 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]]) - 1:len(series[:value[1]])])
+                line_segment1 = series[value[0]:value[1]] - detrend[:]
+
+                if value[2] == 'n':
+                    detrend = signal.detrend(series[value[0]:value[1]], type='constant')
+                    df2 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]]) - 1:len(series[:value[1]])])
+
+                    b = df2.iloc[-2][0]
+                    a = line_segment1[0]
+                    slope = (b - a) / len(df2)
+                    f = [a]
+                    s = df2
+                    s[:] = a
+                    for val in range(len(df2) - 1):
+                        a += slope
+                        f.append(a)
+
+                    ds = pd.DataFrame(f, index=series.index[len(series[:value[0]]) - 1:len(series[:value[1]])])
+                    ds = ds[:] + s[:]
+                    ds = ds / 2
+                    ds = ds.squeeze()  # from dataframe to series
+
+                    # ax.plot(series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
+                    series[value[0]:value[1]] = series[value[0]:value[1]]-line_segment1+ds
+
+                elif value[2] == 'm':
+                    # ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
+                    series[value[0]:value[1]] = series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
+
+                """    
                 detrend = signal.detrend(series[value[0]:value[1]])
                 df = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
                 detrended_values.append(df)
@@ -1765,6 +1841,7 @@ class HydroData():
                     series[value[0]:value[1]] = series[value[0]:value[1]]-(line_segment-line_segment[0])
                 else:
                     series[value[0]:value[1]] = series[value[0]:value[1]]-(line_segment-line_segment[-1])
+                """
                 self.data[data_name].update(series)
 
         if plot is True:
