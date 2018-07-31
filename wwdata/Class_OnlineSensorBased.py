@@ -1375,8 +1375,8 @@ class OnlineSensorBased(HydroData):
                 # turn warnings on again
                 wn.filterwarnings("always")
                 raise ValueError("Checking of the filling function could not "+\
-                                 "be executed. Check docstring of the filling "+\
-                                 "function to provide appropriate arguments.")
+                                "be executed. Check docstring of the filling "+\
+                                "function to provide appropriate arguments.")
 
             filling_errors = filling_errors.append(pd.Series([iter_error]))
 

@@ -1755,7 +1755,7 @@ class HydroData():
         """
         pass
 
-    def remove_drift(self, data_name, arange, max_slope, period=None, plot=False):
+    def remove_drift(self, data_name, arange, max_slope, period=None, plot=False, drift_type=None):
         """
         This function calculates the slope of the data in a certain given
         period by fitting a line through it and removes the drift.
@@ -1829,8 +1829,34 @@ class HydroData():
                     series[value[0]:value[1]] = series[value[0]:value[1]]-line_segment1+ds
 
                 elif value[2] == 'm':
+                    if drift_type == 'A' or drift_type is None:
+                        series[value[0]:value[1]] = series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
+                    #if value[1].day - value[0].day == 1:
+                    elif drift_type == 'B':
+
+                    #else:
+                        detrend = signal.detrend(series[value[0]:value[1]], type='constant')
+                        df2 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
+
+                        b = df2.iloc[1][0]
+                        a = line_segment1[-1]
+                        slope = (a-b) / len(df2)
+                        f = [a]
+                        s = df2
+                        s[:] = b
+                        for val in range(len(df2) - 1):
+                            a += slope
+                            f.append(a)
+
+                        ds = pd.DataFrame(f, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
+                        ds = ds[:] + s[:]
+                        ds = ds / 2
+                        ds = ds.squeeze()  # from dataframe to series
+                        #ax.plot(series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
+                        series[value[0]:value[1]] = series[value[0]:value[1]] - line_segment1 + ds
+
                     # ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
-                    series[value[0]:value[1]] = series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
+                    #series[value[0]:value[1]] = series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
 
                 """    
                 detrend = signal.detrend(series[value[0]:value[1]])
