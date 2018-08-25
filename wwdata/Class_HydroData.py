@@ -1599,7 +1599,6 @@ class HydroData():
             detrended_values = signal.detrend(series)
             line_segment = series - detrended_values[:]     #constructs a straight line of the dataset
             slope = (int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
-
             if slope > max_slope or slope < -max_slope:
                 print('Based on the specified maximum slope, a drift was'
                       ' detected with a slope higher than the maximum one. \n'
@@ -1643,7 +1642,51 @@ class HydroData():
                 pass
 
             elif period == 1:
-                pass
+                count = 0
+                day_list = []
+                for value in series.index.day[:-1]:
+                    count += 1
+                    if value < series.index.day[count]:
+                        end_index = count - 1
+                        day_list.append([start_index, end_index])
+                        start_index = count
+
+                for value in range(len(day_list)):
+                    start_index = day_list[value][0]
+                    end_index = day_list[value][1]
+                    detrended_values = signal.detrend(series[start_index:end_index])
+                    line_segment = series[start_index:end_index] - detrended_values[:]
+                    slope = (int(line_segment[-1]) - int(line_segment[0])) / 1
+
+                    if slope > max_slope:
+                        n += 1
+                        print('Drift detected in day {} with slope: {}'.format
+                              (series.index.day[start_index], slope))
+                        if n == 1:
+                            start_value = series.index[start_index]
+                        end_value = series.index[end_index]
+                    else:
+                        if n > 0:
+                            list_value.append([start_value, end_value, 'n'])
+                        n = 0
+
+                    if -max_slope > slope:
+                        m += 1
+                        print('Drift detected in day {} with slope: {}'.format
+                              (series.index.day[start_index], slope))
+                        if m == 1:
+                            start_value = series.index[start_index]
+                        end_value = series.index[end_index]
+                    else:
+                        if m > 0:
+                            list_value.append([start_value, end_value, 'm'])
+                        m = 0
+
+                    # combines the indexes where the slope was larger than the max_slope in a longer period
+                    if series.index.day[end_index] == series.index.day[-1] and n > 0:
+                        list_value.append([start_value, end_value, 'n'])
+                    if series.index.day[end_index] == series.index.day[-1] and m > 0:
+                        list_value.append([start_value, end_value, 'm'])
 
             else:
                 """
@@ -1661,12 +1704,9 @@ class HydroData():
                         end_index += 1
                         if end_index == len(series)-1:
                             break
-
                     detrended_values = signal.detrend(series[start_index:(end_index-1)])
                     line_segment = series[start_index:(end_index-1)] - detrended_values[:]
-                    slope = (int(line_segment[-1]) - int(line_segment[0])) / (
-                                arange[1].day - arange[0].day + 1)
-
+                    slope = (int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
                     """
                     n and m is for separating the positive and negative slope. There are different methods
                     used for positive and negative slopes. 
@@ -1715,7 +1755,7 @@ class HydroData():
             for l in range(len(list_value) - 1):
                 if list_value[l][1] > list_value[l + 1][0]:
                     ind = len(series[:list_value[l][1]])
-                    list_value[l + 1][0] = series.index[ind]
+                    list_value[l + 1][0] = series.index[ind-1]
 
             if plot is True:
                 detrended_values = pd.DataFrame()
@@ -1845,7 +1885,7 @@ class HydroData():
 
                 #method shown in Showcase_OnlineSensorBased
                 if value[2] == 'n':
-                    detrend = signal.detrend(series[value[0]:value[1]], type='constant') 
+                    detrend = signal.detrend(series[value[0]:value[1]], type='constant')
                     df2 = pd.DataFrame(detrend, index=series.index[len(series[:value[0]]) - 1:len(series[:value[1]])])
 
                     b = df2.iloc[-2][0]
