@@ -1657,11 +1657,13 @@ class HydroData():
                     detrended_values = signal.detrend(series[start_index:end_index])
                     line_segment = series[start_index:end_index] - detrended_values[:]
                     slope = (int(line_segment[-1]) - int(line_segment[0])) / 1
-
                     if slope > max_slope:
                         n += 1
                         print('Drift detected in day {} with slope: {}'.format
                               (series.index.day[start_index], slope))
+                        #combines the indexes where the slope was larger than the max_slope over a longer period
+                        if m > 0:
+                            list_value.append([start_value, end_value, 'm'])
                         if n == 1:
                             start_value = series.index[start_index]
                         end_value = series.index[end_index]
@@ -1682,7 +1684,6 @@ class HydroData():
                             list_value.append([start_value, end_value, 'm'])
                         m = 0
 
-                    # combines the indexes where the slope was larger than the max_slope in a longer period
                     if series.index.day[end_index] == series.index.day[-1] and n > 0:
                         list_value.append([start_value, end_value, 'n'])
                     if series.index.day[end_index] == series.index.day[-1] and m > 0:
@@ -1729,7 +1730,7 @@ class HydroData():
                         m += 1
                         print('Drift detected in period {} to {}, slope: {}'.format
                               (series.index.day[start_index], series.index.day
-                               [end_index - 1], slope))
+                               [end_index - 1], -slope))
                         if m == 1:
                             start_value = series.index[start_index]
                         end_value = series.index[end_index]
@@ -1738,7 +1739,7 @@ class HydroData():
                             list_value.append([start_value, end_value, 'm'])
                         m = 0
 
-                    #combines the indexes where the slope was larger than the max_slope in a longer period
+                    #combines the indexes where the slope was larger than the max_slope over a longer period
                     if series.index.day[end_index] == series.index.day[-1] and n > 0:
                         list_value.append([start_value, end_value, 'n'])
                     if series.index.day[end_index] == series.index.day[-1] and m > 0:
@@ -1865,9 +1866,6 @@ class HydroData():
 
         if period == 0.5:  # Need a solution
             print('Not yet possible with period = 0.5')
-            pass
-
-        elif period == 1:
             pass
 
         else:
