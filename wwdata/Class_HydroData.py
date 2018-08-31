@@ -1547,7 +1547,8 @@ class HydroData():
 
         return slope, intercept, r_sq
 
-    def detect_drift(self, data_name, arange, max_slope, period=None, plot=False):
+    def detect_drift(self, data_name, arange, max_slope, period=None,
+                     time_unit=None, plot=False):
         """
         This function calculates the slope of the data in a certain given
         period by fitting a line through it and compare it with the maximum
@@ -1557,12 +1558,16 @@ class HydroData():
         ----------
         data_name : str
             name of the column containing the data to detect drift
-        arange : array of two values
-            the range within which the drift detection needs to be applied
+        arange : 2-element array of ints
+            the range in which to apply the function
         max_slope : int
             the maximum slope a signal is expected to have over a certain period
         period : int
             the period, in days, which a certain slope is allowed
+        time_unit : None or str
+            if None, it is assumed that the index value can be used
+            as is for slope calculation. In the case of time indexes,
+            the time unit is needed for this. Allowed: 'd','hr','sec'
         plot : bool
             if true, a plot is made of the orginial data, detrended data and
             slope
@@ -1611,7 +1616,8 @@ class HydroData():
         if full_period:
             detrended_values = signal.detrend(data_series)
             line_segment = data_series - detrended_values[:]     #constructs a straight line of the dataset
-            slope = (int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
+            slope = _get_slope(line_segment,arange)
+            #(int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
             if slope > max_slope or slope < -max_slope:
                 print('Based on the specified maximum slope, a drift was'
                       ' detected with a slope higher than the maximum one. \n'
@@ -1635,11 +1641,11 @@ class HydroData():
                 ax.tick_params(labelsize=15)
                 ax.legend()
         else:
-            if type(period) is not int:
-                return ValueError('the period must be a integer')
+            #if type(period) is not int:
+            #    return ValueError('the period must be a integer')
 
-            if period < 0.5:
-                return ValueError('period must be larger than 0.5')
+            #if period < 0.5:
+            #    return ValueError('period must be larger than 0.5')
 
             start_index = 0
             end_index = 0
@@ -1648,13 +1654,13 @@ class HydroData():
             m = 0
             list_value = []
 
-            if period == 0.5: #Need a solution
-                print('Not yet possible with period = 0.5')
-                pass
+            #if period == 0.5: #Need a solution
+            #    print('Not yet possible with period = 0.5')
+            #    pass
 
-            elif period == 1:
-                count = 0
-                day_list = []
+            #elif period == 1:
+            #    count = 0
+            #    day_list = []
                 for value in series.index.day[:-1]:
                     count += 1
                     if value < series.index.day[count]:
@@ -2318,6 +2324,50 @@ class HydroData():
 ##############################
 ###   NON-CLASS FUNCTIONS  ###
 ##############################
+
+def _get_slope(data_series,arange,time_unit=None):
+    """
+    Calculates the total slope of a given data series
+
+    Parameters
+    ----------
+    data_series : pd.Series
+        series containing the data to get the slope for
+    arange : 2-element array
+        can be either int or or timedelta values
+    time_unit : None or str
+        in the case of datetime index, the time unit to calculate a slope with
+        is needed; options: 'd','hr','min','sec'
+
+    Returns
+    ----------
+    the slope of the series
+
+
+    """
+    date_time = isinstance(self.data[xdata][0],np.datetime64) or \
+                isinstance(self.data[xdata][0],dt.datetime) or \
+                isinstance(self.data[xdata][0],pd.tslib.Timestamp)
+    if date_time:
+        if time_unit == 'sec':
+            return (data_series[-1]) - data_series[0]) / (arange[1] - arange[0]).seconds
+        elif time_unit == 'min:
+            return (data_series[-1]) - data_series[0]) / (arange[1] - arange[0]).seconds/60
+        elif time_unit == 'hr':
+            return (data_series[-1]) - data_series[0]) / (arange[1] - arange[0]).seconds/3600
+        elif time_unit == 'd':
+                return (data_series[-1]) - data_series[0]) / ((arange[1] - arange[0]).days + (arange[1] - arange[0]).seconds/3600/24)
+        else:
+            raise ValueError('Could not calculate slopes with time index. '
+                             'Please make sure you entered a valid time unit for '
+                             'slope calculation (sec, min, hr or d)')
+    else:
+        try:
+            return (data_series[-1]) - data_series[0]) / (arange[1] - arange[0])
+        except:
+            raise ValueError('Could not calculate slopes, most likely due to an '
+                             'an unrecognised index. Currently avaible are '
+                             'datetime and integer indexes.')
 
 def total_seconds(timedelta_value):
     return timedelta_value.total_seconds()
