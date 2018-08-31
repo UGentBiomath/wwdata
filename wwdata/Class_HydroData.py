@@ -1577,22 +1577,24 @@ class HydroData():
         series = self.data[data_name][arange[0]:arange[1]].copy()
 
         #removes NaNs and infs from the dataset and other values that signal.detrend can't analyse
-        index = 0
-        nan_values = []
-        for value in series:
-            try:
-                signal.detrend([value])
-            except ValueError:
-                nan_values.append(index)
-            index += 1
-        series = series.drop(index=series[nan_values].index)
+        series.dropna(inplace=True)
+
+        #index = 0
+        #nan_values = []
+        #for value in series:
+        #    try:
+        #        signal.detrend([value])
+        #    except ValueError:
+        #        nan_values.append(index)
+        #    index += 1
+        #series = series.drop(index=series[nan_values].index)
 
         if max_slope is None:
             return KeyError('Please specify a maximum slope')
 
         """
-        if the period is not specified or the period is the same as the length, it goes through this if-loop. 
-        it is faster than the else-loop. the loop calculate the slope by using signal.detrend and compare it 
+        if the period is not specified or the period is the same as the length, it goes through this if-loop.
+        it is faster than the else-loop. the loop calculate the slope by using signal.detrend and compare it
         to the max_slope.
         """
         if period is None or period is arange[1].day - arange[0].day + 1:
@@ -1710,7 +1712,7 @@ class HydroData():
                     slope = (int(line_segment[-1]) - int(line_segment[0])) / (arange[1].day - arange[0].day + 1)
                     """
                     n and m is for separating the positive and negative slope. There are different methods
-                    used for positive and negative slopes. 
+                    used for positive and negative slopes.
                     list_value stores the indexes where the slope was bigger than the max_slope.
                     """
                     if slope > max_slope:
@@ -1932,7 +1934,7 @@ class HydroData():
                     # ax.plot(series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
                     #series[value[0]:value[1]] = series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
 
-                """    
+                """
                 detrend = signal.detrend(series[value[0]:value[1]])
                 df = pd.DataFrame(detrend, index=series.index[len(series[:value[0]])-1:len(series[:value[1]])])
                 detrended_values.append(df)
