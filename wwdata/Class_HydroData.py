@@ -1547,7 +1547,7 @@ class HydroData():
 
         return slope, intercept, r_sq
 
-    def detect_drift(self, data_name, arange, max_slope=None, period=None, plot=False):
+    def detect_drift(self, data_name, arange, max_slope, period=None, plot=False):
         """
         This function calculates the slope of the data in a certain given
         period by fitting a line through it and compare it with the maximum
@@ -1589,8 +1589,8 @@ class HydroData():
         #    index += 1
         #series = series.drop(index=series[nan_values].index)
 
-        if max_slope is None:
-            return KeyError('Please specify a maximum slope')
+        #if max_slope is None:
+        #    return KeyError('Please specify a maximum slope')
 
         """
         if the period is not specified or the period is the same as the length, it goes through this if-loop.
