@@ -1637,11 +1637,10 @@ class HydroData():
             self.add_to_meta_valid([data_name])
         
         from scipy import signal
+        
         # copy the data for function operations
         # Make temporary object for operations
-        data_series = self.__class__(self.data[data_name][arange[0]:arange[1]].copy(),
-                                     timedata_column=self.timename,experiment_tag=self.tag,
-                                     time_unit=self.time_unit)
+        data_series = self.data[data_name][arange[0]:arange[1]].copy()
         drift = False
         slopes = []
         
@@ -1678,8 +1677,7 @@ class HydroData():
             slope = _get_slope(line_segment,arange,time_unit=time_unit)
             if abs(slope) > max_slope:
                 drift = True
-                slopes.append(slope)
-                print('Drift detected over the whole data range, slope: {}'.format(slope))
+                drift_periods = [[data_series.index[0],data_series.index[-1]]]
             else:
                 print('No drift detected.')
 
@@ -1704,8 +1702,6 @@ class HydroData():
                 # store the indexes where the slope was larger than the max_slope.
                 if abs(slope) > max_slope:
                     slopes.append(slope)
-                    print('Drift detected in period {} to {}, slope: {}'.format
-                          (start_index, end_index, slopes[-1]))
                     # firstly, if your start index is larger than the end index 
                     # of a previous drift, or if the sign of the newly detected
                     # is different from the previous one, then a new drift has 
@@ -1713,32 +1709,27 @@ class HydroData():
                     if start_index > drift_periods[-1][1] or (drift and np.sign(slopes[-1]) != np.sign(slopes[-2])):
                         print('new period')
                         drift_periods.append([start_index,end_index])
-
                     else:
                         if not drift: # indicating that this is the first detected drift period
                             drift_periods[-1][0] = start_index
                         drift_periods[-1][1] = end_index
-                    
                     # Indicate that at least one drift has been detected
                     drift = True
-
                 start_index = start_index + dt.timedelta(1)
-            # if drift hasn't changed value by the end of the while loop, no
-            # drift has been detected.
-            if not drift:
-                print('No drift detected')
 
-            if plot and drift:
-                for driftperiod in drift_periods:
+        if drift:
+            for driftperiod in drift_periods:
+                print('Drift detected in period {} to {} /n'.format(driftperiod[0],driftperiod[1]))
+                self.meta_valid[data_name][driftperiod[0]:driftperiod[1]] = 'filtered'
+                if plot:
                     detrended_values = signal.detrend(data_series[driftperiod[0]:driftperiod[1]])
                     line_segment = data_series[driftperiod[0]:driftperiod[1]] - detrended_values[:]
-                    #df1 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:driftperiod[0]])-1:len(data_series[:driftperiod[1]])])
-                    #detrended_values.append(df1)
-                    ax.plot(line_segment,label='Detected drift \n({})'.format(driftperiod))
-                    ax.legend(fontsize=16)
-            
-            
-            self.drift_periods = drift_periods
+                    ax.plot(line_segment,label='Detected drift')
+                    ax.legend({'.':'data','-':'Detected drift'},fontsize=16)
+        else:    
+            print('No drift detected')
+
+        self.drift_periods = drift_periods
 
     def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
         """
