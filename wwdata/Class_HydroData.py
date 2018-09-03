@@ -1580,6 +1580,7 @@ class HydroData():
         from scipy import signal
         data_series = self.data[data_name][arange[0]:arange[1]].copy()
         drift = False
+        slopes = []
 
         #removes NaNs, infs and other values that signal.detrend can't analyse from the dataset
         data_series.replace(0,np.nan)
@@ -1588,7 +1589,7 @@ class HydroData():
         if plot:
             fig = plt.figure(figsize=(16, 6))
             ax = fig.add_subplot(111)
-            ax.plot(data_series, 'g', label='Data')
+            ax.plot(data_series, '.', label='Data')
             ax.set_xlabel(self.timename, fontsize=20)
             ax.set_ylabel(data_name, fontsize=20)
             ax.tick_params(labelsize=15)
@@ -1614,92 +1615,23 @@ class HydroData():
             slope = _get_slope(line_segment,arange,time_unit=time_unit)
             if abs(slope) > max_slope:
                 drift = True
+                slopes.append(slope)
                 print('Drift detected over the whole data range, slope: {}'.format(slope))
             else:
                 print('No drift detected.')
 
-            if plot:
+            if plot and drift:
                 ax.plot(line_segment,'b',label='Detected drift')
                 ax.legend(fontsize=20)
+        # If the period given is shorter than the range, the period window is
+        # shifted 
         else:
-            #if type(period) is not int:
-            #    return ValueError('the period must be a integer')
-
-            #if period < 0.5:
-            #    return ValueError('period must be larger than 0.5')
             start_index = data_series.index[0]
             end_index = data_series.index[-1]
-            #end_index = 0
-            #new_index = start_index
             drift_periods = [[start_index,end_index]]
-
-#            if period == 0.5: #Need a solution
-#                do = 0
-#            #    print('Not yet possible with period = 0.5')
-#            #    pass
-#        
-#            elif period == 1:
-#                count = 0
-#            #    day_list = []
-#                for value in data_series.index.day[:-1]:
-#                    count += 1
-#                    if value < data_series.index.index.day[count]:
-#                        end_index = count - 1
-#                        day_list.append([start_index, end_index])
-#                        start_index = count
-#
-#                for value in range(len(day_list)):
-#                    start_index = day_list[value][0]
-#                    end_index = day_list[value][1]
-#                    detrended_values = signal.detrend(data_series[start_index:end_index])
-#                    line_segment = data_series[start_index:end_index] - detrended_values[:]
-#                    slope = (int(line_segment[-1]) - int(line_segment[0])) / 1
-#                    if slope > max_slope:
-#                        n += 1
-#                        print('Drift detected in day {} with slope: {}'.format
-#                              (data_series.index.day[start_index], slope))
-#                        #combines the indexes where the slope was larger than the max_slope over a longer period
-#                        if m > 0:
-#                            list_value.append([start_value, end_value, 'm'])
-#                        if n == 1:
-#                            start_value = data_series.index[start_index]
-#                        end_value = data_series.index[end_index]
-#                    else:
-#                        if n > 0:
-#                            list_value.append([start_value, end_value, 'n'])
-#                        n = 0
-#
-#                    if -max_slope > slope:
-#                        m += 1
-#                        print('Drift detected in day {} with slope: {}'.format
-#                              (data_series.index.day[start_index], slope))
-#                        if m == 1:
-#                            start_value = data_series.index[start_index]
-#                        end_value = data_series.index[end_index]
-#                    else:
-#                        if m > 0:
-#                            list_value.append([start_value, end_value, 'm'])
-#                        m = 0
-#
-#                    if data_series.index.day[end_index] == data_series.index.day[-1] and n > 0:
-#                        list_value.append([start_value, end_value, 'n'])
-#                    if data_series.index.day[end_index] == data_series.index.day[-1] and m > 0:
-#                        list_value.append([start_value, end_value, 'm'])
-
-#            else:
             # The first while-loop makes sure that the calculations of the last 
-            # period is right and that it doesn't overextend. The second while-loop 
-            # finds the indexes for the right period length(could be improved).
+            # period is right and that it doesn't overextend.
             while start_index + period <= data_series.index[-1]:
-                #checked = False
-                #while data_series.index.day[end_index] < (data_series.index.day[start_index] + period):
-                #    if data_series.index.day[end_index] == (data_series.index.day[start_index] + 1):
-                #        if checked is False:
-                #            new_index = end_index
-                #            checked = True
-                #    end_index += 1
-                #    if end_index == len(data_series)-1:
-                #        break
                 end_index = start_index + period
                 detrended_values = signal.detrend(data_series[start_index:end_index])
                 line_segment = data_series[start_index:end_index] - detrended_values[:]
@@ -1707,88 +1639,40 @@ class HydroData():
                 
                 # store the indexes where the slope was larger than the max_slope.
                 if abs(slope) > max_slope:
-                    #n += 1
-                    drift = True
+                    slopes.append(slope)
                     print('Drift detected in period {} to {}, slope: {}'.format
-                          (start_index, end_index, slope))
+                          (start_index, end_index, slopes[-1]))
                     # firstly, if your start index is larger than the end index 
-                    # of a previous drift, then a new drift has been detected: 
-                    # add a new array with start- and endpoints
-                    if start_index > drift_periods[-1][1]:
+                    # of a previous drift, or if the sign of the newly detected
+                    # is different from the previous one, then a new drift has 
+                    # been detected: add a new array with start- and endpoints
+                    if start_index > drift_periods[-1][1] or (drift and np.sign(slopes[-1]) != np.sign(slopes[-2])):
+                        print('new period')
                         drift_periods.append([start_index,end_index])
-                    if start_index > drift_periods[-1][0]:
-                        drift_periods[-1][0] = start_index
-                    if end_index < drift_periods[-1][1]:
+
+                    else:
+                        if not drift: # indicating that this is the first detected drift period
+                            drift_periods[-1][0] = start_index
                         drift_periods[-1][1] = end_index
                     
-                    #if n == 1:
-                    #   start_value = data_series.index[start_index]
-                    #end_value = data_series.index[end_index]
-                    #else:
-                    #    if n > 0:
-                    #        list_value.append([start_value, end_value, 'n'])
-                    #    n = 0
-    
-                    #combines the indexes where the slope was larger than the max_slope over a longer period
-                    #if data_series.index.day[end_index] == data_series.index.day[-1] and n > 0:
-                    #    list_value.append([start_value, end_value, 'n'])
-                    
-                    #start_index = new_index
-                    #end_index = new_index
-                
-                start_index = start_index + dt.timedelta(1)
+                    # Indicate that at least one drift has been detected
+                    drift = True
 
+                start_index = start_index + dt.timedelta(1)
+            # if drift hasn't changed value by the end of the while loop, no
+            # drift has been detected.
             if not drift:
                 print('No drift detected')
 
-            #Makes sure that list_value don't have two values in the same index
-            #for l in range(len(drift_periods) - 1):
-            #   if drift_periods[l][1] > drift_periods[l + 1][0]:
-            #        ind = len(data_series[:drift_periods[l][1]])
-            #       drift_periods[l + 1][0] = data_series.index[ind-1]
-
-            if plot:
-                #detrended_values = pd.DataFrame()
-                #fig = plt.figure(figsize=(16, 6))
-                #ax = fig.add_subplot(111)
-                #ax.plot(data_series, 'g', label='Data')
-
+            if plot and drift:
                 for driftperiod in drift_periods:
                     detrended_values = signal.detrend(data_series[driftperiod[0]:driftperiod[1]])
                     line_segment = data_series[driftperiod[0]:driftperiod[1]] - detrended_values[:]
                     #df1 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:driftperiod[0]])-1:len(data_series[:driftperiod[1]])])
                     #detrended_values.append(df1)
-                    ax.plot(line_segment, 'b',label='Detected drift')
-                    ax.legend(fontsize=20)
-                    #ax.plot(df1)
-                """
-                    detrend = signal.detrend(data_series[value[0]:value[1]], type='constant')
-                    df2 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:value[0]])-1:len(data_series[:value[1]])])
-                    detrended_values.append(df2)
-
-                    b = df2.iloc[-2][0]
-                    a = line_segment1[0]
-                    slope = (b - a) / len(df2)
-                    f = [a]
-                    s = df2
-                    s[:] = a
-                    for val in range(len(df2)-1):
-                        a += slope
-                        f.append(a)
-
-                    ds = pd.DataFrame(f, index=data_series.index[len(data_series[:value[0]])-1:len(data_series[:value[1]])])
-                    ds = ds[:] + s[:]
-                    ds = ds / 2
-                    ds = ds.squeeze() #from dataframe to data_series
-
-                    if value[2] == 'n':
-                        #ax.plot(data_series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
-                        data_series[value[0]:value[1]] = data_series[value[0]:value[1]] - line_segment1 + ds #data_series[value[0]:value[1]] - (line_segment1 - line_segment1[0])
-                    elif value[2]=='m':
-                        #ax.plot(data_series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
-                        data_series[value[0]:value[1]] = data_series[value[0]:value[1]]-(line_segment1-line_segment1[-1])
-                #ax.plot(data_series, 'k--')
-                """
+                    ax.plot(line_segment,label='Detected drift \n({})'.format(driftperiod))
+                    ax.legend(fontsize=16)
+                    
             self.drift_periods = drift_periods
 
     def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
