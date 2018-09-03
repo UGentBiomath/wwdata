@@ -1126,15 +1126,18 @@ class OnlineSensorBased(HydroData):
             rain = (self.data_type == 'WWTP') and \
                    (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
         except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
+            raise TypeError("Slicing not possible for index type " +
+                            str(type(self.data.index[0])) + " and arange argument type " +
+                            str(type(arange[0])) + ". Try changing the type of the arange "
+                            "values to one compatible with " + str(type(self.data.index[0])) +
+                            " slicing.")
+        except AttributeError:
+            raise AttributeError(str(type(self))+" ojbect has no attribute 'highs'. You need to "
+                                 "run the get_highs function to tag extreme values "
+                                 "and create this attribute.")
         if rain :
-            wn.warn('Data points obtained during a rain event will be replaced.' + \
-            ' Make sure you are confident in this replacement method for the' + \
+            wn.warn('Data points obtained during a rain event will be replaced.'
+            ' Make sure you are confident in this replacement method for the'
             ' filling of gaps in the data during rain events.')
 
 #==============================================================================

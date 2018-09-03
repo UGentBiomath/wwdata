@@ -1615,7 +1615,7 @@ class HydroData():
         time_unit : None or str
             if None, it is assumed that the index value can be used
             as is for slope calculation. In the case of time indexes,
-            the time unit is needed for this. Allowed: 'd','hr','sec'
+            the time unit is needed for this. Allowed: 'd','hr','min','sec'
         clear : bool
             if True, the tags added before will be removed and put
             back to 'original'.
@@ -1719,7 +1719,7 @@ class HydroData():
 
         if drift:
             for driftperiod in drift_periods:
-                print('Drift detected in period {} to {} /n'.format(driftperiod[0],driftperiod[1]))
+                print('Drift detected in period {} to {}\n'.format(driftperiod[0],driftperiod[1]))
                 self.meta_valid[data_name][driftperiod[0]:driftperiod[1]] = 'filtered'
                 if plot:
                     detrended_values = signal.detrend(data_series[driftperiod[0]:driftperiod[1]])
@@ -1733,7 +1733,7 @@ class HydroData():
 
     def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
         """
-        This function analyse the data before and after a given slope. It
+        This function analyses the data before and after a given slope. It
         gives out useful information about the data that can be used to fix the drift.
 
         Parameters
@@ -1753,140 +1753,66 @@ class HydroData():
         """
         pass
 
-    def remove_drift(self, data_name, arange, max_slope, period=None, plot=False, drift_type='A'):#need to tag replaced values.
+    def remove_drift(self, data_name, arange, max_slope, period=None,
+                     time_unit=None,clear=False,plot=False):
         """
-        This function calculates the slope of the data in a certain given
-        period by fitting a line through it and removes the drift.
+        This function removes the parts where drift is detected (cfr. self.detect_drift)
+        and replaces the data with de-trended data.
 
         Parameters
         ----------
         data_name : str
-            name of the column containing the data to remove drift
+            name of the column containing the data to detect drift
         arange : 2-element array of ints
             the range in which to apply the function
         max_slope : int
             the maximum slope a signal is expected to have over a certain period
         period : int
-            the period, in days, which a certain slope is allowed
+            the minimum period in which trends are expected to be drift and not 
+            part of the signal
+        time_unit : None or str
+            if None, it is assumed that the index value can be used
+            as is for slope calculation. In the case of time indexes,
+            the time unit is needed for this. Allowed: 'd','hr','min','sec'
+        clear : bool
+            if True, the tags added fo self.meta_filled before will be removed 
+            and put back to 'original'.
         plot : bool
-            if true, a plot is made...
+            if true, a plot is made of the orginial data, detrended data and
+            slope
         drift_type : str
             separates the different type of drifts when the slope is negative.
             'A' is drift with no continuity in the data. 'B' is drift which looks
             like a mountain(with continuity)
+            
         Returns
-        ----------
-        the fixed dataset without drift
+        -------
+        None;
+        creates/updates self.filled, containing the adjusted dataset and updates
+        meta_filled with the correct labels.
         """
-        from scipy import signal
-        org_dat = self.data[data_name][arange[0]:arange[1]].copy()#for plotting
+        ###
+        # CHECKS
+        ###
+        if type(self) == wwdata.Class_OnlineSensorBased.OnlineSensorBased:
+            self._filling_function_check(data_name,arange,clear=clear)
+            
+        ###
+        # CALCULATIONS & FILLING
+        ###
+        # Always run the detect_drift function, otherwise adjustment to the 
+        # drift_periods isn't possible anymore from this function.
+        self.detect_drift(data_name, arange, max_slope, period=period, 
+                          clear=clear, plot=False, time_unit=time_unit)
 
-        self.detect_drift(data_name=data_name, arange=arange, max_slope=max_slope, period=period, plot=False)
-        data_series = self.data[data_name][arange[0]:arange[1]].copy()
-
-        if period is None or period is arange[1].day - arange[0].day + 1:
-            new_data = data_series - self.line_segment + self.line_segment[0]
-            self.data[data_name].update(new_data)
-            if plot is True:
-                fig = plt.figure(figsize=(16, 6))
-                ax = fig.add_subplot(111)
-                ax.plot(data_series, 'm--', label='original data')
-                ax.plot(self.data[data_name], 'r--', label='new data')
-                ax.legend(loc='upper right', shadow=True)
-
-        if period == 0.5:  # Need a solution
-            print('Not yet possible with period = 0.5')
-            pass
-
-        else:
-            """
-            for n in range(len(self.list_value)-1):
-                if self.list_value[n][1] > self.list_value[n+1][0]:
-                    ind = len(data_series[:self.list_value[n][1]])
-                    self.list_value[n+1][0] = data_series.index[ind]
-            """
-
-            for value in self.list_value:
-                detrend = signal.detrend(data_series[value[0]:value[1]])
-                #df1 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:value[0]]) - 1:len(data_series[:value[1]])])
-                line_segment1 = data_series[value[0]:value[1]] - detrend[:]
-
-                #method shown in Showcase_OnlineSensorBased
-                if value[2] == 'n':
-                    detrend = signal.detrend(data_series[value[0]:value[1]], type='constant')
-                    df2 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:value[0]]) - 1:len(data_series[:value[1]])])
-
-                    b = df2.iloc[-2][0]
-                    a = line_segment1[0]
-                    slope = (b - a) / len(df2)
-                    f = [a]
-                    s = df2
-                    s[:] = a
-                    for val in range(len(df2) - 1):
-                        a += slope
-                        f.append(a)
-
-                    ds = pd.DataFrame(f, index=data_series.index[len(data_series[:value[0]]) - 1:len(data_series[:value[1]])])
-                    ds = ds[:] + s[:]
-                    ds = ds / 2
-                    ds = ds.squeeze()  # from dataframe to data_series
-
-                    # ax.plot(data_series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
-                    data_series[value[0]:value[1]] = data_series[value[0]:value[1]]-line_segment1+ds
-
-                elif value[2] == 'm':
-                    if drift_type == 'A':
-                        data_series[value[0]:value[1]] = data_series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
-                    #if value[1].day - value[0].day == 1:
-                    elif drift_type == 'B':
-                        detrend = signal.detrend(data_series[value[0]:value[1]], type='constant')
-                        df2 = pd.DataFrame(detrend, index=data_series.index[len(data_series[:value[0]])-1:len(data_series[:value[1]])])
-
-                        b = df2.iloc[1][0]
-                        a = line_segment1[-1]
-                        slope = (a-b) / len(df2)
-                        f = [a]
-                        s = df2
-                        s[:] = b
-                        for val in range(len(df2) - 1):
-                            a += slope
-                            f.append(a)
-
-                        ds = pd.DataFrame(f, index=data_series.index[len(data_series[:value[0]])-1:len(data_series[:value[1]])])
-                        ds = ds[:] + s[:]
-                        ds = ds / 2
-                        ds = ds.squeeze()  # from dataframe to data_series
-                        #ax.plot(data_series[value[0]:value[1]]-(line_segment-ds), 'm-', label='without drift')
-                        data_series[value[0]:value[1]] = data_series[value[0]:value[1]] - line_segment1 + ds
-
-                    # ax.plot(data_series[value[0]:value[1]]-(line_segment-line_segment[-1]), 'm-', label='without drift')
-                    #data_series[value[0]:value[1]] = data_series[value[0]:value[1]] - (line_segment1 - line_segment1[-1])
-
-                """
-                detrend = signal.detrend(data_series[value[0]:value[1]])
-                df = pd.DataFrame(detrend, index=data_series.index[len(data_series[:value[0]])-1:len(data_series[:value[1]])])
-                detrended_values.append(df)
-                line_segment = data_series[value[0]:value[1]] - detrend[:]
-                if line_segment[0] < line_segment[-1]:
-                    data_series[value[0]:value[1]] = data_series[value[0]:value[1]]-(line_segment-line_segment[0])
-                else:
-                    data_series[value[0]:value[1]] = data_series[value[0]:value[1]]-(line_segment-line_segment[-1])
-                """
-                self.data[data_name].update(data_series)
-
-        if plot is True:
-            plt.figure(1, figsize=(16, 6))
-            plt.subplot(211)
-            plt.plot(org_dat, 'k--', label='original data')
-            plt.subplot(212)
-            plt.plot(self.data[data_name][arange[0]:arange[1]], 'g--', label='new data')
-            plt.show()
-
-            #ax.plot(data_series, )
-            #ab = fig.add_subplot(212)
-            #ab.plot(self.data[data_name], )
-            #ax.legend(loc='upper right', shadow=True)
-            #ab.legend(loc='upper right', shadow=True)
+        from scipy import signal  
+        for driftperiod in self.drift_periods:
+            detrended_values = signal.detrend(self.data[data_name][driftperiod[0]:driftperiod[1]])
+            self.meta_filled[data_name][driftperiod[0]:driftperiod[1]] = 'filled_detrending'
+            self.filled[data_name][driftperiod[0]:driftperiod[1]] = detrended_values
+            if plot:
+                self.plot_analysed(data_name)
+        self.detrended = detrended_values
 
 #==============================================================================
 # DAILY PROFILE CALCULATION
@@ -2135,6 +2061,10 @@ class HydroData():
                 ax.plot(df.time[df.meta_filled[data_name]=='filled_profile_day_before'],
                         df.filled[data_name][df.meta_filled[data_name]=='filled_profile_day_before'],
                         '.',label='filled (previous day)')
+            if (df.meta_filled[data_name]=='filled_detrending').any():
+                ax.plot(df.time[df.meta_filled[data_name]=='filled_detrending'],
+                        df.filled[data_name][df.meta_filled[data_name]=='filled_detrending'],
+                        '.',label='filled (detrending)')
             #if (df.meta_filled[data_name]=='filled_savitzky_golay').any():
             #    ax.plot(df.time[df.meta_filled[data_name]=='filled_savitzky_golay'],
             #            df.filled[data_name][df.meta_filled[data_name]=='filled_savitzky_golay'],
