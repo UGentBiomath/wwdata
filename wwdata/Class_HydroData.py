@@ -1645,8 +1645,8 @@ class HydroData():
         slopes = []
         
         # Remove NaNs, infs and other values that signal.detrend can't analyse from the dataset
-        data_series.data.replace(0,np.nan)
-        data_series.data.dropna(inplace=True)
+        data_series.replace(0,np.nan)
+        data_series.dropna(inplace=True)
 
         if plot:
             fig = plt.figure(figsize=(16, 6))
@@ -1725,7 +1725,7 @@ class HydroData():
                     detrended_values = signal.detrend(data_series[driftperiod[0]:driftperiod[1]])
                     line_segment = data_series[driftperiod[0]:driftperiod[1]] - detrended_values[:]
                     ax.plot(line_segment,label='Detected drift')
-                    ax.legend({'.':'data','-':'Detected drift'},fontsize=16)
+                    ax.legend(['Data','Detected drift'],fontsize=16)
         else:    
             print('No drift detected')
 
