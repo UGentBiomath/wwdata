@@ -831,9 +831,10 @@ class HydroData():
 
     def calc_slopes(self,xdata,ydata,time_unit=None,slope_range=None):
         """
-        Calculates slopes for given xdata and data_name; if a time unit is given as
-        an argument, the time values (xdata) will first be converted to this
-        unit, which will then be used to calculate the slopes with.
+        Calculates slopes at every index value for given xdata and data_name; 
+        if a time unit is given as an argument, the time values (xdata) will 
+        first be converted to this unit, which will then be used to calculate 
+        the slopes with.
 
         Parameters
         ----------
@@ -871,9 +872,9 @@ class HydroData():
                 slopes = self.data[ydata].diff() / self.data[xdata].diff()
                 self.time_unit = time_unit
             except TypeError:
-                raise TypeError('Slope calculation cannot be executed, probably due to a \
-                non-handlable datatype. Either use the time_unit argument or \
-                use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
+                raise TypeError('Slope calculation cannot be executed, probably due to a ' 
+                'non-handlable datatype. Either use the time_unit argument or '
+                'use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
                 return None
         elif time_unit == 'sec':
             slopes = self.data[ydata].diff()/ \
@@ -897,6 +898,52 @@ class HydroData():
             self.data.drop(xdata,axis=1,inplace=True)
 
         return slopes
+
+    def calc_slope(self,data_name,arange,time_unit=None):
+        """
+        Calculates the slope, based on first and last point, of a given 
+        data series
+    
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to get the slope for
+        arange : 2-element array
+            can be either int or or timedelta values
+        time_unit : None or str
+            in the case of datetime index, the time unit to calculate a slope with
+            is needed; options: 'd','hr','min','sec'
+    
+        Returns
+        ----------
+        the slope of the series
+    
+    
+        """
+        data_series = self.data[data_name]
+        date_time = isinstance(data_series.index[0],np.datetime64) or \
+                    isinstance(data_series.index[0],dt.datetime) or \
+                    isinstance(data_series.index[0],pd.tslib.Timestamp)
+        if date_time:
+            if time_unit == 'sec':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds
+            elif time_unit == 'min':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/60
+            elif time_unit == 'hr':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/3600
+            elif time_unit == 'd':
+                return (data_series[-1] - data_series[0]) / ((arange[1] - arange[0]).days + (arange[1] - arange[0]).seconds/3600/24)
+            else:
+                raise ValueError('Could not calculate slope with time index. '
+                                 'Please make sure you entered a valid time unit for '
+                                 'slope calculation (sec, min, hr or d)')
+        else:
+            try:
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0])
+            except:
+                raise ValueError('Could not calculate slopes, most likely due to an '
+                                 'an unrecognised index. Currently avaible are '
+                                 'datetime and integer indexes.')
 
     def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
                             clear=False,inplace=False,log_file=None,plot=False,
@@ -1548,7 +1595,7 @@ class HydroData():
         return slope, intercept, r_sq
 
     def detect_drift(self, data_name, arange, max_slope, period=None,
-                     time_unit=None, plot=False):
+                     time_unit=None,clear=False,plot=False):
         """
         This function calculates the slope of the data in a certain given
         period by fitting a line through it and compare it with the maximum
@@ -1569,6 +1616,9 @@ class HydroData():
             if None, it is assumed that the index value can be used
             as is for slope calculation. In the case of time indexes,
             the time unit is needed for this. Allowed: 'd','hr','sec'
+        clear : bool
+            if True, the tags added before will be removed and put
+            back to 'original'.
         plot : bool
             if true, a plot is made of the orginial data, detrended data and
             slope
@@ -1577,14 +1627,27 @@ class HydroData():
         ----------
         information about the drift
         """
+        if clear:
+            self._reset_meta_valid(data_name)
+        self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
+
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+        
         from scipy import signal
-        data_series = self.data[data_name][arange[0]:arange[1]].copy()
+        # copy the data for function operations
+        # Make temporary object for operations
+        data_series = self.__class__(self.data[data_name][arange[0]:arange[1]].copy(),
+                                     timedata_column=self.timename,experiment_tag=self.tag,
+                                     time_unit=self.time_unit)
         drift = False
         slopes = []
-
-        #removes NaNs, infs and other values that signal.detrend can't analyse from the dataset
-        data_series.replace(0,np.nan)
-        data_series.dropna(inplace=True)
+        
+        # Remove NaNs, infs and other values that signal.detrend can't analyse from the dataset
+        data_series.data.replace(0,np.nan)
+        data_series.data.dropna(inplace=True)
 
         if plot:
             fig = plt.figure(figsize=(16, 6))
@@ -1623,8 +1686,9 @@ class HydroData():
             if plot and drift:
                 ax.plot(line_segment,'b',label='Detected drift')
                 ax.legend(fontsize=20)
+                
         # If the period given is shorter than the range, the period window is
-        # shifted 
+        # shifted iteratively and drift is looked for in each separate period
         else:
             start_index = data_series.index[0]
             end_index = data_series.index[-1]
@@ -1672,7 +1736,8 @@ class HydroData():
                     #detrended_values.append(df1)
                     ax.plot(line_segment,label='Detected drift \n({})'.format(driftperiod))
                     ax.legend(fontsize=16)
-                    
+            
+            
             self.drift_periods = drift_periods
 
     def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
