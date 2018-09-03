@@ -20,7 +20,7 @@ wwdata
   :target: https://doi.org/10.5281/zenodo.1288581
 
 
-Data analysis package aimed at data obtained in the context of (waste)water
+Data analysis pckage aimed at data obtained in the context of (waste)water
 
 * Free software: GNU General Public License v3
 * Documentation: https://ugentbiomath.github.io/wwdata-docs/
@@ -46,6 +46,8 @@ Examples
 --------
 
 For the workflow with code and more specific examples, check out the Showcase Jupyter Notebook(s) included as documentation of the package.
+
+MyBinder can be used to view the code and the specific examples. Go to https://mybinder.org/ and use the GitHub URL, https://github.com/UGentBiomath/wwdata. Specify the branch (master, develop etc.). Generate a new MyBinder link if the branch gets modified.
 
 
 Credits

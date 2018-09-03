@@ -170,7 +170,7 @@ class HydroData():
 
         Note
         ----
-        It is assumed that the dropped rows containt the same data as their index-
+        It is assumed that the dropped rows contain the same data as their index-
         based duplicate, i.e. that no data is lost using the function.
         """
         #len_orig = len(self.data)
@@ -199,7 +199,7 @@ class HydroData():
         Notes
         ----------
         key_is_time : bool
-            when true, the new index will we known as the time data from here on
+            when true, the new index will be known as the time data from here on
 
         (other arguments cfr pd.set_index)
 
@@ -405,7 +405,7 @@ class HydroData():
 
         Parameters
         ----------
-        name : arary of str
+        name : array of str
             name(s) of the column(s) containing the data to be averaged;
             defaults to ['none'] and will calculate average for every column
 
@@ -420,7 +420,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 mean = df.mean()
             elif isinstance(name,str):
                 mean = df[name].mean()
@@ -429,7 +429,7 @@ class HydroData():
                     mean.append(df[name].mean())
 
         else:
-            if name == None:
+            if name is None:
                 mean = self.data.mean()
             elif isinstance(name,str):
                 mean = self.data[name].mean()
@@ -465,7 +465,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 std = df.std()
             elif isinstance(name,str):
                 std = df[name].std()
@@ -474,7 +474,7 @@ class HydroData():
                     std.append(df[name].std())
 
         else:
-            if name == None:
+            if name is None:
                 std = self.data.std()
             elif isinstance(name,str):
                 std = self.data[name].std()
@@ -555,7 +555,7 @@ class HydroData():
         DataFrame, where all tags are set to 'original'. This makes sure that
         also data that already is very reliable can be used further down the
         process (e.g. filling etc.)
-
++
         Parameters
         ----------
         column_names : array
@@ -831,9 +831,10 @@ class HydroData():
 
     def calc_slopes(self,xdata,ydata,time_unit=None,slope_range=None):
         """
-        Calculates slopes for given xdata and data_name; if a time unit is given as
-        an argument, the time values (xdata) will first be converted to this
-        unit, which will then be used to calculate the slopes with.
+        Calculates slopes at every index value for given xdata and data_name; 
+        if a time unit is given as an argument, the time values (xdata) will 
+        first be converted to this unit, which will then be used to calculate 
+        the slopes with.
 
         Parameters
         ----------
@@ -871,9 +872,9 @@ class HydroData():
                 slopes = self.data[ydata].diff() / self.data[xdata].diff()
                 self.time_unit = time_unit
             except TypeError:
-                raise TypeError('Slope calculation cannot be executed, probably due to a \
-                non-handlable datatype. Either use the time_unit argument or \
-                use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
+                raise TypeError('Slope calculation cannot be executed, probably due to a ' 
+                'non-handlable datatype. Either use the time_unit argument or '
+                'use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
                 return None
         elif time_unit == 'sec':
             slopes = self.data[ydata].diff()/ \
@@ -897,6 +898,52 @@ class HydroData():
             self.data.drop(xdata,axis=1,inplace=True)
 
         return slopes
+
+    def calc_slope(self,data_name,arange,time_unit=None):
+        """
+        Calculates the slope, based on first and last point, of a given 
+        data series
+    
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to get the slope for
+        arange : 2-element array
+            can be either int or or timedelta values
+        time_unit : None or str
+            in the case of datetime index, the time unit to calculate a slope with
+            is needed; options: 'd','hr','min','sec'
+    
+        Returns
+        ----------
+        the slope of the series
+    
+    
+        """
+        data_series = self.data[data_name]
+        date_time = isinstance(data_series.index[0],np.datetime64) or \
+                    isinstance(data_series.index[0],dt.datetime) or \
+                    isinstance(data_series.index[0],pd.tslib.Timestamp)
+        if date_time:
+            if time_unit == 'sec':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds
+            elif time_unit == 'min':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/60
+            elif time_unit == 'hr':
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/3600
+            elif time_unit == 'd':
+                return (data_series[-1] - data_series[0]) / ((arange[1] - arange[0]).days + (arange[1] - arange[0]).seconds/3600/24)
+            else:
+                raise ValueError('Could not calculate slope with time index. '
+                                 'Please make sure you entered a valid time unit for '
+                                 'slope calculation (sec, min, hr or d)')
+        else:
+            try:
+                return (data_series[-1] - data_series[0]) / (arange[1] - arange[0])
+            except:
+                raise ValueError('Could not calculate slopes, most likely due to an '
+                                 'an unrecognised index. Currently avaible are '
+                                 'datetime and integer indexes.')
 
     def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
                             clear=False,inplace=False,log_file=None,plot=False,
@@ -984,7 +1031,7 @@ class HydroData():
             _print_removed_output(len_orig,len_new,'moving slope filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
-        else :
+        else:
             raise TypeError('Please provide the location of the log file as '+ \
                             'a string type, or leave the argument if no log '+ \
                             'file is needed.')
@@ -1320,20 +1367,46 @@ class HydroData():
             raise IndexError('Index out of bounds. Check whether the values of ' + \
             '"arange" are within the index range of the data.')
 
-        if only_checked == True:
-            #create new pd.Dataframes for original values in range,
-            #merge only rows in which both values are original
-            data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
-                    index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
-            data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
-                    index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
-            ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
-            ratio_data.columns = data_1,data_2
+        # original:
+        """
+        if only_checked is True:
 
-            mean = (ratio_data[data_1]/ratio_data[data_2])\
-                    .replace(np.inf,np.nan).mean()
-            std = (ratio_data[data_1]/ratio_data[data_2])\
-                    .replace(np.inf,np.nan).std()
+            # create new pd.Dataframes for original values in range,
+            # merge only rows in which both values are original
+            data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values, \
+                index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
+            data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
+                index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
+            ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
+            ratio_data.columns = data_1, data_2
+
+             mean = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).mean()
+             std = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).std()
+        """
+
+        if only_checked is True:
+            try:
+                # if self.meta_valid[data_1] and self.meta_valid[data_2] in globals():
+                # type(self.meta_valid[data_1]) is str:
+
+                # create new pd.Dataframes for original values in range,
+                # merge only rows in which both values are original
+                data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1]\
+                            [self.meta_valid[data_1] == 'original'].values,
+                            index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]== 'original'].index)
+                data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2]\
+                            [self.meta_valid[data_2] == 'original'].values,
+                            index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2] == 'original'].index)
+
+                ratio_data = pd.merge(data_1_checked, data_2_checked,left_index=True, right_index=True, how='inner')
+                ratio_data.columns = data_1, data_2
+
+                mean = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).mean()
+                std = (ratio_data[data_1] / ratio_data[data_2]).replace(np.inf, np.nan).std()
+
+            except KeyError:
+                # else:
+                raise KeyError('only_checked cannot be fulfilled for the self.meta_valid DataFrame')
 
         else:
             mean = (self.data[arange[0]:arange[1]][data_1]/self.data[arange[0]:arange[1]][data_2])\
@@ -1425,6 +1498,9 @@ class HydroData():
             default to 'False'
             if a value in one column is filtered, the corresponding value in the second
             column also gets excluded!
+        plot : bool
+            if true, a plot is made, comparing the original data with the calculated
+            prediction
 
         Returns
         -------
@@ -1516,7 +1592,227 @@ class HydroData():
 
             return fig, ax
 
-        return slope,intercept,r_sq
+        return slope, intercept, r_sq
+
+    def detect_drift(self, data_name, arange, max_slope, period=None,
+                     time_unit=None,clear=False,plot=False):
+        """
+        This function calculates the slope of the data in a certain given
+        period by fitting a line through it and compare it with the maximum
+        expected slope.
+
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to detect drift
+        arange : 2-element array of ints
+            the range in which to apply the function
+        max_slope : int
+            the maximum slope a signal is expected to have over a certain period
+        period : int
+            the minimum period in which trends are expected to be drift and not 
+            part of the signal
+        time_unit : None or str
+            if None, it is assumed that the index value can be used
+            as is for slope calculation. In the case of time indexes,
+            the time unit is needed for this. Allowed: 'd','hr','min','sec'
+        clear : bool
+            if True, the tags added before will be removed and put
+            back to 'original'.
+        plot : bool
+            if true, a plot is made of the orginial data, detrended data and
+            slope
+
+        Returns
+        ----------
+        information about the drift
+        """
+        if clear:
+            self._reset_meta_valid(data_name)
+        self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
+
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+        
+        from scipy import signal
+        
+        # copy the data for function operations
+        # Make temporary object for operations
+        data_series = self.data[data_name][arange[0]:arange[1]].copy()
+        drift = False
+        slopes = []
+        
+        # Remove NaNs, infs and other values that signal.detrend can't analyse from the dataset
+        data_series.replace(0,np.nan)
+        data_series.dropna(inplace=True)
+
+        if plot:
+            fig = plt.figure(figsize=(16, 6))
+            ax = fig.add_subplot(111)
+            ax.plot(data_series, '.', label='Data')
+            ax.set_xlabel(self.timename, fontsize=20)
+            ax.set_ylabel(data_name, fontsize=20)
+            ax.tick_params(labelsize=15)
+
+        # Determine if the full period of the dataset is to be analysed
+        if period == None:
+            full_period = True
+        else:
+            try:
+                full_period = period >= arange[1] - arange[0]
+            except TypeError:
+                raise TypeError('The type of the period argument ('+str(type(period))+') and that of '
+                                'the difference between arange elements ('+str(type(arange[1] - arange[0]))+
+                                ') does not match.')
+
+        # If the full period is to be analysed, drift detection is applied to 
+        # the complete given series. This is faster than the other, periodic 
+        # algorithm. The slope is calculated by using signal.detrend and 
+        # comparing the obtained slope to the max_slope.
+        if full_period:
+            detrended_values = signal.detrend(data_series)
+            line_segment = data_series - detrended_values[:]     #constructs a straight line of the dataset
+            slope = _get_slope(line_segment,arange,time_unit=time_unit)
+            if abs(slope) > max_slope:
+                drift = True
+                drift_periods = [[data_series.index[0],data_series.index[-1]]]
+            else:
+                print('No drift detected.')
+
+            if plot and drift:
+                ax.plot(line_segment,'b',label='Detected drift')
+                ax.legend(fontsize=20)
+                
+        # If the period given is shorter than the range, the period window is
+        # shifted iteratively and drift is looked for in each separate period
+        else:
+            start_index = data_series.index[0]
+            end_index = data_series.index[-1]
+            drift_periods = [[start_index,end_index]]
+            # The first while-loop makes sure that the calculations of the last 
+            # period is right and that it doesn't overextend.
+            while start_index + period <= data_series.index[-1]:
+                end_index = start_index + period
+                detrended_values = signal.detrend(data_series[start_index:end_index])
+                line_segment = data_series[start_index:end_index] - detrended_values[:]
+                slope = _get_slope(line_segment,arange,time_unit=time_unit)
+                
+                # store the indexes where the slope was larger than the max_slope.
+                if abs(slope) > max_slope:
+                    slopes.append(slope)
+                    # firstly, if your start index is larger than the end index 
+                    # of a previous drift, or if the sign of the newly detected
+                    # is different from the previous one, then a new drift has 
+                    # been detected: add a new array with start- and endpoints
+                    if start_index > drift_periods[-1][1] or (drift and np.sign(slopes[-1]) != np.sign(slopes[-2])):
+                        print('new period')
+                        drift_periods.append([start_index,end_index])
+                    else:
+                        if not drift: # indicating that this is the first detected drift period
+                            drift_periods[-1][0] = start_index
+                        drift_periods[-1][1] = end_index
+                    # Indicate that at least one drift has been detected
+                    drift = True
+                start_index = start_index + dt.timedelta(1)
+
+        if drift:
+            for driftperiod in drift_periods:
+                print('Drift detected in period {} to {}\n'.format(driftperiod[0],driftperiod[1]))
+                self.meta_valid[data_name][driftperiod[0]:driftperiod[1]] = 'filtered'
+                if plot:
+                    detrended_values = signal.detrend(data_series[driftperiod[0]:driftperiod[1]])
+                    line_segment = data_series[driftperiod[0]:driftperiod[1]] - detrended_values[:]
+                    ax.plot(line_segment,label='Detected drift')
+                    ax.legend(['Data','Detected drift'],fontsize=16)
+        else:    
+            print('No drift detected')
+
+        self.drift_periods = drift_periods
+
+    def drift_analysis(self, data_name, arange1, arange2=None, plot=False):
+        """
+        This function analyses the data before and after a given slope. It
+        gives out useful information about the data that can be used to fix the drift.
+
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to analyse
+        arange1 : 2-element array of ints
+            the range in which to apply the function
+        arange2 : 2-element array of ints
+            the range in which to apply the function
+        plot : bool
+            if true, a plot is made....
+
+        Returns
+        ----------
+        information about the drift(highest and lowest point(s), mean, etc.)
+        """
+        pass
+
+    def remove_drift(self, data_name, arange, max_slope, period=None,
+                     time_unit=None,clear=False,plot=False):
+        """
+        This function removes the parts where drift is detected (cfr. self.detect_drift)
+        and replaces the data with de-trended data.
+
+        Parameters
+        ----------
+        data_name : str
+            name of the column containing the data to detect drift
+        arange : 2-element array of ints
+            the range in which to apply the function
+        max_slope : int
+            the maximum slope a signal is expected to have over a certain period
+        period : int
+            the minimum period in which trends are expected to be drift and not 
+            part of the signal
+        time_unit : None or str
+            if None, it is assumed that the index value can be used
+            as is for slope calculation. In the case of time indexes,
+            the time unit is needed for this. Allowed: 'd','hr','min','sec'
+        clear : bool
+            if True, the tags added fo self.meta_filled before will be removed 
+            and put back to 'original'.
+        plot : bool
+            if true, a plot is made of the orginial data, detrended data and
+            slope
+        drift_type : str
+            separates the different type of drifts when the slope is negative.
+            'A' is drift with no continuity in the data. 'B' is drift which looks
+            like a mountain(with continuity)
+            
+        Returns
+        -------
+        None;
+        creates/updates self.filled, containing the adjusted dataset and updates
+        meta_filled with the correct labels.
+        """
+        ###
+        # CHECKS
+        ###
+        if type(self) == wwdata.Class_OnlineSensorBased.OnlineSensorBased:
+            self._filling_function_check(data_name,arange,clear=clear)
+            
+        ###
+        # CALCULATIONS & FILLING
+        ###
+        # Always run the detect_drift function, otherwise adjustment to the 
+        # drift_periods isn't possible anymore from this function.
+        self.detect_drift(data_name, arange, max_slope, period=period, 
+                          clear=clear, plot=False, time_unit=time_unit)
+
+        from scipy import signal  
+        for driftperiod in self.drift_periods:
+            detrended_values = signal.detrend(self.data[data_name][driftperiod[0]:driftperiod[1]])
+            self.meta_filled[data_name][driftperiod[0]:driftperiod[1]] = 'filled_detrending'
+            self.filled[data_name][driftperiod[0]:driftperiod[1]] = detrended_values
+            if plot:
+                self.plot_analysed(data_name)
+        self.detrended = detrended_values
 
 #==============================================================================
 # DAILY PROFILE CALCULATION
@@ -1765,6 +2061,10 @@ class HydroData():
                 ax.plot(df.time[df.meta_filled[data_name]=='filled_profile_day_before'],
                         df.filled[data_name][df.meta_filled[data_name]=='filled_profile_day_before'],
                         '.',label='filled (previous day)')
+            if (df.meta_filled[data_name]=='filled_detrending').any():
+                ax.plot(df.time[df.meta_filled[data_name]=='filled_detrending'],
+                        df.filled[data_name][df.meta_filled[data_name]=='filled_detrending'],
+                        '.',label='filled (detrending)')
             #if (df.meta_filled[data_name]=='filled_savitzky_golay').any():
             #    ax.plot(df.time[df.meta_filled[data_name]=='filled_savitzky_golay'],
             #            df.filled[data_name][df.meta_filled[data_name]=='filled_savitzky_golay'],
@@ -1867,6 +2167,50 @@ class HydroData():
 ##############################
 ###   NON-CLASS FUNCTIONS  ###
 ##############################
+
+def _get_slope(data_series,arange,time_unit=None):
+    """
+    Calculates the total slope of a given data series
+
+    Parameters
+    ----------
+    data_series : pd.Series
+        series containing the data to get the slope for
+    arange : 2-element array
+        can be either int or or timedelta values
+    time_unit : None or str
+        in the case of datetime index, the time unit to calculate a slope with
+        is needed; options: 'd','hr','min','sec'
+
+    Returns
+    ----------
+    the slope of the series
+
+
+    """
+    date_time = isinstance(data_series.index[0],np.datetime64) or \
+                isinstance(data_series.index[0],dt.datetime) or \
+                isinstance(data_series.index[0],pd.tslib.Timestamp)
+    if date_time:
+        if time_unit == 'sec':
+            return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds
+        elif time_unit == 'min':
+            return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/60
+        elif time_unit == 'hr':
+            return (data_series[-1] - data_series[0]) / (arange[1] - arange[0]).seconds/3600
+        elif time_unit == 'd':
+            return (data_series[-1] - data_series[0]) / ((arange[1] - arange[0]).days + (arange[1] - arange[0]).seconds/3600/24)
+        else:
+            raise ValueError('Could not calculate slope with time index. '
+                             'Please make sure you entered a valid time unit for '
+                             'slope calculation (sec, min, hr or d)')
+    else:
+        try:
+            return (data_series[-1] - data_series[0]) / (arange[1] - arange[0])
+        except:
+            raise ValueError('Could not calculate slopes, most likely due to an '
+                             'an unrecognised index. Currently avaible are '
+                             'datetime and integer indexes.')
 
 def total_seconds(timedelta_value):
     return timedelta_value.total_seconds()
