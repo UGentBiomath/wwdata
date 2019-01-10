@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-    Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
+Class_HydroData provides functionalities for handling data obtained in the context of (waste)water treatment.
 
-    Copyright (C) 2016 Chaim De Mulder
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 #import sys
@@ -34,24 +34,26 @@ import wwdata.data_reading_functions #imports the functions in data_reading_func
 
 class HydroData():
     """
+    Attributes
+    ----------
+    timedata_column : str
+        name of the column containing the time data
+    data_type : str
+        type of data provided
+    experiment_tag : str
+        A tag identifying the experiment; can be a date or a code used by
+        the producer/owner of the data.
+    time_unit : str
+        The time unit in which the time data is given
+    units : dict
+        The units of the variables in the columns
     """
+
     def __init__(self,data,timedata_column='index',data_type='WWTP',
                  experiment_tag='No tag given',time_unit=None,
-                 units=[]):
+                 units={}):
         """
         initialisation of a HydroData object.
-
-        Attributes
-        ----------
-        timedata_column : str
-            name of the column containing the time data
-        experiment_tag : str
-            A tag identifying the experiment; can be a date or a code used by
-            the producer/owner of the data.
-        time_unit : str
-            The time unit in which the time data is given
-        units : array
-            The units of the variables in the columns
         """
         if isinstance(data, pd.DataFrame):
             self.data = data.copy()
@@ -78,12 +80,18 @@ class HydroData():
         #'missing!')
 
     def set_tag(self,tag):
-        """CONFIRMED
+        """
+        Sets the tag element of the HydroData object to the given tag
+
+        Returns
+        -------
+        None
         """
         self.tag = tag
 
     def set_units(self,units):
         """
+        Set the units element of the HydroData object to a given dataframe
         """
         if isinstance(units, pd.DataFrame):
             self.units = units.copy()
@@ -95,24 +103,24 @@ class HydroData():
 
     def set_time_unit(self,unit):
         """
-        """
+        Sets the time_unit element of the HydroData object to a given unit
 
+        Returns
+        -------
+        None
+        """
         self.time_unit = unit
 
     def head(self, n=5):
-        """CONFIRMED
-        piping pandas head function"""
+        """piping pandas head function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.head.html for documentation"""
         return self.data.head(n)
 
     def tail(self, n=5):
-        """CONFIRMED
-        piping pandas tail function"""
+        """piping pandas tail function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.tail.html for documentation"""
         return self.data.tail(n)
 
     def index(self):
-        """
-        piping pandas index function
-        """
+        """piping pandas index function, see http://pandas.pydata.org/pandas-docs/version/0.22/generated/pandas.Index.html for documentation"""
         return self.data.index
 
     #####################
@@ -158,8 +166,12 @@ class HydroData():
 
     def drop_index_duplicates(self):
         """
-        drop rows with a duplicate index, ASSUMING THEY HAVE THE SAME DATA IN
-        THEM!! Also updates the meta_valid dataframe
+        drop rows with a duplicate index. Also updates the meta_valid dataframe
+
+        Note
+        ----
+        It is assumed that the dropped rows contain the same data as their index-
+        based duplicate, i.e. that no data is lost using the function.
         """
         #len_orig = len(self.data)
         self.data = self.data.groupby(self.index()).first()
@@ -171,8 +183,7 @@ class HydroData():
             '.sort_index() or .sort_value() to avoid. (see also ww.to_datetime())')
 
     def replace(self,to_replace,value,inplace=False):
-        """CONFIRMED
-        piping pandas replace function"""
+        """piping pandas replace function, see http://pandas.pydata.org/pandas-docs/version/0.22/generated/pandas.DataFrame.replace.html for documentation"""
         if inplace == False:
             return self.__class__(self.data.replace(to_replace,value,inplace=False),
                                   self.data.timename,self.data_type,
@@ -183,11 +194,19 @@ class HydroData():
     def set_index(self,keys,key_is_time=False,drop=True,inplace=False,
                   verify_integrity=False,save_prev_index=True):
         """
-        piping pandas set_index function, including the option to define the new index
-        as being the time data
+        piping and extending pandas set_index function, see https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.set_index.html for documentation
+
+        Notes
+        ----------
         key_is_time : bool
-            when true, the new index will we known as the time data from here on
+            when true, the new index will be known as the time data from here on
+
         (other arguments cfr pd.set_index)
+
+        Returns
+        -------
+        HydroData object (if inplace=False)
+        None (if inplace=True)
         """
         if save_prev_index:
             self.prev_index = self.data.index
@@ -260,10 +279,10 @@ class HydroData():
 
     def to_datetime(self,time_column='index',time_format='%dd-%mm-%yy',
                     unit='D'):
-        """CONFIRMED
-        flexibly piping pandas to_datetime function
+        """
+        Piping and modifying pandas to_datetime function
 
-        Parameter
+        Parameters
         ---------
         time_column : str
             column name of the column where values need to be converted to date-
@@ -298,7 +317,7 @@ class HydroData():
         converts a pandas series with datetime timevalues to relative timevalues
         in the given unit, starting from 0
 
-        parameters
+        Parameters
         ----------
         time_data : str
             name of the column containing the time data. If this is the index
@@ -306,9 +325,10 @@ class HydroData():
         unit : str
             unit to which to convert the time values (sec, min, hr or d)
 
-        output
-        ------
-
+        Returns
+        -------
+        None if inplace is True
+        HydroData object if inplace it False
         """
         if time_data == 'index':
             timedata = self.time
@@ -385,7 +405,7 @@ class HydroData():
 
         Parameters
         ----------
-        name : arary of str
+        name : array of str
             name(s) of the column(s) containing the data to be averaged;
             defaults to ['none'] and will calculate average for every column
 
@@ -400,7 +420,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 mean = df.mean()
             elif isinstance(name,str):
                 mean = df[name].mean()
@@ -409,7 +429,7 @@ class HydroData():
                     mean.append(df[name].mean())
 
         else:
-            if name == None:
+            if name is None:
                 mean = self.data.mean()
             elif isinstance(name,str):
                 mean = self.data[name].mean()
@@ -445,7 +465,7 @@ class HydroData():
             df = self.data.copy()
             df[self.meta_valid == 'filtered']=np.nan
 
-            if name == None:
+            if name is None:
                 std = df.std()
             elif isinstance(name,str):
                 std = df[name].std()
@@ -454,7 +474,7 @@ class HydroData():
                     std.append(df[name].std())
 
         else:
-            if name == None:
+            if name is None:
                 std = self.data.std()
             elif isinstance(name,str):
                 std = self.data[name].std()
@@ -470,6 +490,8 @@ class HydroData():
         higher than a certain value; example: the definition/tagging of rain
         events.
 
+        Parameters
+        ----------
         data_name : str
             name of the column to execute the function on
         bound_value : float
@@ -480,6 +502,10 @@ class HydroData():
             when percentile, the bound value is a given percentile above which
             data points will be tagged, when value, bound_values is used directly
             to tag data points.
+
+        Returns
+        -------
+        None
         """
         self._reset_highs()
         try:
@@ -529,7 +555,7 @@ class HydroData():
         DataFrame, where all tags are set to 'original'. This makes sure that
         also data that already is very reliable can be used further down the
         process (e.g. filling etc.)
-
++
         Parameters
         ----------
         column_names : array
@@ -677,7 +703,12 @@ class HydroData():
             self._reset_meta_valid(data_name)
         self.meta_valid = self.meta_valid.reindex(self.index(),fill_value='!!')
 
-        # Do the actual filtering, based on the mask
+        if not data_name in self.meta_valid.columns:
+            # if the data_name column doesn't exist yet in the meta_valid dataset,
+            # add it
+            self.add_to_meta_valid([data_name])
+
+	# Do the actual filtering, based on the mask
         df_temp.data[data_name] = df_temp.data[data_name].drop(df_temp.data[mask==False].index)
         len_new = df_temp.data[data_name].count()
 
@@ -870,7 +901,7 @@ class HydroData():
     def moving_slope_filter(self,xdata,data_name,cutoff,arange,time_unit=None,
                             clear=False,inplace=False,log_file=None,plot=False,
                             final=False):
-        """CONFIRMED
+        """
         Filters out datapoints based on the difference between the slope in one
         point and the next (sudden changes like noise get filtered out), based
         on a given cut off value. Replaces the dropped values with NaN values.
@@ -953,7 +984,7 @@ class HydroData():
             _print_removed_output(len_orig,len_new,'moving slope filter')
         elif type(log_file) == str:
             _log_removed_output(log_file,len_orig,len_new,'filtered')
-        else :
+        else:
             raise TypeError('Please provide the location of the log file as '+ \
                             'a string type, or leave the argument if no log '+ \
                             'file is needed.')
@@ -991,7 +1022,7 @@ class HydroData():
 
     def simple_moving_average(self,arange,window,data_name=None,inplace=False,
                               plot=True):
-        """CONFIRMED
+        """
         Calculate the Simple Moving Average of a dataseries from a dataframe,
         using a window within which the datavalues are averaged.
 
@@ -1292,12 +1323,18 @@ class HydroData():
         if only_checked == True:
             #create new pd.Dataframes for original values in range,
             #merge only rows in which both values are original
-            data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
+            try:
+                data_1_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].values,
                     index=self.data[arange[0]:arange[1]][data_1][self.meta_valid[data_1]=='original'].index)
-            data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
+                data_2_checked = pd.DataFrame(self.data[arange[0]:arange[1]][data_2][self.meta_valid[data_2]=='original'].values, \
                     index=self.data[data_2][arange[0]:arange[1]][self.meta_valid[data_2]=='original'].index)
-            ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
-            ratio_data.columns = data_1,data_2
+                ratio_data = pd.merge(data_1_checked,data_2_checked,left_index=True, right_index=True, how = 'inner')
+                ratio_data.columns = data_1,data_2
+            except KeyError:
+
+                wn.warn('only_checked cannot be fulfilled')
+
+
 
             mean = (ratio_data[data_1]/ratio_data[data_2])\
                     .replace(np.inf,np.nan).mean()
@@ -1451,14 +1488,14 @@ class HydroData():
             #x = np.arange(self.data[data_2][arange[0]:arange[1]].min(),
             #              self.data[data_2][arange[0]:arange[1]].max())
             #y = slope * x + intercept
-            if zero_intercept: 
+            if zero_intercept:
                 y = results.predict(x)
                 exog = x
             else:
                 x2 = sm.add_constant(x)
                 y = results.predict(x2)
                 exog = x2
-                
+
             fig = plt.figure(figsize=(6,6))
             ax = fig.add_subplot(111)
             # plot data
@@ -1475,16 +1512,16 @@ class HydroData():
             upper.sort()
             ax.fill_between(x.astype(float), lower, upper, color='k', alpha=0.2,
                             label='Prediction interval (95%)')
-            
+
             ax.legend(fontsize=15)
             ax.tick_params(labelsize=15)
             ax.set_ylabel(data_1,size=17)
             ax.set_xlabel(data_2,size=17)
             fig.tight_layout()
             print('slope: ' + str(slope) + ' intercept: ' + str(intercept) + ' R2: ' + str(r_sq))
-            
+
             return fig, ax
-               
+
         return slope,intercept,r_sq
 
 #==============================================================================
@@ -1518,9 +1555,10 @@ class HydroData():
             that is already present
 
         Returns
-        ------
-        None; creates a dictionary self.daily_profile containing information
-        on the average day as calculated.
+        -------
+        None
+            creates a dictionary self.daily_profile containing information
+            on the average day as calculated.
         """
         # several checks to make sure the right types, columns... are used
         try:

@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-    data_reading_functions provides functionalities for data reading in the context of the wwdata package.
-    Copyright (C) 2016 Chaim De Mulder
+data_reading_functions provides functionalities for data reading in the context of the wwdata package.
+Copyright (C) 2016 Chaim De Mulder
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as published
-    by the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
 """
 
 import sys
@@ -28,7 +28,16 @@ import xlrd
 
 def list_files(path,ext):
     """
+    Returns a list of files in a certain folder ('path') with a certain extension
+    ('ext')
 
+    Parameters
+    ----------
+    path : str
+        path to the folder containing the files to be listed
+    ext : str
+        extension of the files to be listed; current options are 'excel','text'
+        or 'csv'
     """
     if ext == 'excel':
         files = [f for f in listdir(path) if '.xls' in f]
@@ -46,6 +55,17 @@ def list_files(path,ext):
 
 def remove_empty_lines(path,ext):
     """
+    Removes the empty lines from files in a certain folder ('path') and with a
+    certain extension ('ext')
+
+    Parameters
+    ----------
+    path : str
+        path to the folder containing the files in which empty lines need to be
+        removed
+    ext : str
+        extension of the files in which empty lines need to be removed; current
+        options are 'excel','text' or 'csv'
     """
     files = list_files(path,ext)
     if not files:
@@ -182,6 +202,7 @@ def _get_header_length(read_file,ext='text',comment='#'):
 
 def read_mat(path):
     """
+    TO DO
     Reads in .mat datafiles and returns them as pd.DataFrame
     http://stackoverflow.com/questions/24762122/read-matlab-data-file-into-python-need-to-export-to-csv
 
