@@ -856,7 +856,7 @@ class OnlineSensorBased(HydroData):
                                             loc[arange[0]:arange[1]].index.values,
                                             columns=['indexes'])
 
-        if not isinstance(model_values['time'][0],type(self.data.index[0])):
+        if not isinstance(model_values['time'].values[0],type(self.data.index[0])):
             # if datatype of time of modeled vs data values doesn't match, convert to absolute values
             # (floats)
             try:
