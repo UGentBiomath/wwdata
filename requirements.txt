@@ -1,5 +1,5 @@
 pandas==0.24.0
-numpy==1.14.4
+numpy==1.16.1
 dateutils==0.6.6
 scipy==1.1.0
 matplotlib==2.2.2
