@@ -26,11 +26,11 @@ import scipy as sp
 import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt   #plotten in python
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 import warnings as wn
 
-import wwdata.data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function()
-#import time_conversion_functions #import timedelta_to_abs, _get_datetime_info,\
-#make_datetime,to_datetime_singlevalue
+import wwdata.data_reading_functions
 
 class HydroData():
     """
@@ -1580,16 +1580,16 @@ class HydroData():
         except TypeError:
             raise TypeError("Slicing not possible for index type " + \
             str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
         except AttributeError:
-            raise AttributeError('OnlineSensorBased instance has no attribute "highs". '+\
+            raise AttributeError('OnlineSensorBased instance has no attribute "highs". '\
             'run .get_highs to tag the peaks in the dataset.')
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be used for' + \
-            ' the calculation of an average day. This might lead to a not-' + \
+            wn.warn('Data points obtained during a rain event will be used for' \
+            ' the calculation of an average day. This might lead to a not-' \
             'representative average day and/or high standard deviations.')
 
         daily_profile = pd.DataFrame()
@@ -1642,7 +1642,7 @@ class HydroData():
                 else:
                     name = str(i)
                 daily_profile = pd.merge(daily_profile,
-                                         pd.DataFrame(self.data[column_name][i:i+1].values,
+                                         pd.DataFrame(self.data[column_name][i:i+1*i.freq].values,
                                                       columns=[name]),
                                          left_index=True, right_index=True,how='outer')
 
