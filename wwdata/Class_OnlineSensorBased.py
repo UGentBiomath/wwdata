@@ -321,7 +321,7 @@ class OnlineSensorBased(HydroData):
         self._plot = 'filled'
         wn.warn("When making use of filling functions, please make sure to "\
                 "start filling small gaps and progressively move to larger gaps. This "\
-                "ensures the proper working of the package algorithms.",stacklevel=2)
+                "ensures the proper working of the package algorithms.",stacklevel=1)
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')

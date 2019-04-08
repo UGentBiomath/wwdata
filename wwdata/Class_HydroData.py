@@ -864,7 +864,7 @@ class HydroData():
 
         date_time = isinstance(self.data[xdata][0],np.datetime64) or \
                     isinstance(self.data[xdata][0],dt.datetime) or \
-                    isinstance(self.data[xdata][0],pd.tslib.Timestamp)
+                    isinstance(self.data[xdata][0],pd.Timestamp)
 
         if time_unit == None or date_time == False:
             try:
@@ -873,7 +873,7 @@ class HydroData():
             except TypeError:
                 raise TypeError('Slope calculation cannot be executed, probably due to a \
                 non-handlable datatype. Either use the time_unit argument or \
-                use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
+                use timedata of type np.datetime64, dt.datetime or pd.Timestamp.')
                 return None
         elif time_unit == 'sec':
             slopes = self.data[ydata].diff()/ \
@@ -1301,7 +1301,7 @@ class HydroData():
         """
         # If indexes are in datetime format, convert the arange array to date-
         # time values
-        #if isinstance(self.data.index[0],pd.tslib.Timestamp):
+        #if isinstance(self.data.index[0],pd.Timestamp):
         #    arange = [(self.data.index[0] + dt.timedelta(arange[0]-1)),
         #              (self.data.index[0] + dt.timedelta(arange[1]-1))]
 
@@ -1371,7 +1371,7 @@ class HydroData():
         """
         # Make the array with ranges within which to compute ratios, based on
         # arange, indicating what the interval should be.
-        if isinstance(self.data.index[0],pd.tslib.Timestamp):
+        if isinstance(self.data.index[0],pd.Timestamp):
             days = [self.index()[0] + dt.timedelta(arange) * x for x in \
                     range(0, int((self.index()[-1]-self.index()[0]).days/arange))]
             starts = [[y] for y in days]
@@ -1433,7 +1433,7 @@ class HydroData():
         """
         # If indexes are in datetime format, and arange values are not,
         # convert the arange array to datetime values
-        if isinstance(self.data.index[0],pd.tslib.Timestamp) and \
+        if isinstance(self.data.index[0],pd.Timestamp) and \
         isinstance(arange[0],int) or isinstance(arange[0],float):
             wn.warn('Replacing arange values, assumed to be relative time' + \
             ' values, with absolute values of type dt.datetime')
@@ -1590,7 +1590,7 @@ class HydroData():
         if rain :
             wn.warn('Data points obtained during a rain event will be used for' \
             ' the calculation of an average day. This might lead to a not-' \
-            'representative average day and/or high standard deviations.')
+            'representative average day and/or high standard deviations.',stacklevel=1)
 
         daily_profile = pd.DataFrame()
 
@@ -1623,7 +1623,7 @@ class HydroData():
 
         if only_checked and column_name in self.meta_valid:
             for i in range_days:
-                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
+                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
                 else:
                     name = str(i)
@@ -1637,7 +1637,7 @@ class HydroData():
                 wn.warn('No values of selected column were filtered yet. All values '+ \
                 'will be displayed.')
             for i in range_days:
-                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
+                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
                 else:
                     name = str(i)
