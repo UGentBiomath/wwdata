@@ -8,7 +8,7 @@ from setuptools import setup, find_packages
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
+with open('./docs/history.rst') as history_file:
     history = history_file.read()
 
 requirements = [
@@ -32,7 +32,7 @@ test_requirements = [
 
 setup(
     name='wwdata',
-    version='0.1.0',
+    version='0.2.0',
     description="Data analysis package aimed at data obtained in the context of (waste)water",
     long_description=readme + '\n\n' + history,
     author="Chaim De Mulder",
