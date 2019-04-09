@@ -66,6 +66,7 @@ class OnlineSensorBased(HydroData):
         self.filling_error = pd.DataFrame(index = self.data.columns,
                                           columns=['imputation error [%]'])
         self._filling_warning_issued = False
+        self._rain_warning_issued = False
 
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -341,11 +342,14 @@ class OnlineSensorBased(HydroData):
         '''
         Wrapper function for the rain warning.
         '''
-        #wn.showwarning = self._warning
-        wn.showwarning("\nData points obtained during a rain event will be replaced. \n"\
-                "Make sure you are confident in this replacement method for the "\
-                "filling of gaps in the data during rain events.",
-                UserWarning, __file__, lineno)
+        if not self._rain_warning_issued:
+            #wn.showwarning = self._warning
+            wn.showwarning("\nData points obtained during a rain event will be replaced. \n"\
+                    "Make sure you are confident in this replacement method for the "\
+                    "filling of gaps in the data during rain events.",
+                    UserWarning, __file__, lineno)
+            # don't change value of self._rain_warning_issued; this needs to be printed
+            # every time! The reason this variable exists is for the reliability checking
     
     def _check_rain(self,arange,lineno):
         '''
@@ -1212,15 +1216,22 @@ class OnlineSensorBased(HydroData):
         """
         # shut off warnings, to avoid e.g. warning about replacing datapoints
         # in wet weather
-        wn.filterwarnings("ignore")
+        # wn.filterwarnings("ignore")
 
         if nr_small_gaps == 0 and nr_large_gaps == 0 :
-                raise ValueError("No information was provided to make the gaps \
-                                 with. Please specify the number of small or \
-                                 large gaps you want to create for testing")
+            raise ValueError("No information was provided to make the gaps \
+                             with. Please specify the number of small or \
+                             large gaps you want to create for testing")
 
         filling_errors = pd.Series([])
-        for iteration in range(0,nr_iterations):
+        
+        prev_filling_warning_issued = self._filling_warning_issued
+        self._filling_warning_issued = True
+        self._rain_warning_issued = True
+        
+        #with warnings.catch_warnings():
+        #warnings.simplefilter("ignore") # turn off warnings in for-loop
+        for iteration in range(0,nr_iterations): 
             iter_error = self._calculate_filling_error(data_name,filling_function,test_data_range,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
@@ -1230,21 +1241,24 @@ class OnlineSensorBased(HydroData):
             #print(options_filling_function)
             if iter_error == None:
                 # turn warnings on again
-                wn.filterwarnings("always")
+                #wn.filterwarnings("always")
                 raise ValueError("Checking of the filling function could not \
                                  be executed. Check docstring of the filling \
                                  function to provide appropriate arguments.")
 
             filling_errors = filling_errors.append(pd.Series([iter_error]))
-
+        
+        self._filling_warning_issued = prev_filling_warning_issued
+        self._rain_warning_issued = False
+        
         avg = filling_errors.dropna().mean()
 
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points from the original ones is '+\
-              str(avg)+"%. This value is also saved in self.filling_error.")
+              str(round(avg,2))+"%. This value is also saved in self.filling_error.")
 
         # turn warnings on again
-        wn.filterwarnings("always")
+        #wn.filterwarnings("always")
 
 ###############################################################################
 ##                          LOOKUP FUNCTIONS                                 ##
