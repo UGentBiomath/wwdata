@@ -318,40 +318,41 @@ class OnlineSensorBased(HydroData):
     
     def _filling_warning(self,lineno):
         '''
-        Wrapper function to make sure that the warning on the use of filling functions
-        is only issued the first time a filling function is used.
+        Wrapper function for the filling function warning. Also makes sure that the 
+        warning on the use of filling functions is only issued the first time a 
+        filling function is used.
         '''
         if not self._filling_warning_issued:
-            wn.warn_explicit("When making use of filling functions, please make sure to "\
+            wn.warn_explicit("\nWhen making use of filling functions, please make sure to "\
                              "start filling small gaps and progressively move to larger gaps. This "\
-                             "ensures the proper working of the package algorithms.",
+                             "ensures the proper working of the package algorithms.\n"\
+                             "This warning will not be shown again.",
                              UserWarning, __file__, lineno)
         self._filling_warning_issued = True
-        
+    
+    
+    def _warning(message, category = UserWarning, filename = '',lineno):
+        '''
+        Overwrite default warning layout
+        '''
+        print(filename + ':' + lineno + ': ' + category + ': ' + message)
+    
     def _rain_warning(self,lineno):
         '''
-        Wrapper function to make sure that the warning on the use of filling functions
-        is only issued the first time a filling function is used.
+        Wrapper function for the rain warning.
         '''
-        wn.warn_explicit("\nData points obtained during a rain event will be replaced. \n"\
-                         "Make sure you are confident in this replacement method for the "\
-                         "filling of gaps in the data during rain events.",
-                         UserWarning, __file__, lineno)
+        wn.showwarning = self._warning
+        wn.warn("\nData points obtained during a rain event will be replaced. \n"\
+                "Make sure you are confident in this replacement method for the "\
+                "filling of gaps in the data during rain events.",
+                UserWarning, __file__, lineno)
     
-    def _check_rain_and_dtype(self,lineno):
+    def _check_rain(self,arange,lineno):
         '''
-        Give warning when replacing data from rain events and at the same time
-        check if arange has the right type
+        Give warning when replacing data from rain events
         '''
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
+        rain = (self.data_type == 'WWTP') and \
+               (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
 
         if rain :
             self._rain_warning(lineno)
@@ -404,7 +405,7 @@ class OnlineSensorBased(HydroData):
         
         # Give warning when replacing data from rain events and at the same time check if 
         # arange has the right type 
-        self._check_rain_and_dtype(lineno())
+        self._check_rain(arange,lineno())
 
         ###
         # CALCULATIONS
