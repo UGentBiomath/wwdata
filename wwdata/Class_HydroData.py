@@ -1588,9 +1588,9 @@ class HydroData():
             'run .get_highs to tag the peaks in the dataset.')
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be used for' \
-            ' the calculation of an average day. This might lead to a not-' \
-            'representative average day and/or high standard deviations.',stacklevel=1)
+            wn.warn("Data points obtained during a rain event will be used for" \
+            " the calculation of an average day. This might lead to a not-" \
+            "representative average day and/or high standard deviations.",stacklevel=1)
 
         daily_profile = pd.DataFrame()
 
