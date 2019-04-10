@@ -689,7 +689,7 @@ class HydroData():
         else:
             try:
                 range_mask = (self.index() < arange[0]) | (arange[1] < self.index())
-                mask = bound_mask + range_mask
+                mask = bound_mask | range_mask
             except TypeError:
                 raise TypeError("Slicing not possible for index type " + \
                                 str(type(self.data.index[0])) + " and arange "+\
@@ -1173,8 +1173,8 @@ class HydroData():
                                                  plot=False)
         # Make a mask by comparing smooth and original data, using the given
         # cut-off percentage
-        mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
-                smooth_data.data[data_name]) < cutoff_frac
+        mask = (abs(smooth_data.data[data_name][arange[0]:arange[1]] - self.data[data_name][arange[0]:arange[1]])/\
+                smooth_data.data[data_name][arange[0]:arange[1]]) < cutoff_frac
 
         # Update the index of self.meta_valid
         if clear:
