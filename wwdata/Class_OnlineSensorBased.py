@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt   #plotten in python
 import datetime as dt
 import warnings as wn
 import random as rn
+import inspect # allows to get current line number
 
 from wwdata.Class_HydroData import HydroData
 #from data_reading_functions import _print_removed_output,_log_removed_output
@@ -64,6 +65,8 @@ class OnlineSensorBased(HydroData):
         self.meta_filled = pd.DataFrame(self.meta_valid.copy(),index=self.data.index)
         self.filling_error = pd.DataFrame(index = self.data.columns,
                                           columns=['imputation error [%]'])
+        self._filling_warning_issued = False
+        self._rain_warning_issued = False
 
     #def time_to_index(self,drop=True,inplace=True,verify_integrity=False):
     #    """CONFIRMED
@@ -165,7 +168,7 @@ class OnlineSensorBased(HydroData):
         try:
             self.units[new_name] = unit
         except:
-            wn.warn('Something might have gone wrong with the updating of the units. '+ \
+            wn.warn('Something might have gone wrong with the updating of the units. ' \
                     'Check self.units to make sure everything is still okay.')
         return None
 
@@ -214,7 +217,7 @@ class OnlineSensorBased(HydroData):
             to_return = pd.DataFrame([days,means,stds]).transpose()
             to_return.columns = ['day','mean','std']
 
-        elif isinstance(self.data.index[0],pd.tslib.Timestamp):
+        elif isinstance(self.data.index[0],pd.Timestamp):
             means = series.resample('d').mean()#.dropna()
             stds = series.resample('d').std()#.dropna()
 
@@ -225,7 +228,7 @@ class OnlineSensorBased(HydroData):
         if plot==True:
             fig = plt.figure(figsize=(16,6))
             ax = fig.add_subplot(111)
-            if isinstance(self.data.index[0],pd.tslib.Timestamp):
+            if isinstance(self.data.index[0],pd.Timestamp):
                 ax.errorbar([pd.to_datetime(x) for x in to_return['day']],to_return['mean'],
                             yerr=to_return['std'],fmt='o')
             else:
@@ -243,9 +246,10 @@ class OnlineSensorBased(HydroData):
 
         self.daily_average[column_name] = to_return
 
-#==============================================================================
-# FILLING FUNCTIONS
-#==============================================================================
+    ###############################################################################
+    ##                        FILLING HELP FUNCTIONS                             ##
+    ###############################################################################
+    
     def _reset_meta_filled(self,data_name=None):
         """
         reset the meta dataframe, possibly for only a certain data series,
@@ -279,11 +283,98 @@ class OnlineSensorBased(HydroData):
                 pass
                 #wn.warn('self.filled already contains a column named ' +
                 #    column + '. The original columns was kept.')
+                
+    def _add_to_meta(self,to_fill):
+        '''
+        Adds the to_fill column to the self.meta_valid and self.meta_filled dataframes, where relevant
+        
+        Parameters
+        ----------
+        to_fill : str
+            name of the column to add to the self.meta_valid and self.meta_filled dataframes
+        '''
+        if not to_fill in self.meta_filled.columns:
+            # if the to_fill column doesn't exist yet in the meta_filled dataset,
+            # add it, and fill it with the meta_valid values; if this last one
+            # doesn't exist yet, create it with 'original' tags.
+            try:
+                self.meta_filled[to_fill] = self.meta_valid[to_fill]
+            except:
+                self.add_to_meta_valid([to_fill])
+                self.meta_filled[to_fill] = self.meta_valid[to_fill]
+        else:
+            # where the meta_filled dataset contains original values, update with
+            # the values from meta_valid; in case a filling round was done before
+            # any filtering; not supposed to happen, but cases exist.
+            try:
+                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
+                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
+            except:
+                self.add_to_meta_valid([to_fill])
+                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
+                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
+        if not to_fill in self.filled:
+            self.add_to_filled([to_fill])
+    
+    def _warning(self, message, category, filename, lineno, file=None, line=None):
+        '''
+        Function to overwrite default warning layout
+        Required arguments: msg.message, msg.category, msg.filename, msg.lineno,msg.file, msg.line
+        '''
+        print(filename + ':' + str(lineno) + ': ' + category + ': ' + message)
+        
+    def _filling_warning(self,lineno):
+        '''
+        Wrapper function for the filling function warning. Also makes sure that the 
+        warning on the use of filling functions is only issued the first time a 
+        filling function is used.
+        '''
+        if not self._filling_warning_issued:
+            #wn.showwarning = self._warning
+            wn.showwarning("\nWhen making use of filling functions, please make sure to "+\
+                    "start filling small gaps and progressively move to larger gaps. This "+\
+                    "ensures the proper working of the package algorithms.\n"+\
+                    "This warning will not be shown again.",
+                    UserWarning, __file__, lineno)
+            self._filling_warning_issued = True
+    
+    def _rain_warning(self,lineno):
+        '''
+        Wrapper function for the rain warning.
+        '''
+        if not self._rain_warning_issued:
+            #wn.showwarning = self._warning
+            wn.showwarning("\nData points obtained during a rain event will be replaced. \n"\
+                    "Make sure you are confident in this replacement method for the "\
+                    "filling of gaps in the data during rain events.",
+                    UserWarning, __file__, lineno)
+            # don't change value of self._rain_warning_issued; this needs to be printed
+            # every time! The reason this variable exists is for the reliability checking
+    
+    def _check_rain(self,arange,lineno):
+        '''
+        Give warning when replacing data from rain events
+        '''
+        rain = (self.data_type == 'WWTP') and \
+               (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
 
-    #####################
-    ###   FILLING
-    #####################
-
+        if rain :
+            self._rain_warning(lineno)
+    
+    def _check_daily_profile(self):
+        try:
+            if not isinstance(self.daily_profile,dict):
+                raise TypeError("self.daily_profile should be a dictionary Type. \
+                Run calc_daily_profile() to get an average daily profile for " + to_fill)
+        except AttributeError:
+            raise AttributeError("self.daily_profile doesn't exist yet, meaning \
+            there is no data available to replace other data with. Run \
+            calc_daily_profile() to get an average daily profile for " + to_fill)
+            
+    ###############################################################################
+    ##                          FILLING FUNCTIONS                                ##
+    ###############################################################################
+    
     def fill_missing_interpolation(self,to_fill,range_,arange,method='index',plot=False,
                                    clear=False,*kwargs):
         """
@@ -319,52 +410,19 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+ \
-            'Make sure you are confident in this replacement method for the '+ \
-            'filling of gaps in the data during rain events.')
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
         ###
         # CALCULATIONS
@@ -448,53 +506,19 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+ \
-            'Make sure you are confident in this replacement method for the '+ \
-            'filling of gaps in the data during rain events.')
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
         ###
         # FILLING
@@ -555,53 +579,19 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced.' + \
-            ' Make sure you are confident in this replacement method for the' + \
-            ' filling of gaps in the data during rain events.')
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
         ###
         # CALCULATIONS
@@ -610,10 +600,10 @@ class OnlineSensorBased(HydroData):
                                                     zero_intercept=zero_intercept)
 
         if intercept < 0:
-                wn.warn('The intercept was calculated to be lower than '+ \
-                '0, which might lead to negative data values when data is replaced '+ \
-                'based on this correlation. Try setting "zero_intercept" to True '+ \
-                'to avoid.')
+                wn.warn('The intercept was calculated to be lower than \
+                0, which might lead to negative data values when data is replaced \
+                based on this correlation. Try setting "zero_intercept" to True \
+                to avoid.')
         ###
         # FILLING
         ###
@@ -669,65 +659,22 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
-
-        # several checks on availability of the right columns in the necessary
-        # dataframes/dictionaries
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        try:
-            if not isinstance(self.daily_profile,dict):
-                raise TypeError("self.daily_profile should be a dictionary Type. \
-                Run calc_daily_profile() to get an average daily profile for " + to_fill)
-        except AttributeError:
-            raise AttributeError("self.daily_profile doesn't exist yet, meaning "+
-            "there is no data available to replace other data with. Run "+
-            "calc_daily_profile() to get an average daily profile for " + to_fill)
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+ \
-            'Make sure you are confident in this replacement method for the '+ \
-            'filling of gaps in the data during rain events.')
+        # Check if daily_profile has been generated
+        self._check_daily_profile()
 
         ###
         # CALCULATIONS
@@ -805,56 +752,19 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
-
-        # several checks on availability of the right columns in the necessary
-        # dataframes/dictionaries
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+ \
-            'Make sure you are confident in this replacement method for the '+ \
-            'filling of gaps in the data during rain events.')
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
         ###
         # CALCULATIONS
@@ -886,9 +796,9 @@ class OnlineSensorBased(HydroData):
                 indexes_to_replace['time_index'] = indexes_to_replace['abs_indexes'].\
                                                     apply(find_nearest_time,args=(model_values,'time'))
             except(IndexError):
-                raise IndexError('No indexes were found to replace. Check the '+ \
-                'range in which you want to replace values, or check if filtered '+ \
-                'values actually exist in the meta_filled dataset.')
+                raise IndexError('No indexes were found to replace. Check the \
+                range in which you want to replace values, or check if filtered \
+                values actually exist in the meta_filled dataset.')
 
         else:
             indexes_to_replace['time_index'] = indexes_to_replace['indexes'].\
@@ -896,9 +806,9 @@ class OnlineSensorBased(HydroData):
 
         indexes_to_replace['values'] = indexes_to_replace['time_index'].apply(vlookup_day,args=(model_values,'data'))
 
-        self.filled[to_fill][indexes_to_replace['indexes']] = indexes_to_replace['values'].values
+        self.filled[to_fill].loc[indexes_to_replace['indexes']] = indexes_to_replace['values'].values
         # Adjust in the self.meta_valid dataframe
-        self.meta_filled[to_fill][indexes_to_replace['indexes']] = 'filled_infl_model'
+        self.meta_filled[to_fill].loc[indexes_to_replace['indexes']] = 'filled_infl_model'
 
             #self.filled.loc[arange[0]:arange[1],to_fill] = to_use.values
             # Adjust in the self.meta_valid dataframe
@@ -949,61 +859,19 @@ class OnlineSensorBased(HydroData):
         # CHECKS
         ###
         self._plot = 'filled'
-        wn.warn('When making use of filling functions, please make sure to '+ \
-        'start filling small gaps and progressively move to larger gaps. This '+ \
-        'ensures the proper working of the package algorithms.')
-        # index checks
-        #if arange[0] < 1 or arange[1] > self.index()[-1]:
-        #    raise IndexError('Index out of bounds. Check whether the values of \
-        #    "arange" are within the index range of the data. Mind that the first \
-        #    day of data cannot be replaced with this algorithm!')
-
-        # several checks on availability of the right columns in the necessary
-        # dataframes/dictionaries
+        self._filling_warning(lineno())
+        
         if clear:
             self._reset_meta_filled(to_fill)
         self.meta_filled = self.meta_filled.reindex(self.index(),fill_value='!!')
 
-        if not to_fill in self.meta_filled.columns:
-            # if the to_fill column doesn't exist yet in the meta_filled dataset,
-            # add it, and fill it with the meta_valid values; if this last one
-            # doesn't exist yet, create it with 'original' tags.
-            try:
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill] = self.meta_valid[to_fill]
-        else:
-            # where the meta_filled dataset contains original values, update with
-            # the values from meta_valid; in case a filling round was done before
-            # any filtering; not supposed to happen, but cases exist.
-            try:
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-            except:
-                self.add_to_meta_valid([to_fill])
-                self.meta_filled[to_fill].loc[self.meta_filled[to_fill]=='original'] = \
-                self.meta_valid[to_fill].loc[self.meta_filled[to_fill]=='original']
-
-        if not to_fill in self.filled:
-            self.add_to_filled([to_fill])
-
-        # Give warning when replacing data from rain events and at the same time
-        # check if arange has the right type
-        try:
-            rain = (self.data_type == 'WWTP') and \
-                   (self.highs['highs'].loc[arange[0]:arange[1]].sum() > 1)
-        except TypeError:
-            raise TypeError("Slicing not possible for index type " + \
-            str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
-            "values to one compatible with " + str(type(self.data.index[0])) + \
-            " slicing.")
-
-        if rain :
-            wn.warn('Data points obtained during a rain event will be replaced. '+ \
-            'Make sure you are confident in this replacement method for the '+ \
-            'filling of gaps in the data during rain events.')
+        # Add the to_fill column to the self.meta_valid and self.meta_filled dataframes, 
+        # where relevant
+        self._add_to_meta(to_fill)
+        
+        # Give warning when replacing data from rain events and at the same time check if 
+        # arange has the right type 
+        self._check_rain(arange,lineno())
 
         ###
         # CALCULATIONS
@@ -1019,8 +887,8 @@ class OnlineSensorBased(HydroData):
         if isinstance(self.data.index[0],dt.datetime):
             oneday = dt.timedelta(1)
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before available, "+\
-                                 "adjust the range for replacement.")
+                raise IndexError("No data from the day before available, \
+                                 adjust the range for replacement.")
                 #arange[0] = arange[0] + oneday
                 #wn.warn("The range for replacement given in the arange argument "+\
                 #        "included the first day of data. The range was adjusted to"+\
@@ -1029,8 +897,8 @@ class OnlineSensorBased(HydroData):
         elif isinstance(self.data.index[0],float):
             oneday = 1
             if arange[0] < self.time[0]+oneday:
-                raise IndexError("No data from the day before available, "+\
-                                 "adjust the range for replacement.")
+                raise IndexError("No data from the day before available, \
+                                 adjust the range for replacement.")
                 #arange[0] = arange[0] + oneday
                 #wn.warn("The range for replacement given in the arange argument "+\
                 #        "included the first day of data. The range was adjusted to"+\
@@ -1104,9 +972,9 @@ class OnlineSensorBased(HydroData):
         return None
 
 
-    #####################
-    ###   CHECKING
-    #####################
+    ###############################################################################
+    ##                          RELIABILITY FUNCTIONS                            ##
+    ###############################################################################
 
     def _create_gaps(self,data_name,range_,number,max_size,reset=False,user_output=False):
         """
@@ -1150,8 +1018,8 @@ class OnlineSensorBased(HydroData):
         except TypeError:
             raise TypeError("Slicing not possible for index type " + \
             str(type(self.meta_valid.index[0])) + " and range_ argument type " + \
-            str(type(range_[0])) + ". Try changing the type of the range_ " + \
-            "values to one compatible with " + str(type(self.meta_valid.index[0])) + \
+            str(type(range_[0])) + ". Try changing the type of the range_ \
+            values to one compatible with " + str(type(self.meta_valid.index[0])) + \
             " slicing.")
 
         # create random positions where to create gaps
@@ -1269,9 +1137,9 @@ class OnlineSensorBased(HydroData):
                 raise ValueError("Entered filling function is not available for testing.")
 
         except:
-            raise TypeError("Filling function could not be executed. Check "+\
-                            "docstring of the filling function to provide "+\
-                            "appropriate arguments.")
+            raise TypeError("Filling function could not be executed. Check \
+                            docstring of the filling function to provide \
+                            appropriate arguments.")
 
         indexes_to_compare = gaps.meta_valid[gaps.meta_valid[data_name]=='filtered'].index
         deviations = (abs(orig.data[data_name][indexes_to_compare] -
@@ -1348,15 +1216,22 @@ class OnlineSensorBased(HydroData):
         """
         # shut off warnings, to avoid e.g. warning about replacing datapoints
         # in wet weather
-        wn.filterwarnings("ignore")
+        # wn.filterwarnings("ignore")
 
         if nr_small_gaps == 0 and nr_large_gaps == 0 :
-                raise ValueError("No information was provided to make the gaps "+\
-                                 "with. Please specify the number of small or "+\
-                                 "large gaps you want to create for testing")
+            raise ValueError("No information was provided to make the gaps \
+                             with. Please specify the number of small or \
+                             large gaps you want to create for testing")
 
         filling_errors = pd.Series([])
-        for iteration in range(0,nr_iterations):
+        
+        prev_filling_warning_issued = self._filling_warning_issued
+        self._filling_warning_issued = True
+        self._rain_warning_issued = True
+        
+        #with warnings.catch_warnings():
+        #warnings.simplefilter("ignore") # turn off warnings in for-loop
+        for iteration in range(0,nr_iterations): 
             iter_error = self._calculate_filling_error(data_name,filling_function,test_data_range,
                                                        nr_small_gaps=nr_small_gaps,
                                                        max_size_small_gaps=max_size_small_gaps,
@@ -1366,26 +1241,28 @@ class OnlineSensorBased(HydroData):
             #print(options_filling_function)
             if iter_error == None:
                 # turn warnings on again
-                wn.filterwarnings("always")
-                raise ValueError("Checking of the filling function could not "+\
-                                 "be executed. Check docstring of the filling "+\
-                                 "function to provide appropriate arguments.")
+                #wn.filterwarnings("always")
+                raise ValueError("Checking of the filling function could not \
+                                 be executed. Check docstring of the filling \
+                                 function to provide appropriate arguments.")
 
             filling_errors = filling_errors.append(pd.Series([iter_error]))
-
+        
+        self._filling_warning_issued = prev_filling_warning_issued
+        self._rain_warning_issued = False
+        
         avg = filling_errors.dropna().mean()
 
         self.filling_error.ix[data_name] = avg
         print('Average deviation of imputed points from the original ones is '+\
-              str(avg)+"%. This value is also saved in self.filling_error.")
+              str(round(avg,2))+"%. This value is also saved in self.filling_error.")
 
         # turn warnings on again
-        wn.filterwarnings("always")
+        #wn.filterwarnings("always")
 
-
-#==============================================================================
-# LOOKUP FUNCTIONS
-#==============================================================================
+###############################################################################
+##                          LOOKUP FUNCTIONS                                 ##
+###############################################################################
 
 def find_nearest_time(value,df,column):
     """
@@ -1400,16 +1277,13 @@ def find_nearest_time(value,df,column):
     column : str
         column to check 'value' against
     """
-    return (np.abs(df[column]-value)).argmin()
+    return (np.abs(df[column]-value)).idxmin()
 
 def vlookup_day(value,df,column):
     """
     Returns the dataframe index of a given value
     """
     return df[column].loc[value]
-
-
-####START ADJUSTING HERE NEXT TIME!
 
 def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
     """
@@ -1447,9 +1321,9 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as '+ \
-                            'a string type, or leave the argument if no log '+ \
-                            'file is needed.')
+            raise TypeError('Please provide the location of the log file as \
+                            a string type, or leave the argument if no log \
+                            file is needed.')
 
         return self.__class__(data,self.timename)
 
@@ -1463,9 +1337,9 @@ def drop_peaks(self,data_name,cutoff,inplace=True,log_file=None):
         elif type(log_file) == str:
             _log_removed_output(log_file,original,new)
         else :
-            raise TypeError('Please provide the location of the log file as '+ \
-                            'a string type, or leave the argument if no log '+ \
-                            'file is needed.')
+            raise TypeError('Please provide the location of the log file as \
+                            a string type, or leave the argument if no log \
+                            file is needed.')
 
 
 def _select_slope(self,ydata,down=True,limit=0):#,based_on_max=True):#,bounds=[1,1]):
@@ -1592,7 +1466,10 @@ def go_WEST(raw_data,time_data,WEST_name_conversion):
 ###############################################################################
 ##                          HELP FUNCTIONS                                   ##
 ###############################################################################
-
+def lineno():
+    """Returns the current line number"""
+    return inspect.currentframe().f_back.f_lineno
+                          
 def _print_removed_output(original,new,type_):
     """
     function printing the output of functions that remove datapoints.
@@ -1653,8 +1530,8 @@ def absolute_to_relative(series,start_date,unit='d',decimals=5):
     try:
         time_delta = series - series[0]
     except('IndexError'):
-        raise IndexError('The passed series appears to be empty. To calculate ' + \
-        'a relative timeseries, an absolute timeseries is necessary.')
+        raise IndexError('The passed series appears to be empty. To calculate \
+        a relative timeseries, an absolute timeseries is necessary.')
     start = total_seconds(series[0] - start_date)
 
     relative = time_delta.map(total_seconds)
