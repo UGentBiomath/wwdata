@@ -26,11 +26,11 @@ import scipy as sp
 import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt   #plotten in python
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
 import warnings as wn
 
-import wwdata.data_reading_functions #imports the functions in data_reading_functions.py: the ones without underscore are included, the ones with underscore need to be called by hp.data_reading_functions.function()
-#import time_conversion_functions #import timedelta_to_abs, _get_datetime_info,\
-#make_datetime,to_datetime_singlevalue
+import wwdata.data_reading_functions
 
 class HydroData():
     """
@@ -689,7 +689,7 @@ class HydroData():
         else:
             try:
                 range_mask = (self.index() < arange[0]) | (arange[1] < self.index())
-                mask = bound_mask + range_mask
+                mask = bound_mask | range_mask
             except TypeError:
                 raise TypeError("Slicing not possible for index type " + \
                                 str(type(self.data.index[0])) + " and arange "+\
@@ -864,7 +864,7 @@ class HydroData():
 
         date_time = isinstance(self.data[xdata][0],np.datetime64) or \
                     isinstance(self.data[xdata][0],dt.datetime) or \
-                    isinstance(self.data[xdata][0],pd.tslib.Timestamp)
+                    isinstance(self.data[xdata][0],pd.Timestamp)
 
         if time_unit == None or date_time == False:
             try:
@@ -873,7 +873,7 @@ class HydroData():
             except TypeError:
                 raise TypeError('Slope calculation cannot be executed, probably due to a \
                 non-handlable datatype. Either use the time_unit argument or \
-                use timedata of type np.datetime64, dt.datetime or pd.tslib.Timestamp.')
+                use timedata of type np.datetime64, dt.datetime or pd.Timestamp.')
                 return None
         elif time_unit == 'sec':
             slopes = self.data[ydata].diff()/ \
@@ -1173,8 +1173,8 @@ class HydroData():
                                                  plot=False)
         # Make a mask by comparing smooth and original data, using the given
         # cut-off percentage
-        mask = (abs(smooth_data.data[data_name] - self.data[data_name])/\
-                smooth_data.data[data_name]) < cutoff_frac
+        mask = (abs(smooth_data.data[data_name][arange[0]:arange[1]] - self.data[data_name][arange[0]:arange[1]])/\
+                smooth_data.data[data_name][arange[0]:arange[1]]) < cutoff_frac
 
         # Update the index of self.meta_valid
         if clear:
@@ -1301,7 +1301,7 @@ class HydroData():
         """
         # If indexes are in datetime format, convert the arange array to date-
         # time values
-        #if isinstance(self.data.index[0],pd.tslib.Timestamp):
+        #if isinstance(self.data.index[0],pd.Timestamp):
         #    arange = [(self.data.index[0] + dt.timedelta(arange[0]-1)),
         #              (self.data.index[0] + dt.timedelta(arange[1]-1))]
 
@@ -1371,7 +1371,7 @@ class HydroData():
         """
         # Make the array with ranges within which to compute ratios, based on
         # arange, indicating what the interval should be.
-        if isinstance(self.data.index[0],pd.tslib.Timestamp):
+        if isinstance(self.data.index[0],pd.Timestamp):
             days = [self.index()[0] + dt.timedelta(arange) * x for x in \
                     range(0, int((self.index()[-1]-self.index()[0]).days/arange))]
             starts = [[y] for y in days]
@@ -1433,7 +1433,7 @@ class HydroData():
         """
         # If indexes are in datetime format, and arange values are not,
         # convert the arange array to datetime values
-        if isinstance(self.data.index[0],pd.tslib.Timestamp) and \
+        if isinstance(self.data.index[0],pd.Timestamp) and \
         isinstance(arange[0],int) or isinstance(arange[0],float):
             wn.warn('Replacing arange values, assumed to be relative time' + \
             ' values, with absolute values of type dt.datetime')
@@ -1580,17 +1580,17 @@ class HydroData():
         except TypeError:
             raise TypeError("Slicing not possible for index type " + \
             str(type(self.data.index[0])) + " and arange argument type " + \
-            str(type(arange[0])) + ". Try changing the type of the arange " + \
+            str(type(arange[0])) + ". Try changing the type of the arange " \
             "values to one compatible with " + str(type(self.data.index[0])) + \
             " slicing.")
         except AttributeError:
-            raise AttributeError('OnlineSensorBased instance has no attribute "highs". '+\
+            raise AttributeError('OnlineSensorBased instance has no attribute "highs". '\
             'run .get_highs to tag the peaks in the dataset.')
 
         if rain :
-            wn.warn('Data points obtained during a rain event will be used for' + \
-            ' the calculation of an average day. This might lead to a not-' + \
-            'representative average day and/or high standard deviations.')
+            wn.warn("Data points obtained during a rain event will be used for" \
+            " the calculation of an average day. This might lead to a not-" \
+            "representative average day and/or high standard deviations.")
 
         daily_profile = pd.DataFrame()
 
@@ -1623,7 +1623,7 @@ class HydroData():
 
         if only_checked and column_name in self.meta_valid:
             for i in range_days:
-                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
+                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
                 else:
                     name = str(i)
@@ -1637,12 +1637,12 @@ class HydroData():
                 wn.warn('No values of selected column were filtered yet. All values '+ \
                 'will be displayed.')
             for i in range_days:
-                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.tslib.Timestamp):
+                if isinstance(i,dt.datetime) or isinstance(i,np.datetime64) or isinstance(i,pd.Timestamp):
                     name = str(i.month) + '-' + str(i.day)
                 else:
                     name = str(i)
                 daily_profile = pd.merge(daily_profile,
-                                         pd.DataFrame(self.data[column_name][i:i+1].values,
+                                         pd.DataFrame(self.data[column_name][i:i+1*i.freq].values,
                                                       columns=[name]),
                                          left_index=True, right_index=True,how='outer')
 
@@ -1792,6 +1792,7 @@ class HydroData():
 
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
         ax.set_xlabel(self.timename,fontsize=20)
+        ax.set_xlim(time_range[0],time_range[1])
         ax.set_ylabel(data_name,fontsize=20)
         ax.tick_params(labelsize=14)
 
