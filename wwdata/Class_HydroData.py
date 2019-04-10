@@ -1792,6 +1792,7 @@ class HydroData():
 
         ax.legend(bbox_to_anchor=(1.05,1),loc=2,fontsize=16)
         ax.set_xlabel(self.timename,fontsize=20)
+        ax.set_xlim(time_range[0],time_range[1])
         ax.set_ylabel(data_name,fontsize=20)
         ax.tick_params(labelsize=14)
 
