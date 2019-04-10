@@ -806,9 +806,9 @@ class OnlineSensorBased(HydroData):
 
         indexes_to_replace['values'] = indexes_to_replace['time_index'].apply(vlookup_day,args=(model_values,'data'))
 
-        self.filled[to_fill][indexes_to_replace['indexes']] = indexes_to_replace['values'].values
+        self.filled[to_fill].loc[indexes_to_replace['indexes']] = indexes_to_replace['values'].values
         # Adjust in the self.meta_valid dataframe
-        self.meta_filled[to_fill][indexes_to_replace['indexes']] = 'filled_infl_model'
+        self.meta_filled[to_fill].loc[indexes_to_replace['indexes']] = 'filled_infl_model'
 
             #self.filled.loc[arange[0]:arange[1],to_fill] = to_use.values
             # Adjust in the self.meta_valid dataframe
