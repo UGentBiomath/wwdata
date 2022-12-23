@@ -1,7 +1,7 @@
 pandas==1.5.2
 numpy==1.24.0
 dateutils==0.6.12
-scipy==1.2.1
+scipy==1.9.3
 matplotlib==3.0.3
 statsmodels==0.9.0
 xlrd==1.2.0  
