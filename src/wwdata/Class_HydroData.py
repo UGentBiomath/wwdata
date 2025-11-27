@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 class HydroData:
     """
-    Lightweight container for hydrological time-series data and metadata.
+    Class for handling (waste)water related data
 
     Parameters
     ----------
@@ -91,7 +91,6 @@ class HydroData:
         Units by column.
     """
 
-    # Public attribute type hints (not enforced by dataclass here)
     data: pd.DataFrame
     timename: str
     time: Union[pd.Index, np.ndarray]
@@ -113,7 +112,6 @@ class HydroData:
         *,
         copy: bool = True,
     ) -> None:
-        # Normalize to DataFrame
         if isinstance(data, pd.DataFrame):
             df = data.copy() if copy else data
         else:
@@ -128,7 +126,6 @@ class HydroData:
             logger.warning("HydroData initialized with an empty DataFrame.")
         self.data = df
 
-        # Time handling
         if timedata_column == "index":
             self.timename = "index"
             self.time = self.data.index
@@ -139,20 +136,16 @@ class HydroData:
                     f"{list(self.data.columns)}"
                 )
             self.timename = timedata_column
-            # ravel to ensure 1-D numpy array; keep original dtype (string/number/datetime)
             self.time = self.data[timedata_column].to_numpy().ravel()
 
-        # Column cache
         self.columns = np.array(self.data.columns, dtype=object)
 
-        # Metadata
         self.data_type = data_type
         self.tag = experiment_tag
         self.time_unit = time_unit
         self.meta_valid = pd.DataFrame(index=self.data.index)
         self.units = dict(units or {})
 
-    # -------- convenience --------
 
     def __repr__(self) -> str:
         nrows, ncols = self.data.shape
@@ -215,7 +208,7 @@ class HydroData:
         if isinstance(units, pd.DataFrame):
             self.units = units.copy()
         elif isinstance(units, dict):
-            self.units = pd.DataFrame([units])  # wrap dict into DataFrame
+            self.units = pd.DataFrame([units])  
         else:
             raise TypeError("units must be a pandas DataFrame or a dict.")
 
@@ -236,7 +229,6 @@ class HydroData:
             raise TypeError("unit must be a string.")
         self.time_unit = unit
 
-    # ---------------- data accessors ----------------
 
     def head(self, n: int = 5) -> pd.DataFrame:
         """
@@ -288,13 +280,13 @@ class HydroData:
         arange: Tuple[Union[pd.Timestamp, float, int], Union[pd.Timestamp, float, int]],
         index_type: Literal["datetime", "float", "int", "auto"] = "auto",
         *,
-        freq: Optional[pd.Timedelta] = None,   # for datetime
-        step: Optional[float] = None,          # for numeric
+        freq: Optional[pd.Timedelta] = None,   
+        step: Optional[float] = None,          
         inclusive: Literal["left", "right", "both", "neither"] = "left",
     ) -> None:
         """
         Fill missing index values within [start, end] assuming equidistant sampling.
-        Leaves newly created rows as NaN. Robust to duplicate timestamps & MultiIndex columns.
+        Leaves newly created rows as NaN. 
         """
         wn.warn(
             "fill_index assumes equidistant sampling and inserts missing index values accordingly.",
@@ -304,10 +296,9 @@ class HydroData:
             return
 
         idx = self.data.index
-        original_name = idx.name  # ← preserve index name
+        original_name = idx.name  
         is_datetime = isinstance(idx, pd.DatetimeIndex)
 
-        # infer index_type if requested
         if index_type == "auto":
             if is_datetime:
                 index_type = "datetime"
@@ -316,15 +307,13 @@ class HydroData:
 
         start, end = arange
 
-        # --- build the fill index for the requested range ---
         if index_type == "datetime":
             if not is_datetime:
                 raise TypeError("Index is not DatetimeIndex; choose index_type='float' or 'int'.")
             if freq is None:
                 if len(idx) < 2:
                     raise ValueError("Cannot infer frequency from <2 index points. Provide `freq`.")
-                # median spacing (ns) is robust to occasional irregularities
-                deltas_ns = np.diff(idx.asi8)  # int64 nanoseconds
+                deltas_ns = np.diff(idx.asi8)  
                 med_ns = int(np.median(deltas_ns))
                 if med_ns <= 0:
                     raise ValueError("Non-increasing timestamps; cannot infer frequency.")
@@ -333,7 +322,7 @@ class HydroData:
             start_ts = pd.to_datetime(start)
             end_ts = pd.to_datetime(end)
             fill_index = pd.date_range(start=start_ts, end=end_ts, freq=freq, inclusive=inclusive)
-            fill_index = fill_index.rename(original_name)  # ← keep name
+            fill_index = fill_index.rename(original_name)  
 
         elif index_type in ("float", "int"):
             if len(idx) < 2 and step is None:
@@ -347,12 +336,11 @@ class HydroData:
 
             start_f = float(start)
             end_f = float(end)
-            # np.arange excludes the stop; add half-step to include when requested
             stop = end_f + (step * 0.5 if inclusive in ("right", "both") else 0.0)
             fill_vals = np.arange(start_f, stop, step, dtype=float)
             if index_type == "int":
-                fill_vals = np.rint(fill_vals).astype(int)  # safer rounding before cast
-            fill_index = pd.Index(fill_vals, name=original_name)  # ← keep name
+                fill_vals = np.rint(fill_vals).astype(int) 
+            fill_index = pd.Index(fill_vals, name=original_name)  
 
         else:
             raise ValueError("index_type must be one of: 'datetime', 'float', 'int', 'auto'.")
@@ -360,11 +348,9 @@ class HydroData:
         if len(fill_index) == 0:
             return
 
-        # --- build a NaN block for the fill range without touching columns yet ---
         fill_block = pd.DataFrame(index=fill_index)
         fill_block = fill_block.reindex(columns=self.data.columns)
 
-        # --- combine: keep existing rows (if any) over the NaN fill rows on duplicates ---
         left = self.data.loc[self.data.index < fill_index.min()]
         right = self.data.loc[self.data.index > fill_index.max()]
         mid_existing = self.data.loc[self.data.index.isin(fill_index)]
@@ -372,7 +358,6 @@ class HydroData:
         combined = pd.concat([left, mid_existing, fill_block, right], axis=0)
         combined = combined[~combined.index.duplicated(keep="first")].sort_index()
 
-        # ensure final index keeps original name (extra safety)
         combined.index.name = original_name
 
         self.data = combined
@@ -399,24 +384,18 @@ class HydroData:
         reindex : bool, default True
             If True, align `meta_valid` index to `self.data.index` before resetting columns.
         """
-        # Ensure meta_valid exists and is aligned
         if getattr(self, "meta_valid", None) is None:
             self.meta_valid = pd.DataFrame(index=self.data.index)
         elif reindex:
             self.meta_valid = self.meta_valid.reindex(self.data.index)
 
-        # Reset all or specific columns
         if data_name is None:
-            # Full reset: empty frame aligned to data index
             self.meta_valid = pd.DataFrame(index=self.data.index)
             return
 
-        # Normalize to a list of columns
         cols = [data_name] if isinstance(data_name, str) else list(data_name)
 
-        # Ensure columns exist and set their values
         for col in cols:
-            # create the column if missing
             if col not in self.meta_valid.columns:
                 self.meta_valid[col] = fill_value
             else:
@@ -456,7 +435,6 @@ class HydroData:
             return 0
 
         idx = self.data.index
-        # Warn if order may be ambiguous
         if idx.dtype == "object" or pd.api.types.is_string_dtype(idx):
             wn.warn(
                 "Index is object/string-typed; 'first'/'last' are based on current row order. "
@@ -465,13 +443,10 @@ class HydroData:
                 stacklevel=2,
             )
 
-        # Boolean mask: True for rows to keep
         keep_mask = ~idx.duplicated(keep=keep)
 
         before = len(self.data)
-        # Filter data
         self.data = self.data.loc[keep_mask]
-        # Keep meta_valid aligned (rebuild to avoid issues with duplicate handling)
         if hasattr(self, "meta_valid") and isinstance(self.meta_valid, pd.DataFrame):
             self.meta_valid = self.meta_valid.reindex(self.data.index)
         else:
@@ -481,7 +456,6 @@ class HydroData:
             self.data = self.data.sort_index()
             self.meta_valid = self.meta_valid.sort_index()
 
-        # Sync cached time/index
         self._update_time()
 
         dropped = before - len(self.data)
@@ -526,12 +500,11 @@ class HydroData:
                 method=method,
                 inplace=True,
             )
-            # keep meta_valid aligned to the current index (unchanged index, but safe)
+            
             if hasattr(self, "meta_valid") and isinstance(self.meta_valid, pd.DataFrame):
                 self.meta_valid = self.meta_valid.reindex(self.data.index)
             return None
 
-        # Not inplace: build the replaced DataFrame and return a new HydroData of same class
         new_df = self.data.replace(
             to_replace=to_replace,
             value=value,
@@ -591,23 +564,16 @@ class HydroData:
         Convert to datetime first if needed.
         """
         if save_prev_index:
-            # save the current index (on the *target* object)
             self.prev_index = self.data.index
 
-        # Prepare and validate when the new index should be considered time
         if key_is_time:
-            # If we’re switching the time axis to the index in-place and the index is already the time,
-            # keep the legacy behavior: refuse to overwrite silently.
             if inplace and self.timename == "index":
                 raise IndexError("A time series already resides in the DataFrame index.")
-            # If keys refer to string time values, do not allow (follow original behavior).
-            # We only check when keys is a single label.
             if isinstance(keys, (str, int)) and keys in self.data.columns:
                 sample = self.data[keys].iloc[:1]
                 if len(sample) and isinstance(sample.iloc[0], str):
                     raise ValueError('Time values of type "str" cannot be used as index. Convert to datetime first.')
 
-        # --- Compute the new DataFrame with the desired index (functional style) ---
         new_df = self.data.set_index(
             keys=keys,
             drop=drop,
@@ -616,20 +582,15 @@ class HydroData:
         )
 
         if inplace:
-            # Mutate this instance
             self.data = pd.DataFrame(new_df)
             self.columns = np.array(self.data.columns, dtype=object)
 
-            # Update time/metadata alignment
             if key_is_time:
                 self.timename = "index"
                 self.time = self.data.index
-            # realign meta_valid to new index and refresh cached time/index
             self._update_time()
             return None
 
-        # --- Return a fresh HydroData with updated index and preserved metadata ---
-        # Decide what the new 'timedata_column' should be for the returned object
         timedata_column = "index" if key_is_time else self.timename
 
         return self.__class__(
@@ -677,24 +638,22 @@ class HydroData:
             target_cols = [c for c in target_cols if c in self.data.columns]
 
         for col in target_cols:
-            # Use pandas to_numeric for safer conversion (non-numeric -> NaN)
             self.data[col] = pd.to_numeric(self.data[col], errors="coerce").astype(float)
 
-        # keep metadata/index alignment
         self._update_time()
 
     def to_datetime(
         self,
         time_column: str = "index",
         *,
-        fmt: Optional[str] = None,                  # was time_format
+        fmt: Optional[str] = None,                  
         unit: Optional[str] = None,
         errors: Literal["raise", "coerce", "ignore"] = "raise",
         utc: bool = False,
         dayfirst: bool = False,
         yearfirst: bool = False,
-        set_index: bool = True,                     # if converting a column, set it as index
-        drop: bool = True,                          # drop the column after making it the index
+        set_index: bool = True,                     
+        drop: bool = True,                          
         index_name: str = "Datetime",
     ) -> None:
         """
@@ -729,31 +688,26 @@ class HydroData:
             Modifies self.data in place and updates internal time/metadata.
         """
         if self.data.empty:
-            # nothing to do
             self._update_time()
             return
 
         if time_column == "index":
-            # Convert the current index
             idx_vals = self.data.index
-            # pandas handles many types directly; we only pass `unit` if index is numeric
             use_unit = unit if np.issubdtype(idx_vals.dtype, np.number) else None
             new_index = pd.to_datetime(
                 idx_vals,
                 errors=errors,
-                format=fmt,       # use explicit format if given
-                unit=use_unit,    # only meaningful for numeric epoch-like
+                format=fmt,       
+                unit=use_unit,    
                 utc=utc,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
-                exact=False if fmt is None else True,  # speed-up inference by allowing non-exact
+                exact=False if fmt is None else True,  
             )
             self.data.index = pd.DatetimeIndex(new_index, name=index_name)
-            # Sort chronologically
             self.data.sort_index(inplace=True)
 
         else:
-            # Convert a column
             if time_column not in self.data.columns:
                 raise KeyError(f"time_column '{time_column}' not found in data.")
             s = self.data[time_column]
@@ -772,15 +726,12 @@ class HydroData:
             self.data[time_column] = converted
 
             if set_index:
-                # Move to index and optionally drop the column
                 self.data.set_index(time_column, drop=drop, inplace=True)
                 self.data.index = pd.DatetimeIndex(self.data.index, name=index_name)
                 self.data.sort_index(inplace=True)
             else:
-                # Keep as a column; ensure DataFrame is ordered by that column for consistency
-                self.data.sort_values(by=time_column, inplace=True, kind="mergesort")  # stable sort
+                self.data.sort_values(by=time_column, inplace=True, kind="mergesort") 
 
-        # refresh cached time & metadata alignment
         self._update_time()
 
 
@@ -832,7 +783,6 @@ class HydroData:
                 copy=True,
             )
 
-        # 1) Select the time vector (Series or Index)
         if time_data == "index":
             tser = pd.Series(self.data.index, index=self.data.index)
         else:
@@ -840,7 +790,6 @@ class HydroData:
                 raise KeyError(f"time_data column '{time_data}' not found in DataFrame.")
             tser = pd.Series(self.data[time_data].values, index=self.data.index, name=time_data)
 
-        # 2) Ensure datetime (attempt coercion if needed)
         if not np.issubdtype(pd.Series(tser).dtype, np.datetime64):
             try:
                 tser = pd.to_datetime(tser, errors="raise")
@@ -852,10 +801,8 @@ class HydroData:
         if len(tser) == 0:
             rel = pd.Series(dtype="float64", index=self.data.index, name="time_rel")
         else:
-            # 3) Build relative timedeltas from the first timestamp
             t0 = tser.iloc[0]
-            deltas = (tser - t0)  # Timedelta series
-            # 4) Convert to numeric in requested unit
+            deltas = (tser - t0)  
             seconds = deltas.dt.total_seconds()
 
             unit_map = {
@@ -871,21 +818,15 @@ class HydroData:
             rel = (seconds / scale).round(decimals)
             rel.name = "time_rel"
 
-        # 5) Apply results
         if not inplace:
             new_df = self.data.copy()
             if save_abs:
-                # always add absolute time as a column for convenience
                 new_df["time_abs"] = tser.values
             if time_data == "index":
-                # replace index with relative numeric
                 new_df.index = pd.Index(rel.values, name="time_rel")
-                # keep chronological order of original (already aligned)
             else:
-                # store relative within the specified time column
                 new_df[time_data] = rel.values
 
-            # return new instance with updated time unit metadata
             return self.__class__(
                 data=new_df,
                 timedata_column=self.timename if time_data != "index" else "index",
@@ -896,21 +837,18 @@ class HydroData:
                 copy=True,
             )
 
-        # inplace=True
         if save_abs:
             self.data["time_abs"] = tser.values
             self.columns = np.array(self.data.columns, dtype=object)
 
         if time_data == "index":
             self.data.index = pd.Index(rel.values, name="time_rel")
-            # Keep timename as 'index' (still the time axis), but it's now relative numeric
             self.timename = "index"
             self.time_unit = str(unit)
             self._update_time()
             self.columns = np.array(self.data.columns, dtype=object)
             return None
 
-        # Column-based time
         self.data[time_data] = rel.values
         self.time_unit = str(unit)
         self._update_time()
@@ -922,13 +860,13 @@ class HydroData:
         filepath: str | os.PathLike = os.getcwd(),
         *,
         method: Literal["all", "filtered", "filled"] = "all",
-        sep: str = "auto",                     # 'auto' -> ',' for .csv else '\t'
+        sep: str = "auto",                    
         na_rep: str = "",
-        float_format: Optional[str] = None,    # e.g. "%.6f"
+        float_format: Optional[str] = None,    
         index: bool = True,
-        index_label: Optional[str] = None,     # defaults to DataFrame index name when None
+        index_label: Optional[str] = None,     
         include_units: bool = False,
-        default_ext: str = ".csv",             # used if filename has no extension
+        default_ext: str = ".csv",             
     ) -> Path:
         """
         Write a data export to disk (optionally compressed based on filename).
@@ -937,7 +875,6 @@ class HydroData:
         - Compression is inferred from the filename suffix (.gz, .bz2, .xz, .zip).
         - If `sep='auto'`, uses ',' for .csv (or .csv.gz, etc.) else '\\t'.
         """
-        # --- choose data frame to write ---
         if method == "all":
             df = self.data
         elif method == "filtered":
@@ -957,24 +894,20 @@ class HydroData:
         else:
             raise ValueError("`method` must be one of {'all','filtered','filled'}.")
 
-        # --- prepare output directory & path ---
         out_dir = Path(filepath).expanduser().resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # Ensure filename has an extension (before compression suffixes)
         p = Path(filename)
-        if not p.suffixes:  # no extension at all
+        if not p.suffixes:  
             p = p.with_suffix(default_ext)
 
-        # Detect compression from suffixes
-        suffixes = p.suffixes  # e.g. ['.csv', '.gz'] or ['.tsv']
+        suffixes = p.suffixes  
         compression_map = {".gz": "gzip", ".bz2": "bz2", ".xz": "xz", ".zip": "zip"}
         compression = None
         if suffixes:
             last = suffixes[-1].lower()
-            compression = compression_map.get(last)  # None if not compressed
+            compression = compression_map.get(last)  
 
-        # Auto separator based on (base) extension when sep='auto'
         base_ext = suffixes[0].lower() if suffixes else default_ext.lower()
         if sep == "auto":
             sep_to_use = "," if base_ext == ".csv" else "\t"
@@ -983,7 +916,6 @@ class HydroData:
 
         out_path = (out_dir / p)
 
-        # --- optional units row ---
         pre_rows: list[pd.DataFrame] = []
         if include_units:
             units_row = {}
@@ -1002,7 +934,6 @@ class HydroData:
 
         to_write = pd.concat([pd.concat(pre_rows).reindex(columns=df.columns)] + [df], axis=0) if pre_rows else df
 
-        # --- write (compression inferred from filename) ---
         to_write.to_csv(
             out_path,
             sep=sep_to_use,
@@ -1010,7 +941,7 @@ class HydroData:
             float_format=float_format,
             index=index,
             index_label=index_label,
-            compression=compression,   # None means no compression
+            compression=compression,  
         )
 
         return out_path
@@ -1056,7 +987,7 @@ class HydroData:
         else:
             cols = list(name)
 
-        # filter to existing columns
+        
         missing = [c for c in cols if c not in self.data.columns]
         if missing:
             import warnings
@@ -1077,7 +1008,7 @@ class HydroData:
 
         means = df[cols].mean(numeric_only=True)
 
-        # Return scalar if requested and only one column
+        
         if return_scalar and len(means) == 1:
             return float(means.iloc[0])
 
@@ -1113,7 +1044,6 @@ class HydroData:
             - `float` when a single column is requested with return_scalar=True.
             - None if no valid numeric columns were found.
         """
-        # determine target columns
         if name is None:
             cols = list(self.data.columns)
         elif isinstance(name, str):
@@ -1121,7 +1051,6 @@ class HydroData:
         else:
             cols = list(name)
 
-        # filter to existing columns
         missing = [c for c in cols if c not in self.data.columns]
         if missing:
             import warnings
@@ -1131,14 +1060,13 @@ class HydroData:
         if not cols:
             return None
 
-        # optionally mask out filtered values column-by-column
         if only_checked and self.meta_valid is not None and not self.meta_valid.empty:
             df = self.data.copy()
             for c in cols:
                 if c in self.meta_valid.columns:
                     mask = (self.meta_valid[c] == "filtered")
-                    df.loc[~mask, c] = df.loc[~mask, c]  # keep originals
-                    df.loc[mask, c] = np.nan             # drop filtered values from calc
+                    df.loc[~mask, c] = df.loc[~mask, c]  
+                    df.loc[mask, c] = np.nan             
         else:
             df = self.data
 
@@ -1191,10 +1119,10 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not found in data.")
 
-        # Ensure a highs DataFrame aligned to index
+        
         self.highs = pd.DataFrame(index=self.data.index, data={"highs": 0}, dtype=int)
 
-        # Slice or not
+        
         if arange is None:
             data_to_use = self.data[data_name].copy()
         else:
@@ -1213,7 +1141,6 @@ class HydroData:
             wn.warn("get_highs: selected data is empty; no highs tagged.", RuntimeWarning, stacklevel=2)
             return
 
-        # Determine threshold
         if method == "value":
             thresh = float(bound_value)
         elif method == "percentile":
@@ -1223,16 +1150,13 @@ class HydroData:
         else:
             raise ValueError("`method` must be 'value' or 'percentile'.")
 
-        # Tag highs
         idx_high = data_to_use.index[data_to_use > thresh]
         self.highs.loc[idx_high, "highs"] = 1
 
-        # Store threshold
         if not hasattr(self, "_last_highs_threshold") or not isinstance(self._last_highs_threshold, dict):
             self._last_highs_threshold = {}
         self._last_highs_threshold[data_name] = thresh
 
-        # Optional plot
         if plot:
             import matplotlib.pyplot as plt
 
@@ -1262,13 +1186,10 @@ class HydroData:
         """
         out: Dict[str, pd.DataFrame] = {}
 
-        # --- numeric ---
         num_desc = self.data.describe(include=[np.number])
-        # missing per col
         miss = self.data.isna().sum(numeric_only=False)
         miss = miss.reindex(num_desc.columns).fillna(0).astype(int)
         miss_pct = (miss / len(self.data) * 100.0).round(2)
-        # filtered per col (if meta_valid provided)
         if getattr(self, "meta_valid", None) is not None and not self.meta_valid.empty:
             filt = pd.Series(0, index=num_desc.columns, dtype=int)
             for c in num_desc.columns:
@@ -1279,14 +1200,12 @@ class HydroData:
             filt = pd.Series(0, index=num_desc.columns, dtype=int)
             filt_pct = pd.Series(0.0, index=num_desc.columns)
 
-        # append rows
         num_desc.loc["missing_count"] = miss
         num_desc.loc["missing_pct"] = miss_pct
         num_desc.loc["filtered_count"] = filt
         num_desc.loc["filtered_pct"] = filt_pct
         out["numeric"] = num_desc
 
-        # --- non-numeric ---
         non_num_cols = self.data.columns.difference(num_desc.columns)
         if len(non_num_cols) > 0:
             nn = pd.DataFrame(index=non_num_cols, columns=["count", "missing_count", "missing_pct"], dtype=float)
@@ -1295,11 +1214,9 @@ class HydroData:
             nn["missing_pct"] = (nn["missing_count"] / len(self.data) * 100.0).round(2)
             out["non_numeric"] = nn
 
-        # --- index summary ---
         if len(self.data.index) > 0:
             start = self.data.index.min()
             end = self.data.index.max()
-            # try to infer frequency for datetime indexes
             try:
                 if isinstance(self.data.index, pd.DatetimeIndex) and len(self.data.index) >= 3:
                     freq = pd.to_timedelta(int(np.median(np.diff(self.data.index.view("int64")))), unit="ns")
@@ -1382,21 +1299,17 @@ class HydroData:
         is_dt = isinstance(idx, pd.DatetimeIndex)
 
         def _run_lengths(mask: pd.Series) -> list[int]:
-            # compute lengths of True-runs
             if mask.empty:
                 return []
-            # changes where mask differs from previous
             change = mask.ne(mask.shift(fill_value=False))
             groups = change.cumsum()
-            runs = mask.groupby(groups).sum()  # sums across True run → length
-            # Filter only True runs
+            runs = mask.groupby(groups).sum()  
             return [int(v) for v, m in zip(runs.values, mask.groupby(groups).first().values) if m]
 
         rows = []
         n = len(self.data)
 
         for c in self.data.columns:
-            # missing mask
             miss = self.data[c].isna()
             if treat_filtered_as_missing and getattr(self, "meta_valid", None) is not None and c in self.meta_valid.columns:
                 miss = miss | (self.meta_valid[c] == "filtered")
@@ -1405,7 +1318,6 @@ class HydroData:
             total_missing = int(miss.sum())
 
             if is_dt and len(idx) >= 2:
-                # approximate duration using median step
                 try:
                     step_ns = int(np.median(np.diff(idx.view("int64"))))
                     step = pd.to_timedelta(step_ns, unit="ns") if step_ns > 0 else pd.NaT
@@ -1418,7 +1330,6 @@ class HydroData:
                     max_gap = max(lengths) * step if lengths else pd.to_timedelta(0)
                     mean_gap = (np.mean(lengths) * step) if lengths else pd.to_timedelta(0)
             else:
-                # non-datetime: lengths in samples
                 max_gap = int(max(lengths)) if lengths else 0
                 mean_gap = float(np.mean(lengths)) if lengths else 0.0
 
@@ -1456,7 +1367,6 @@ class HydroData:
             plt.show()
             return
 
-        # Build missing mask
         miss = self.data.isna()
         if treat_filtered_as_missing and getattr(self, "meta_valid", None) is not None and not self.meta_valid.empty:
             for c in self.data.columns:
@@ -1468,8 +1378,7 @@ class HydroData:
             order = mat.sum(axis=0).sort_values(ascending=False).index
             mat = mat[order]
 
-        # Discrete colormap: 0=present, 1=missing
-        cmap = ListedColormap(["#70c66d", "#ed494c"])  # green=present, red=missing
+        cmap = ListedColormap(["#70c66d", "#ed494c"])  
         bounds = [-0.5, 0.5, 1.5]
         norm = BoundaryNorm(bounds, cmap.N)
 
@@ -1481,7 +1390,6 @@ class HydroData:
         ax.set_xlabel(self.data.index.name or "Index")
         ax.set_title("Missing data matrix")
 
-        # discrete colorbar
         cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, ticks=[0, 1])
         cbar.ax.set_yticklabels(["present", "missing"])
 
@@ -1516,7 +1424,6 @@ class HydroData:
         import matplotlib.pyplot as plt
 
         df = self.data.copy()
-        # choose columns
         if columns is None:
             cols = list(df.select_dtypes(include=[np.number]).columns)
         elif isinstance(columns, str):
@@ -1524,7 +1431,6 @@ class HydroData:
         else:
             cols = list(columns)
 
-        # apply filtered mask per column if requested
         if treat_filtered_as_missing and getattr(self, "meta_valid", None) is not None:
             for c in cols:
                 if c in self.meta_valid.columns:
@@ -1546,7 +1452,6 @@ class HydroData:
             ax.hist(series.values, bins=bins, density=density, log=log)
             ax.set_title(str(c))
             ax.set_ylabel("Density" if density else "Count")
-        # hide any extra axes
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
 
@@ -1667,7 +1572,6 @@ class HydroData:
             ax.set_xticklabels(cols, rotation=45, ha="right")
             ax.set_yticklabels(cols)
 
-            # optional annotation
             if annotate:
                 for i in range(len(cols)):
                     for j in range(len(cols)):
@@ -1709,13 +1613,11 @@ class HydroData:
         - Ensures that `self.meta_valid` is aligned with the current index of `self.data`.
         - Useful to mark data as reliable for further processing (e.g., filling, filtering).
         """
-        # normalize input
         if isinstance(column_names, str):
             cols = [column_names]
         else:
             cols = list(column_names)
 
-        # reindex meta_valid to current data index
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
@@ -1765,17 +1667,14 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not found in data.")
 
-        # Reset column if requested
         if clear:
             self._reset_meta_valid(data_name)
 
-        # Ensure meta_valid is aligned to index
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
             self.meta_valid = self.meta_valid.reindex(self.data.index, fill_value="!!")
 
-        # Ensure the column exists in meta_valid
         if data_name not in self.meta_valid.columns:
             self.add_to_meta_valid([data_name])
 
@@ -1857,11 +1756,9 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not found in data.")
 
-        # Baseline counts for reporting
         series0 = self.data[data_name]
         len_orig = series0.count()
 
-        # Work on a temp object for safe alignment (like your original pattern)
         df_temp = self.__class__(
             self.data.copy(),
             timedata_column=self.timename,
@@ -1870,16 +1767,11 @@ class HydroData:
             time_unit=self.time_unit,
         )
 
-        # Build the per-point difference mask on valid numeric data
         s = pd.to_numeric(self.data[data_name], errors="coerce")
-        # diff is NaN at the first point and where neighbors NaN; these will not be tagged
         diff = s.diff().abs()
-        # True = keep (diff >= bound), False = candidate for filtering
         bound_mask = diff >= bound
-        # Reindex to temp index to keep alignment 1:1
         bound_mask = bound_mask.reindex(df_temp.data.index).fillna(True)
 
-        # Apply range restriction
         if arange is None:
             mask_keep = bound_mask
         else:
@@ -1888,7 +1780,6 @@ class HydroData:
             start, end = arange
             try:
                 idx = self.data.index
-                # Outside the range -> always keep
                 range_keep = (idx < start) | (idx > end)
             except TypeError as e:
                 raise TypeError(
@@ -1896,33 +1787,25 @@ class HydroData:
                     f"{type(self.data.index[0])} with arange {arange}. "
                     "Adjust `arange` to match the index type."
                 ) from e
-            # Inside the range, rely on bound_mask; outside the range, keep
             mask_keep = bound_mask | range_keep
 
-        # Update meta_valid alignment & optional reset
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
-            # align and keep any existing columns
             self.meta_valid = self.meta_valid.reindex(self.data.index)
 
         if data_name not in self.meta_valid.columns:
             self.add_to_meta_valid([data_name])
 
-        # Tag: where mask_keep is False, mark as 'filtered', else 'original'
-        # (use .loc to avoid chained assignment)
         self.meta_valid.loc[~mask_keep, data_name] = "filtered"
         self.meta_valid.loc[mask_keep, data_name] = self.meta_valid.loc[mask_keep, data_name].fillna("original")
 
-        # If final replacement requested: drop those points (i.e., set NaN at tagged indices)
-        # Achieve this by assigning a Series that excludes filtered indices (alignment leaves NaN)
         if final:
             kept_series = df_temp.data[data_name].drop(df_temp.data.index[~mask_keep])
-            df_temp.data.loc[:, data_name] = kept_series  # align-on-assign → NaN at dropped indices
+            df_temp.data.loc[:, data_name] = kept_series  
 
-        # Reporting / logging
         len_new = (df_temp.data[data_name].count() if final else series0[mask_keep].count())
         removed = _print_removed_output(len_orig, len_new, "double value tagging")
 
@@ -1931,24 +1814,20 @@ class HydroData:
         elif log_file is not None:
             raise TypeError("Provide the location of the log file as a string, or omit the argument.")
 
-        # Optional plot hook
         if plot:
             try:
                 self.plot_analysed(data_name)
             except Exception:
                 wn.warn("plot_analysed failed; continuing.", RuntimeWarning, stacklevel=2)
 
-        # Return / apply
         if final:
             if inplace:
-                # Write the NaN-inserted series back to self and sync
                 self.data.loc[:, data_name] = df_temp.data[data_name]
                 self._update_time()
                 return None
             else:
                 return df_temp
 
-        # Only tagging done
         return None
     
     
@@ -1993,11 +1872,9 @@ class HydroData:
         if method not in ("below", "above"):
             raise ValueError("`method` must be one of {'below','above'}.")
 
-        # Optional reset of existing tags on this column
         if clear:
             self._reset_meta_valid(data_name)
 
-        # Ensure meta_valid exists and is aligned, and column present
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
             self.meta_valid = pd.DataFrame(index=self.data.index)
         else:
@@ -2006,7 +1883,6 @@ class HydroData:
         if data_name not in self.meta_valid.columns:
             self.add_to_meta_valid([data_name])
 
-        # Select working slice
         if arange is None:
             idx_slice = self.data.index
             s = pd.to_numeric(self.data[data_name], errors="coerce")
@@ -2030,7 +1906,6 @@ class HydroData:
             wn.warn("tag_extremes: selected data is empty; no tagging performed.", RuntimeWarning, stacklevel=2)
             return
 
-        # Build tagging mask (strict inequality)
         if method == "below":
             mask_tagging = s < limit
         else:  # method == "above"
@@ -2039,17 +1914,13 @@ class HydroData:
         len_orig = len(s)
         len_new = len_orig - int(mask_tagging.sum())
 
-        # Combine with any existing 'filtered' tags within the slice
         existing_filtered = (meta_col == "filtered")
         combined = existing_filtered | mask_tagging
 
-        # Write back tags for the slice
         self.meta_valid.loc[idx_slice, data_name] = np.where(combined, "filtered", "original")
 
-        # Report
         _print_removed_output(len_orig, len_new, f"tagging of extremes ({method})")
 
-        # Optional plot
         if plot:
             try:
                 self.plot_analysed(data_name)
@@ -2064,9 +1935,9 @@ class HydroData:
         xdata: str,
         ydata: str,
         time_unit: Optional[Literal["sec", "min", "hr", "d"]] = None,
-        slope_range: None = None,   # kept for compatibility
+        slope_range: None = None,   
         *,
-        window: int = 1,            # NEW: slope over `window` steps
+        window: int = 1,            
     ) -> pd.Series:
         """
         Calculate point-to-point (or windowed) slopes dy/dx.
@@ -2093,7 +1964,6 @@ class HydroData:
         if ydata not in self.data.columns:
             raise KeyError(f"Column '{ydata}' not found in data.")
 
-        # x
         if xdata == "index":
             x = pd.Series(self.data.index, index=self.data.index, name="__x__")
         else:
@@ -2101,10 +1971,8 @@ class HydroData:
                 raise KeyError(f"Column '{xdata}' not found in data.")
             x = pd.Series(self.data[xdata].values, index=self.data.index, name=xdata)
 
-        # y
         y = pd.to_numeric(self.data[ydata], errors="coerce")
 
-        # datetime or numeric?
         is_datetime = pd.api.types.is_datetime64_any_dtype(x) or \
                     (xdata == "index" and isinstance(self.data.index, pd.DatetimeIndex))
 
@@ -2153,7 +2021,6 @@ class HydroData:
         if window < 1:
             raise ValueError("`window` must be >= 1.")
 
-        # choose slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2171,7 +2038,6 @@ class HydroData:
 
         len_orig = work_df[data_name].count()
 
-        # reset / align meta_valid
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -2181,7 +2047,6 @@ class HydroData:
         if data_name not in self.meta_valid.columns:
             self.add_to_meta_valid([data_name])
 
-        # work object
         df_temp = self.__class__(
             data=work_df.copy(),
             timedata_column=self.timename,
@@ -2198,7 +2063,6 @@ class HydroData:
             to_drop = big[big].index
             if len(to_drop) == 0 or it >= max_iters:
                 break
-            # set those to NaN then dropna to avoid polluting next diff
             df_temp.data.loc[to_drop, data_name] = np.nan
             df_temp.data[data_name] = df_temp.data[data_name].dropna()
             it += 1
@@ -2210,7 +2074,6 @@ class HydroData:
         elif log_file is not None:
             raise TypeError("`log_file` must be a string path or None.")
 
-        # mark filtered indices in meta_valid (within the slice)
         removed_idx = work_df.index.difference(df_temp.data.index)
         self.meta_valid.loc[removed_idx, data_name] = "filtered"
 
@@ -2249,10 +2112,10 @@ class HydroData:
         window: int = 10,
         data_name: Optional[Union[str, Sequence[str]]] = None,
         *,
-        kind: Literal["mean", "median", "ema"] = "mean",   # now includes 'ema'
-        ema_alpha: Optional[float] = None,                 # NEW: if given, overrides span
-        ema_adjust: bool = True,                           # NEW: passthrough to pd.Series.ewm
-        ema_min_periods: Optional[int] = None,             # NEW: passthrough to pd.Series.ewm
+        kind: Literal["mean", "median", "ema"] = "mean",   
+        ema_alpha: Optional[float] = None,                
+        ema_adjust: bool = True,                           
+        ema_min_periods: Optional[int] = None,            
         inplace: bool = False,
         plot: bool = True,
     ):
@@ -2281,7 +2144,6 @@ class HydroData:
         if kind not in ("mean", "median", "ema"):
             raise ValueError("`kind` must be 'mean', 'median', or 'ema'.")
 
-        # choose range
         if arange is None:
             work_df = self.data.copy()
             start = work_df.index[0] if len(work_df) else None
@@ -2298,7 +2160,6 @@ class HydroData:
                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit
             )
 
-        # select columns
         if data_name is None:
             cols = list(work_df.select_dtypes(include=[np.number]).columns)
             if not cols:
@@ -2312,7 +2173,6 @@ class HydroData:
             if not cols:
                 raise KeyError("None of the requested columns were found in the data.")
 
-        # averaged slice
         averaged_slice = work_df.copy()
         for c in cols:
             series = pd.to_numeric(averaged_slice[c], errors="coerce").interpolate()
@@ -2321,8 +2181,7 @@ class HydroData:
                 averaged_slice[c] = series.rolling(window=window, center=True).mean()
             elif kind == "median":
                 averaged_slice[c] = series.rolling(window=window, center=True).median()
-            else:  # EMA
-                # If alpha not set, interpret `window` as span (pandas convention)
+            else:  
                 if ema_alpha is not None:
                     averaged_slice[c] = series.ewm(alpha=ema_alpha,
                                                 adjust=ema_adjust,
@@ -2370,8 +2229,8 @@ class HydroData:
         cutoff_frac: float,
         arange: Optional[Union[Sequence[object], Tuple[object, object]]] = None,
         *,
-        kind: Literal["mean", "median", "ema"] = "mean",     # EMA supported
-        ema_alpha: Optional[float] = None,                   # passthrough to SMA when kind='ema'
+        kind: Literal["mean", "median", "ema"] = "mean",     
+        ema_alpha: Optional[float] = None,                   
         ema_adjust: bool = True,
         ema_min_periods: Optional[int] = None,
         absolute_cutoff: Optional[float] = None,
@@ -2400,7 +2259,6 @@ class HydroData:
         if kind not in ("mean", "median", "ema"):
             raise ValueError("`kind` must be 'mean', 'median', or 'ema'.")
 
-        # choose range
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2416,7 +2274,6 @@ class HydroData:
 
         len_orig = work_df[data_name].count()
 
-        # reset / align meta_valid
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -2426,7 +2283,6 @@ class HydroData:
         if data_name not in self.meta_valid.columns:
             self.add_to_meta_valid([data_name])
 
-        # compute smoother on the selected range
         smooth_hd = self.calc_moving_average(
             arange=arange,
             window=window,
@@ -2441,14 +2297,12 @@ class HydroData:
         smooth_series = pd.to_numeric(smooth_hd.data.loc[idx_slice, data_name], errors="coerce")
         orig_series = pd.to_numeric(work_df[data_name], errors="coerce")
 
-        # relative dev where smoother is valid
         valid_sm = smooth_series.notna() & (smooth_series != 0)
         denom = smooth_series.where(valid_sm, np.nan)
         rel_dev = (orig_series - smooth_series).abs() / denom
         rel_mask = rel_dev >= cutoff_frac
         rel_mask = rel_mask & rel_dev.notna()
 
-        # absolute fallback where smoother invalid
         if absolute_cutoff is not None:
             abs_mask = (~valid_sm) & (orig_series.abs() >= absolute_cutoff)
         else:
@@ -2457,7 +2311,6 @@ class HydroData:
         to_filter = (rel_mask | abs_mask).fillna(False)
         idx_remove = to_filter[to_filter].index
 
-        # temp object for counting
         df_temp = self.__class__(
             work_df.copy(), timedata_column=self.timename,
             data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit
@@ -2472,17 +2325,14 @@ class HydroData:
         elif log_file is not None:
             raise TypeError("`log_file` must be a string path or None.")
 
-        # tag in meta_valid
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # optional plot
         if plot and hasattr(self, "plot_analysed"):
             try:
                 self.plot_analysed(data_name)
             except Exception:
                 wn.warn("plot_analysed failed; continuing.", RuntimeWarning, stacklevel=2)
 
-        # apply or return
         if final:
             if inplace:
                 s_new = self.data[data_name].copy()
@@ -2543,7 +2393,6 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not found in data.")
 
-        # Select working slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2565,7 +2414,6 @@ class HydroData:
         s = pd.to_numeric(work_df[data_name], errors="coerce")
         len_orig = s.count()
 
-        # Compute z-scores
         if robust:
             med = s.median()
             mad = (s - med).abs().median()
@@ -2580,7 +2428,6 @@ class HydroData:
         to_filter = to_filter & z.notna()
         idx_remove = to_filter[to_filter].index
 
-        # Reset/align meta_valid and tag
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -2592,7 +2439,6 @@ class HydroData:
 
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # Build temp for counting
         df_temp = self.__class__(work_df.copy(), timedata_column=self.timename,
                                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit)
         df_temp.data.loc[idx_remove, data_name] = np.nan
@@ -2691,7 +2537,6 @@ class HydroData:
         if period < 2:
             raise ValueError("`period` must be >= 2.")
 
-        # slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2713,12 +2558,10 @@ class HydroData:
         s = pd.to_numeric(work_df[data_name], errors="coerce")
         len_orig = s.count()
 
-        # STL decomposition (drop NaNs; then reindex)
         s_ = s.dropna()
         if s_.empty:
             return None
 
-        # STL expects regular spacing; if gaps exist, it still runs but results may degrade.
         res = STL(
             s_,
             period=period,
@@ -2727,12 +2570,11 @@ class HydroData:
             seasonal_deg=seasonal_deg,
             trend_deg=trend_deg,
             low_pass_deg=low_pass_deg,
-            robust=True,  # robust fitting inside STL
+            robust=True,  
         ).fit()
 
-        resid = res.resid.reindex(s.index)  # align back to original slice index
+        resid = res.resid.reindex(s.index)  
 
-        # Z-score on residuals
         if robust:
             med = resid.median()
             mad = (resid - med).abs().median()
@@ -2747,7 +2589,6 @@ class HydroData:
         to_filter = to_filter & z.notna()
         idx_remove = to_filter[to_filter].index
 
-        # meta_valid
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -2758,7 +2599,6 @@ class HydroData:
             self.add_to_meta_valid([data_name])
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # count via temp
         df_temp = self.__class__(work_df.copy(), timedata_column=self.timename,
                                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit)
         df_temp.data.loc[idx_remove, data_name] = np.nan
@@ -2830,7 +2670,7 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not found in data.")
 
-        # Slice
+        
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2855,14 +2695,12 @@ class HydroData:
         q1, q3 = s.quantile(0.25), s.quantile(0.75)
         iqr = q3 - q1
         if not np.isfinite(iqr) or iqr == 0:
-            # fall back: nothing to tag (or everything constant)
             idx_remove = s.index[s.notna() & False]
         else:
             low = q1 - k * iqr
             high = q3 + k * iqr
             idx_remove = s.index[(s < low) | (s > high)]
 
-        # meta_valid update
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -2873,7 +2711,6 @@ class HydroData:
             self.add_to_meta_valid([data_name])
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # count via temp
         df_temp = self.__class__(work_df.copy(), timedata_column=self.timename,
                                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit)
         df_temp.data.loc[idx_remove, data_name] = np.nan
@@ -2955,7 +2792,6 @@ class HydroData:
         if not (0 < q_low < q_high < 1):
             raise ValueError("q_low and q_high must satisfy 0 < q_low < q_high < 1.")
 
-        # slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -2977,7 +2813,6 @@ class HydroData:
         s = pd.to_numeric(work_df[data_name], errors="coerce")
         len_orig = s.count()
 
-        # rolling quantiles & IQR
         q1 = s.rolling(window, center=True).quantile(q_low)
         q3 = s.rolling(window, center=True).quantile(q_high)
         iqr = q3 - q1
@@ -2986,11 +2821,9 @@ class HydroData:
         high = q3 + k * iqr
 
         to_filter = (s < low) | (s > high)
-        # require valid band
         to_filter = to_filter & q1.notna() & q3.notna() & iqr.notna()
         idx_remove = to_filter[to_filter].index
 
-        # meta_valid
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -3002,7 +2835,6 @@ class HydroData:
 
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # count via temp
         df_temp = self.__class__(work_df.copy(), timedata_column=self.timename,
                                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit)
         df_temp.data.loc[idx_remove, data_name] = np.nan
@@ -3077,7 +2909,6 @@ class HydroData:
         if window < 3:
             raise ValueError("`window` should be >= 3 for Hampel filtering.")
 
-        # Slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -3098,7 +2929,6 @@ class HydroData:
 
         med = s.rolling(window=window, center=True).median()
         mad = (s - med).abs().rolling(window=window, center=True).median()
-        # scaled MAD ~ robust sigma
         robust_sigma = 1.4826 * mad
         thresh = k * robust_sigma
 
@@ -3106,7 +2936,6 @@ class HydroData:
         to_filter = to_filter & med.notna() & robust_sigma.notna()
         idx_remove = to_filter[to_filter].index
 
-        # meta_valid update
         if clear:
             self._reset_meta_valid(data_name)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -3117,7 +2946,6 @@ class HydroData:
             self.add_to_meta_valid([data_name])
         self.meta_valid.loc[idx_remove, data_name] = "filtered"
 
-        # count via temp
         df_temp = self.__class__(work_df.copy(), timedata_column=self.timename,
                                 data_type=self.data_type, experiment_tag=self.tag, time_unit=self.time_unit)
         df_temp.data.loc[idx_remove, data_name] = np.nan
@@ -3209,7 +3037,6 @@ class HydroData:
         if missing:
             raise KeyError(f"Columns not found: {missing}")
 
-        # Slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -3228,14 +3055,12 @@ class HydroData:
         if work_df.empty:
             return None
 
-        # Build X on rows with all selected cols present
         X = work_df[columns].apply(pd.to_numeric, errors="coerce")
         X_fit = X.dropna(axis=0, how="any")
         if X_fit.empty:
             wn.warn("No complete rows for the selected columns in the chosen range.", RuntimeWarning, stacklevel=2)
             return None
 
-        # Fit IF
         clf = IsolationForest(
             n_estimators=n_estimators,
             contamination=contamination,
@@ -3243,14 +3068,12 @@ class HydroData:
             random_state=random_state,
             n_jobs=-1,
         )
-        y_pred = clf.fit_predict(X_fit)  # -1 outlier, 1 inlier
+        y_pred = clf.fit_predict(X_fit)  
         out_idx = X_fit.index[y_pred == -1]
 
-        # Count: base on number of complete rows considered
         len_orig = len(X_fit)
         len_new = len_orig - len(out_idx)
 
-        # meta_valid alignment & tagging (tag all selected columns at outlier rows)
         if clear:
             self._reset_meta_valid(columns)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -3270,13 +3093,11 @@ class HydroData:
             raise TypeError("`log_file` must be a string path or None.")
 
         if plot and hasattr(self, "plot_analysed") and len(columns) == 1:
-            # For multivariate, skip default plot; for single column you can visualize.
             try:
                 self.plot_analysed(columns[0])
             except Exception:
                 wn.warn("plot_analysed failed; continuing.", RuntimeWarning, stacklevel=2)
 
-        # Apply NaNs if requested
         if final:
             if inplace:
                 for col in columns:
@@ -3309,8 +3130,8 @@ class HydroData:
         standardize: bool = True,
         retain_var: float = 0.95,
         method: Literal["percentile", "zscore"] = "percentile",
-        q: float = 0.995,                # for percentile method
-        k: float = 3.0,                  # for zscore method
+        q: float = 0.995,                
+        k: float = 3.0,                 
         arange: Optional[Union[Sequence[object], Tuple[object, object]]] = None,
         clear: bool = False,
         inplace: bool = False,
@@ -3362,7 +3183,6 @@ class HydroData:
         if method not in ("percentile", "zscore"):
             raise ValueError("`method` must be 'percentile' or 'zscore'.")
 
-        # Slice
         if arange is None:
             work_df = self.data.copy()
             idx_slice = work_df.index
@@ -3387,7 +3207,6 @@ class HydroData:
             wn.warn("No complete rows for the selected columns in the chosen range.", RuntimeWarning, stacklevel=2)
             return None
 
-        # Standardize (optional)
         if standardize:
             scaler = StandardScaler()
             Z = scaler.fit_transform(X_fit.values)
@@ -3395,7 +3214,6 @@ class HydroData:
             scaler = None
             Z = X_fit.values
 
-        # Choose n_components to reach retain_var
         pca_full = PCA().fit(Z)
         cumsum = np.cumsum(pca_full.explained_variance_ratio_)
         n_components = int(np.searchsorted(cumsum, retain_var) + 1)
@@ -3404,11 +3222,9 @@ class HydroData:
         pca = PCA(n_components=n_components).fit(Z)
         Z_proj = pca.transform(Z)
         Z_recon = pca.inverse_transform(Z_proj)
-        # Reconstruction error (mean squared error per row)
         err = ((Z - Z_recon) ** 2).mean(axis=1)
         err_series = pd.Series(err, index=X_fit.index, name="pca_recon_error")
 
-        # Threshold
         if method == "percentile":
             thr = np.nanquantile(err_series, q)
             out_idx = err_series.index[err_series >= thr]
@@ -3422,11 +3238,9 @@ class HydroData:
                 out_idx = err_series.index[(z >= k)]
             label = f"PCA recon (retain={retain_var:.2f}, z≥{k})"
 
-        # Count using complete rows only
         len_orig = len(X_fit)
         len_new = len_orig - len(out_idx)
 
-        # meta_valid alignment & tagging (mark all selected columns at outlier rows)
         if clear:
             self._reset_meta_valid(columns)
         if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
@@ -3445,7 +3259,6 @@ class HydroData:
         elif log_file is not None:
             raise TypeError("`log_file` must be a string path or None.")
 
-        # Optional simple plot: sorted reconstruction error (only if asked)
         if plot:
             try:
                 import matplotlib.pyplot as plt
@@ -3458,7 +3271,6 @@ class HydroData:
             except Exception:
                 wn.warn("Plot failed; continuing.", RuntimeWarning, stacklevel=2)
 
-        # Apply NaNs if requested
         if final:
             if inplace:
                 for col in columns:
@@ -3519,12 +3331,10 @@ class HydroData:
         (mean, std) : tuple of float
             Mean ratio and standard deviation of (data_1 / data_2) within the range.
         """
-        # Validate existence of columns
         for col in (data_1, data_2):
             if col not in self.data.columns:
                 raise KeyError(f"Column '{col}' not found in data.")
 
-        # Validate slicing
         try:
             _ = self.data.loc[arange[0]:arange[1]]
         except TypeError:
@@ -3539,19 +3349,16 @@ class HydroData:
                 "Index out of bounds. Ensure that 'arange' values fall within the data index range."
             )
 
-        # Extract relevant slice
         s1 = self.data.loc[arange[0]:arange[1], data_1]
         s2 = self.data.loc[arange[0]:arange[1], data_2]
 
         if only_checked:
-            # keep only rows where both are 'original'
             mask1 = self.meta_valid[data_1].loc[arange[0]:arange[1]] == "original"
             mask2 = self.meta_valid[data_2].loc[arange[0]:arange[1]] == "original"
             mask = mask1 & mask2
             s1 = s1[mask]
             s2 = s2[mask]
 
-        # Calculate ratios safely
         ratios = (s1 / s2).replace([np.inf, -np.inf], np.nan).dropna()
 
         if ratios.empty:
@@ -3596,7 +3403,6 @@ class HydroData:
             The average ratio and standard deviation for the best window.
             Returns (nan, nan) if no valid window produced finite results.
         """
-        # Validate columns
         for col in (data_1, data_2):
             if col not in self.data.columns:
                 raise KeyError(f"Column '{col}' not found in data.")
@@ -3614,20 +3420,15 @@ class HydroData:
         windows: list[Tuple[object, object]] = []
 
         if isinstance(idx, pd.DatetimeIndex):
-            # Window in days
             delta = pd.Timedelta(days=arange)
             cur_start = start_full
-            # build non-overlapping [start, end] until we exceed the index end
             while cur_start < end_full:
                 cur_end = cur_start + delta
-                # last window must still have positive length
                 if cur_end > end_full:
                     break
                 windows.append((cur_start, cur_end))
                 cur_start = cur_end
         else:
-            # Numeric (Float/Int) index: use same-unit window
-            # step windows from first to last by `arange`
             cur_start_val = float(start_full)
             last_val = float(end_full)
             while cur_start_val < last_val:
@@ -3649,13 +3450,11 @@ class HydroData:
             try:
                 mean, std = self.calc_ratio(data_1, data_2, w, only_checked=only_checked)
             except Exception:
-                # If a window fails (e.g., slicing or too few points), skip it
                 continue
 
             if not (np.isfinite(mean) and np.isfinite(std)):
                 continue
             if mean == 0:
-                # avoid division by zero; this window is not useful
                 continue
 
             rel_std = float(std) / abs(float(mean))
@@ -3704,12 +3503,10 @@ class HydroData:
         -------
         (slope, intercept, r_sq) or (fig, ax) if plot=True
         """
-        # Validate columns
         for col in (data_1, data_2):
             if col not in self.data.columns:
                 raise KeyError(f"Column '{col}' not found in data.")
 
-        # Safe slicing
         try:
             df_slice = self.data.sort_index().loc[arange[0]:arange[1]].copy()
         except TypeError as e:
@@ -3723,7 +3520,6 @@ class HydroData:
             wn.warn("Selected range is empty; returning NaNs.", RuntimeWarning, stacklevel=2)
             return (np.nan, np.nan, np.nan) if not plot else (None, None)
 
-        # Apply only_checked mask if requested
         if only_checked:
             if getattr(self, "meta_valid", None) is None or self.meta_valid.empty:
                 wn.warn("meta_valid is empty; only_checked=True has no effect.", RuntimeWarning, stacklevel=2)
@@ -3734,7 +3530,6 @@ class HydroData:
                 mask = m1 & m2
                 df_slice = df_slice.loc[mask]
 
-        # Extract numeric series and drop NaNs
         X_raw = pd.to_numeric(df_slice[data_1], errors="coerce")
         Y_raw = pd.to_numeric(df_slice[data_2], errors="coerce")
         valid = X_raw.notna() & Y_raw.notna()
@@ -3745,14 +3540,13 @@ class HydroData:
             wn.warn("Not enough valid points to fit a regression; returning NaNs.", RuntimeWarning, stacklevel=2)
             return (np.nan, np.nan, np.nan) if not plot else (None, None)
 
-        # Fit OLS (with/without intercept)
         try:
             import statsmodels.api as sm
         except Exception as e:
             raise ImportError("statsmodels is required for get_correlation.") from e
 
         if zero_intercept:
-            exog = X.values  # 1D is ok; sm.OLS will accept if shape is (n,) but better reshape
+            exog = X.values  
             exog = exog.reshape(-1, 1)
             model = sm.OLS(Y.values, exog)
             results = model.fit()
@@ -3760,10 +3554,9 @@ class HydroData:
             intercept = 0.0
             r_sq = float(results.rsquared)
         else:
-            exog = sm.add_constant(X.values)  # shape (n,2): [const, X]
+            exog = sm.add_constant(X.values)  
             model = sm.OLS(Y.values, exog)
             results = model.fit()
-            # params: [const, slope]
             intercept = float(results.params[0])
             slope = float(results.params[1])
             r_sq = float(results.rsquared)
@@ -3771,10 +3564,8 @@ class HydroData:
         if not plot:
             return (slope, intercept, r_sq)
 
-        # Plot scatter + fitted line + 95% prediction interval using get_prediction
         import matplotlib.pyplot as plt
 
-        # Build a sorted X grid over the observed X range
         x_sorted = np.sort(X.values)
         if zero_intercept:
             exog_pred = x_sorted.reshape(-1, 1)
@@ -3782,25 +3573,22 @@ class HydroData:
             exog_pred = sm.add_constant(x_sorted)
 
         pred = results.get_prediction(exog_pred)
-        pred_summary = pred.summary_frame(alpha=0.05)  # contains obs_ci_lower/upper, mean_ci_*, etc.
+        pred_summary = pred.summary_frame(alpha=0.05)  
 
         y_fit = pred_summary["mean"].values
-        y_lo = pred_summary["obs_ci_lower"].values  # prediction interval (observations)
+        y_lo = pred_summary["obs_ci_lower"].values  
         y_hi = pred_summary["obs_ci_upper"].values
 
         fig, ax = plt.subplots(figsize=(6, 6))
-        # Scatter
         ax.plot(X.values, Y.values, "o", markerfacecolor="none", markeredgewidth=1, markeredgecolor="b",
                 markersize=4, label="Data")
-        # Fit
         ax.plot(x_sorted, y_fit, "k", label="Linear fit")
-        # Prediction interval
         ax.fill_between(x_sorted.astype(float), y_lo, y_hi, alpha=0.2, label="Prediction interval (95%)")
 
         ax.legend(fontsize=12)
         ax.tick_params(labelsize=12)
-        ax.set_xlabel(data_1, size=14)     # X label
-        ax.set_ylabel(data_2, size=14)     # Y label
+        ax.set_xlabel(data_1, size=14)    
+        ax.set_ylabel(data_2, size=14)     
         ax.set_title(f"slope={slope:.4g}  intercept={intercept:.4g}  R²={r_sq:.4f}", fontsize=12)
         fig.tight_layout()
 
@@ -3818,7 +3606,7 @@ class HydroData:
         *,
         quantile: float = 0.9,
         plot: bool = False,
-        plot_method: str = "quantile",  # "quantile" or "stdev"
+        plot_method: str = "quantile",  
         clear: bool = False,
         only_checked: bool = False,
     ):
@@ -3879,7 +3667,6 @@ class HydroData:
         first_day = idx[0].normalize()
         last_day = idx[-1].normalize()
 
-        # --- handle arange ---
         if arange is None:
             start_dt = first_day
             end_dt_exclusive = last_day + pd.Timedelta(days=1)
@@ -3902,13 +3689,11 @@ class HydroData:
             start_dt = max(start_dt, first_day)
             end_dt_exclusive = min(end_dt_exclusive, last_day + pd.Timedelta(days=1))
 
-        # slice inclusive of all samples between those days
         df = self.data.loc[start_dt:end_dt_exclusive - pd.Timedelta(microseconds=1), [column_name]].copy()
         if df.empty:
             wn.warn("Selected range is empty; no daily profile computed.", RuntimeWarning, stacklevel=2)
             return self.daily_profile
 
-        # warn if highs exist
         try:
             if getattr(self, "data_type", None) == "WWTP" and hasattr(self, "highs") and "highs" in self.highs:
                 highs_in_window = self.highs.loc[start_dt:end_dt_exclusive, "highs"].sum()
@@ -3917,7 +3702,6 @@ class HydroData:
         except Exception:
             pass
 
-        # --- filter original only if requested ---
         if only_checked and hasattr(self, "meta_valid") and column_name in self.meta_valid:
             mv = self.meta_valid.reindex(df.index)
             df = df[mv[column_name] == "original"]
@@ -3927,7 +3711,6 @@ class HydroData:
             wn.warn("No valid samples to aggregate in selected window.", RuntimeWarning, stacklevel=2)
             return self.daily_profile
 
-        # --- aggregate by time-of-day ---
         tod = s.index.time
         grp = s.groupby(tod)
         mean_day = pd.DataFrame(index=pd.Index(sorted(set(tod)), name="time_of_day"))
@@ -3936,13 +3719,11 @@ class HydroData:
         mean_day["Qupper"] = grp.quantile(quantile).reindex(mean_day.index)
         mean_day["Qlower"] = grp.quantile(1 - quantile).reindex(mean_day.index)
 
-        # store
         self.daily_profile[column_name] = mean_day
 
         if not plot:
             return self.daily_profile
 
-        # --- plotting ---
         base_date = dt.date(2000, 1, 1)
         x = pd.to_datetime([dt.datetime.combine(base_date, t) for t in mean_day.index])
 
@@ -4007,7 +3788,6 @@ class HydroData:
         if data_name not in self.data.columns:
             raise KeyError(f"Column '{data_name}' not in data.")
 
-        # Choose provenance set
         if getattr(self, "_plot", "valid") == "filled":
             meta = getattr(self, "meta_filled", None)
             values = getattr(self, "filled", None)
@@ -4034,34 +3814,26 @@ class HydroData:
                 "filtered": ("filtered", "r.", "Filtered"),
             }
 
-        # Align frames to the same index
         idx = self.data.index
         series_vals = pd.to_numeric(values.get(data_name).reindex(idx), errors="coerce")
         if isinstance(meta, pd.DataFrame) and data_name in meta:
             series_meta = meta[data_name].reindex(idx)
         else:
-            # no metadata → treat all as original
             series_meta = pd.Series(index=idx, data="original")
 
-        # Resolve time range
         if time_range == "default":
             start_i, end_i = idx.min(), idx.max()
         else:
             start_i, end_i = time_range
-            # Validate slicing types in a forgiving way
         view_idx = self.data.loc[start_i:end_i].index
         s_val = series_vals.reindex(view_idx)
         s_meta = series_meta.reindex(view_idx)
 
-        # Optionally drop filtered points
         if only_checked:
             s_val = s_val.where(s_meta != "filtered")
 
-        # Build plot
         fig, ax = plt.subplots(figsize=(16, 6))
 
-        # Plot categories present in the window, in a stable order:
-        # originals first, then specific fills, then filtered
         order = [
             "original",
             "filled_interpol",
@@ -4086,18 +3858,15 @@ class HydroData:
                 h = ax.plot(s_val.index[mask], s_val[mask], style, label=title)
                 handles.append(h[0])
 
-        # If nothing matched (e.g., no meta), plot the series plainly
         if not handles:
             ax.plot(s_val.index, s_val.values, "-", label=data_name)
 
-        # Cosmetics
         ax.set_xlabel(self.timename if hasattr(self, "timename") else "Time")
         ax.set_ylabel(data_name)
         ax.tick_params(labelsize=14)
         ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=12)
         fig.tight_layout()
 
-        # Small summary in the title
         counts = s_meta.value_counts(dropna=False).to_dict()
         summary = ", ".join(f"{k}:{v}" for k, v in counts.items())
         ax.set_title(f"{data_name}  —  {summary}")
@@ -4160,8 +3929,7 @@ def _log_removed_output(
     """
     removed = original - new
     if removed < 0:
-        removed = 0  # guard against negative values
-
+        removed = 0  
     message = (
         f"\nOriginal dataset: {original} datapoints; "
         f"new dataset: {new} datapoints; "

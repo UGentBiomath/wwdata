@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 class OnlineSensorBased(HydroData):
     """
-    Adds utilities for online/continuous sensor datasets on top of HydroData.
+    Class for handling online sensor time-series related to (waste)water data.
 
     Parameters
     ----------
@@ -72,25 +72,20 @@ class OnlineSensorBased(HydroData):
             time_unit=time_unit,
         )
 
-        # DataFrame to store imputed/filled values; same index/columns as data.
         self.filled: pd.DataFrame = pd.DataFrame(index=self.data.index, dtype=float)
 
-        # Metadata for filled values: mirrors meta_valid but for filling provenance.
-        # Initialize from meta_valid (if present) to keep shape; otherwise empty aligned frame.
         base_meta = getattr(self, "meta_valid", None)
         if base_meta is not None and not base_meta.empty:
             self.meta_filled: pd.DataFrame = base_meta.reindex(self.data.index)
         else:
             self.meta_filled = pd.DataFrame(index=self.data.index)
 
-        # Per-signal imputation error summary (%); initialize with NaN.
         self.filling_error: pd.DataFrame = pd.DataFrame(
             data=np.nan,
             index=pd.Index(self.data.columns, name="signal"),
             columns=["imputation error [%]"],
         )
 
-        # Internal flags for one-time warnings
         self._filling_warning_issued: bool = False
         self._rain_warning_issued: bool = False
 
@@ -122,7 +117,6 @@ class OnlineSensorBased(HydroData):
         if self.data is None or self.data.empty:
             return None
 
-        # Count duplicates for reporting
         if keep is False:
             counts = self.data.index.value_counts()
             n_dupes = int(counts[counts > 1].sum())
@@ -131,38 +125,31 @@ class OnlineSensorBased(HydroData):
             n_unique = int(self.data.index.nunique())
             n_dupes = n_total - n_unique
 
-        # Build ONE keep mask from data's index and use it positionally everywhere
         orig_index = self.data.index
         keep_mask = ~orig_index.duplicated(keep=keep) if keep in ("first", "last") else ~orig_index.duplicated(keep=False)
         keep_mask_pos = np.asarray(keep_mask, dtype=bool)
 
-        # Apply to main data (positional keep preserves current order)
         self.data = self.data.iloc[keep_mask_pos]
 
-        # Apply the SAME positional mask to aux frames (avoid reindex on duplicate labels)
         for attr in ("meta_valid", "meta_filled", "filled"):
             frame = getattr(self, attr, None)
             if isinstance(frame, pd.DataFrame):
                 if len(frame) == len(orig_index):
                     setattr(self, attr, frame.iloc[keep_mask_pos])
                 else:
-                    # Fallback if lengths drifted: best effort align to data index
-                    # (may still have duplicate labels, but avoids positional mismatch)
+                    
                     setattr(self, attr, frame.reindex(self.data.index))
             else:
                 setattr(self, attr, pd.DataFrame(index=self.data.index))
 
-        # Optional consistent sorting for all frames
         if sort_index:
             self.data = self.data.sort_index()
             self.meta_valid = self.meta_valid.sort_index()
             self.meta_filled = self.meta_filled.sort_index()
             self.filled = self.filled.sort_index()
 
-        # Housekeeping
         self._update_time()
 
-        # Friendly warning for object dtype index
         if len(self.data.index) >= 2 and self.data.index.dtype == object:
             wn.warn(
                 "Index has object dtype; ordering may be unexpected. Consider converting "
@@ -209,12 +196,10 @@ class OnlineSensorBased(HydroData):
         None
             Adds `new_name` to the chosen frame.
         """
-        # Choose the working frame
         df = self.filled if filled else self.data
         if df is None or df.empty:
             raise ValueError("No data available to compute proportional total.")
 
-        # Basic validations
         if Q_tot not in df.columns:
             raise KeyError(f"Total flow column '{Q_tot}' not found.")
         if not Q or not conc:
@@ -228,45 +213,35 @@ class OnlineSensorBased(HydroData):
             missing = ", ".join(missing_q + missing_c)
             raise KeyError(f"Missing columns: {missing}")
 
-        # Coerce numeric; keep index alignment
         Q_tot_s = pd.to_numeric(df[Q_tot], errors="coerce")
 
-        # Build numerator: sum_i(Q_i * conc_i)
         numerator = pd.Series(0.0, index=df.index)
         for Qi, Ci in zip(Q, conc):
             Qi_s = pd.to_numeric(df[Qi], errors="coerce")
             Ci_s = pd.to_numeric(df[Ci], errors="coerce")
             numerator = numerator.add(Qi_s * Ci_s, fill_value=0.0)
 
-        # Safe division: avoid inf on zero denominators
         with np.errstate(divide="ignore", invalid="ignore"):
             result = numerator.divide(Q_tot_s)
         result = result.replace([np.inf, -np.inf], np.nan)
 
-        # Assign
         df[new_name] = result.astype(float)
 
-        # Write back (if we operated on self.filled it's already a view)
         if not filled:
             self.data = df
-            # keep columns cache if you maintain one
             if hasattr(self, "columns"):
                 try:
                     self.columns = np.array(self.data.columns)
                 except Exception:
                     pass
 
-        # Update units if dict-like
         try:
             if hasattr(self, "units") and isinstance(self.units, dict):
                 self.units[new_name] = unit
             elif hasattr(self, "units") and isinstance(self.units, pd.DataFrame):
-                # Optional: if you store units as a 1-row DataFrame with columns = signals
-                # we try to set it; otherwise warn.
                 if new_name in self.units.columns:
                     self.units.loc[:, new_name] = unit
                 else:
-                    # attempt to add the column if shape allows
                     try:
                         self.units[new_name] = unit
                     except Exception:
@@ -276,7 +251,6 @@ class OnlineSensorBased(HydroData):
                             stacklevel=2,
                         )
             else:
-                # No units structure; ignore silently
                 pass
         except Exception:
             wn.warn(
@@ -320,15 +294,12 @@ class OnlineSensorBased(HydroData):
 
             If plot=True, returns the matplotlib figure and axes.
         """
-        # Ensure output dict exists
         if not hasattr(self, "daily_average") or not isinstance(getattr(self, "daily_average"), dict):
             self.daily_average = {}
 
-        # Validate column
         if column_name not in self.data.columns:
             raise KeyError(f"Column '{column_name}' not found in data.")
 
-        # Slice range
         try:
             if arange is None:
                 series = self.data[column_name].copy()
@@ -346,14 +317,12 @@ class OnlineSensorBased(HydroData):
             self.daily_average[column_name] = pd.DataFrame(columns=["day", "mean", "std"])
             return None
 
-        # Numeric coercion and drop NaNs
         series = pd.to_numeric(series, errors="coerce").dropna()
         if series.empty:
             wn.warn("No numeric samples in selected range; no daily averages computed.", RuntimeWarning, stacklevel=2)
             self.daily_average[column_name] = pd.DataFrame(columns=["day", "mean", "std"])
             return None
 
-        # DatetimeIndex path
         if isinstance(series.index, pd.DatetimeIndex):
             daily_mean = series.resample("D").mean()
             daily_std = series.resample("D").std()
@@ -363,7 +332,6 @@ class OnlineSensorBased(HydroData):
                 "std": daily_std.values,
             })
 
-        # Numeric index path
         elif np.issubdtype(series.index.dtype, np.number):
             days = np.floor(series.index.values).astype(int)
             df_tmp = pd.DataFrame({"day": days, "val": series.values})
@@ -378,10 +346,8 @@ class OnlineSensorBased(HydroData):
                 "Unsupported index type. Use a DatetimeIndex or numeric index for daily averaging."
             )
 
-        # Store
         self.daily_average[column_name] = to_return
 
-        # Plot if requested
         if plot:
             fig, ax = plt.subplots(figsize=(16, 6))
             if isinstance(series.index, pd.DatetimeIndex):
@@ -417,15 +383,12 @@ class OnlineSensorBased(HydroData):
         - If `data_name` does not exist in `meta_valid`, a warning is issued.
         """
         if data_name is None:
-            # Full reset
             if hasattr(self, "meta_valid") and isinstance(self.meta_valid, pd.DataFrame):
                 self.meta_filled = self.meta_valid.copy().reindex(self.data.index)
             else:
                 self.meta_filled = pd.DataFrame(index=self.data.index)
         else:
-            # Column-specific reset
             if hasattr(self, "meta_valid") and data_name in self.meta_valid.columns:
-                # ensure column exists in meta_filled too
                 if not hasattr(self, "meta_filled") or not isinstance(self.meta_filled, pd.DataFrame):
                     self.meta_filled = pd.DataFrame(index=self.data.index)
                 if data_name not in self.meta_filled.columns:
@@ -458,19 +421,16 @@ class OnlineSensorBased(HydroData):
         """
         self._plot = "filled"
 
-        # Normalize input to a list
         if isinstance(column_names, str):
             names = [column_names]
         else:
             names = list(column_names)
 
-        # Ensure `self.filled` exists and is aligned to the main index
         if not hasattr(self, "filled") or not isinstance(self.filled, pd.DataFrame):
             self.filled = pd.DataFrame(index=self.data.index)
         else:
             self.filled = self.filled.reindex(self.data.index)
 
-        # Ensure meta_valid exists (used to filter for 'original')
         meta = getattr(self, "meta_valid", None)
         has_meta = isinstance(meta, pd.DataFrame) and not meta.empty
 
@@ -481,7 +441,6 @@ class OnlineSensorBased(HydroData):
             series = self.data[col].copy()
 
             if has_meta and (col in meta.columns):
-                # Keep only validated/original values; others become NaN
                 mask_original = (meta[col].reindex(self.data.index) == "original")
                 seeded = series.where(mask_original, np.nan)
             else:
@@ -492,7 +451,6 @@ class OnlineSensorBased(HydroData):
                 )
                 seeded = series
 
-            # Assign into filled; reindex again to be safe
             self.filled[col] = pd.to_numeric(seeded, errors="coerce")
             self.filled = self.filled.reindex(self.data.index)
 
@@ -520,21 +478,17 @@ class OnlineSensorBased(HydroData):
         -------
         None
         """
-        # --- basic checks ---
         if to_fill not in self.data.columns:
             raise KeyError(f"Column '{to_fill}' not found in data.")
         idx = self.data.index
 
-        # --- ensure/align meta_valid ---
         if not hasattr(self, "meta_valid") or not isinstance(self.meta_valid, pd.DataFrame):
             self.meta_valid = pd.DataFrame(index=idx)
         else:
-            # guard against duplicate index labels before reindex
             if not self.meta_valid.index.is_unique:
                 self.meta_valid = self.meta_valid.loc[~self.meta_valid.index.duplicated(keep="first")]
             self.meta_valid = self.meta_valid.reindex(idx)
 
-        # guarantee column & clean tags
         if to_fill not in self.meta_valid.columns:
             self.meta_valid[to_fill] = "original"
         else:
@@ -545,7 +499,6 @@ class OnlineSensorBased(HydroData):
                 .replace({"!!": "original"})
             )
 
-        # --- ensure/align meta_filled ---
         if not hasattr(self, "meta_filled") or not isinstance(self.meta_filled, pd.DataFrame):
             self.meta_filled = pd.DataFrame(index=idx)
         else:
@@ -554,10 +507,8 @@ class OnlineSensorBased(HydroData):
             self.meta_filled = self.meta_filled.reindex(idx)
 
         if to_fill not in self.meta_filled.columns:
-            # start from validated tags
             self.meta_filled[to_fill] = self.meta_valid[to_fill].copy()
         else:
-            # re-use validated tags to fill holes, then default remaining to 'original'
             self.meta_filled[to_fill] = (
                 self.meta_filled[to_fill]
                 .astype(object)
@@ -566,7 +517,6 @@ class OnlineSensorBased(HydroData):
                 .replace({"!!": "original"})
             )
 
-        # --- ensure/align filled values ---
         if not hasattr(self, "filled") or not isinstance(self.filled, pd.DataFrame):
             self.filled = pd.DataFrame(index=idx)
         else:
@@ -575,14 +525,11 @@ class OnlineSensorBased(HydroData):
             self.filled = self.filled.reindex(idx)
 
         if to_fill not in self.filled.columns:
-            # seed with validated/original values only; others NaN
             mask_original = (self.meta_valid[to_fill] == "original")
             self.filled[to_fill] = pd.to_numeric(self.data[to_fill], errors="coerce").where(mask_original)
         else:
-            # ensure numeric dtype & alignment (don’t overwrite existing user-filled values)
             self.filled[to_fill] = pd.to_numeric(self.filled[to_fill], errors="coerce")
 
-        # final tag normalization (paranoia)
         self.meta_valid[to_fill] = self.meta_valid[to_fill].replace({"!!": "original"}).fillna("original")
         self.meta_filled[to_fill] = self.meta_filled[to_fill].replace({"!!": "original"}).fillna("original")
 
@@ -591,8 +538,8 @@ class OnlineSensorBased(HydroData):
 
     def _warning(
         self,
-        message,                 # str or Warning instance
-        category,                # Warning subclass
+        message,                 
+        category,                
         filename: str,
         lineno: int,
         file=None,
@@ -605,13 +552,12 @@ class OnlineSensorBased(HydroData):
         cat_name = category.__name__ if hasattr(category, "__name__") else str(category)
         msg_text = str(message)
         out = f"{filename}:{lineno}: {cat_name}: {msg_text}"
-        # Write to the provided file-like or fallback to stderr
         stream = file if file is not None else wn._showwarnmsg_impl.__self__ if hasattr(wn._showwarnmsg_impl, "__self__") else None
         if stream and hasattr(stream, "write"):
             try:
                 stream.write(out + "\n")
             except Exception:
-                print(out)  # final fallback
+                print(out)  
         else:
             print(out)
 
@@ -622,10 +568,9 @@ class OnlineSensorBased(HydroData):
         This modifies the global warnings.showwarning hook.
         """
         if enable:
-            wn.showwarning = types.MethodType(self._warning, self)  # bind to instance method
+            wn.showwarning = types.MethodType(self._warning, self)  
         else:
-            # Restore default behavior
-            wn.showwarning = wn._showwarning_orig if hasattr(wn, "_showwarning_orig") else warnings._showwarning  # type: ignore[attr-defined]
+            wn.showwarning = wn._showwarning_orig if hasattr(wn, "_showwarning_orig") else warnings._showwarning  
 
 
     def _filling_warning(self, *, use_custom_format: bool = False, stacklevel: int = 2) -> None:
@@ -637,12 +582,11 @@ class OnlineSensorBased(HydroData):
 
         if use_custom_format:
             try:
-                # Save original once
                 if not hasattr(wn, "_showwarning_orig"):
                     wn._showwarning_orig = wn.showwarning
                 self._use_custom_warning_format(True)
             except Exception:
-                pass  # fall back silently
+                pass  
 
         wn.warn(
             "When using filling functions, start with small gaps and progressively "
@@ -652,7 +596,6 @@ class OnlineSensorBased(HydroData):
             stacklevel=stacklevel,
         )
 
-        # Restore default formatting if we temporarily changed it
         if use_custom_format:
             try:
                 self._use_custom_warning_format(False)
@@ -707,7 +650,6 @@ class OnlineSensorBased(HydroData):
         if getattr(self, "data_type", None) != "WWTP":
             return False
 
-        # Require a highs DataFrame with a 'highs' column
         highs = getattr(self, "highs", None)
         if not isinstance(highs, pd.DataFrame) or "highs" not in highs.columns or highs.empty:
             return False
@@ -718,7 +660,6 @@ class OnlineSensorBased(HydroData):
             try:
                 sub = highs.loc[arange[0]:arange[1], "highs"]
             except Exception:
-                # If slicing fails, bail out quietly
                 return False
 
         if sub.sum() > 0:
@@ -797,11 +738,9 @@ class OnlineSensorBased(HydroData):
         Resets meta_filled[to_fill] back to meta_valid[to_fill] and re-seeds
         self.filled[to_fill] with originals (NaN for filtered).
         """
-        # ensure columns exist
         if to_fill not in self.meta_valid.columns:
-            self.add_to_meta_valid([to_fill])  # sets to 'original'
+            self.add_to_meta_valid([to_fill])  
         self.meta_filled[to_fill] = self.meta_valid[to_fill].copy()
-        # seed 'filled' with originals; NaN where filtered
         ser = self.data[to_fill].copy()
         ser[self.meta_filled[to_fill] == "filtered"] = np.nan
         self.filled[to_fill] = ser.reindex(self.index())
@@ -818,20 +757,16 @@ class OnlineSensorBased(HydroData):
         By design, we ONLY return rows currently tagged 'filtered' in meta_filled.
         (We never overwrite rows previously filled by another method.)
         """
-        # make sure meta_filled exists/aligns
         self.meta_filled = self.meta_filled.reindex(self.index())
         if to_fill not in self.meta_filled.columns:
-            # initialize from meta_valid; do NOT mark any 'filled_*'
             if to_fill not in self.meta_valid.columns:
                 self.add_to_meta_valid([to_fill])
             self.meta_filled[to_fill] = self.meta_valid[to_fill].copy()
 
         mv = self.meta_filled[to_fill]
 
-        # base mask: only currently 'filtered'
         mask = (mv == "filtered")
 
-        # arange restriction if provided
         if arange is not None:
             try:
                 idx_range = self.data.loc[arange[0]:arange[1]].index
@@ -841,9 +776,6 @@ class OnlineSensorBased(HydroData):
                 )
             mask = mask & mv.index.isin(idx_range)
 
-        # only_checked controls nothing new here—by policy we only fill filtered.
-        # If you ever want a mode that overwrites 'original' too (not recommended),
-        # you'd branch here.
 
         targets = mv.index[mask]
         return targets
@@ -857,7 +789,7 @@ class OnlineSensorBased(HydroData):
         range_: int,
         arange: Optional[Tuple[object, object]] = None,
         *,
-        method: str = "time",           # 'time' for DatetimeIndex; 'index'/'linear' for numeric index
+        method: str = "time",           
         limit_direction: str = "both",
         plot: bool = False,
         clear: bool = False,
@@ -880,19 +812,16 @@ class OnlineSensorBased(HydroData):
         if range_ <= 0:
             raise ValueError("`range_` must be a positive integer.")
 
-        # Start from a clean, aligned state for this column
         if clear:
             self._reset_meta_filled(to_fill)
         
-        self._add_to_meta(to_fill)  # seeds self.filled[to_fill] with original values where validated
+        self._add_to_meta(to_fill)  
 
-        # Optional warning (no side effects)
         if arange is not None:
             self._check_rain(arange)
 
         idx_all = self.data.index
 
-        # Window to operate in
         if arange is None:
             win_idx = idx_all
         else:
@@ -920,8 +849,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Compute run-lengths on the boolean filtered mask in the window
-        # (True runs indicate consecutive filtered points)
         change = filtered_win.ne(filtered_win.shift(1)).cumsum()
         run_lengths = change.map(change.value_counts())
         eligible = filtered_win & (run_lengths <= range_)
@@ -931,31 +858,23 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Work on a copy of the filled series (aligned to the global index)
         s = pd.to_numeric(self.filled[to_fill], errors="coerce").copy()
 
-        # Inside the window, force eligible indices to NaN so interpolate can fill them
         s_win = s.loc[win_idx].copy()
         s_win.loc[eligible] = np.nan
 
-        # Interpolate *within the window*.
-        # limit=range_ ensures only gaps of that length are filled.
         interp_kwargs = dict(method=method, limit=range_, limit_direction=limit_direction)
         interp_kwargs.update(kwargs)
         try:
             s_win_interp = s_win.interpolate(**interp_kwargs, limit_area="inside")
         except TypeError:
-            # for older pandas without limit_area
             s_win_interp = s_win.interpolate(**interp_kwargs)
 
-        # Determine which eligible points actually got filled
         newly_filled_idx = eligible.index[eligible & s_win_interp.notna()]
 
-        # Write the window back and assign the updated series to the column
         s.loc[win_idx] = s_win_interp
         self.filled[to_fill] = s
 
-        # Initialize / normalize meta_filled for this column and flip tags only for newly filled
         self.meta_filled[to_fill] = (
             self.meta_filled[to_fill]
             .reindex(idx_all)
@@ -964,9 +883,7 @@ class OnlineSensorBased(HydroData):
         )
         
         if len(newly_filled_idx) > 0:
-            # if self.meta_filled.loc[newly_filled_idx, to_fill] == "filtered":
             self.meta_filled.loc[newly_filled_idx, to_fill] = "filled_interpol" 
-        # (Indices still filtered remain 'filtered'; non-filtered remain 'original')
 
         if plot:
             self.plot_analysed(to_fill)
@@ -978,11 +895,11 @@ class OnlineSensorBased(HydroData):
         arange: Optional[Tuple[object, object]] = None,
         *,
         model: Literal["local_level", "local_linear_trend"] = "local_level",
-        seasonal_periods: Optional[int] = None,   # e.g. 96 for 15-min diurnal, 24 for hourly
-        max_gap: Optional[int] = None,            # only fill filtered runs with length <= max_gap
+        seasonal_periods: Optional[int] = None,  
+        max_gap: Optional[int] = None,           
         plot: bool = False,
         clear: bool = False,
-        fit_kwargs: Optional[dict] = None,        # e.g. {"disp": False, "maxiter": 200}
+        fit_kwargs: Optional[dict] = None,       
     ) -> None:
         """
         Fill filtered values in `to_fill` using a state-space Kalman smoother.
@@ -1010,13 +927,11 @@ class OnlineSensorBased(HydroData):
         fit_kwargs : dict, optional
             Extra keyword args passed to `results = model.fit(...)`.
         """
-        # --- Safety & setup ---
         import warnings as wn
         self._plot = "filled"
         try:
             self._filling_warning()
         except TypeError:
-            # older signature with lineno() – ignore
             pass
 
         if to_fill not in self.data.columns:
@@ -1025,10 +940,8 @@ class OnlineSensorBased(HydroData):
         if clear:
             self._reset_meta_filled(to_fill)
 
-        # Seed aux frames/columns: originals → self.filled[to_fill], filtered → NaN
         self._add_to_meta(to_fill)
 
-        # Select window
         if arange is None:
             win_idx = self.data.index
         else:
@@ -1056,10 +969,8 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Optional short-gap eligibility
         eligible = filtered_win.copy()
         if max_gap is not None and max_gap > 0:
-            # run-length encoding on filtered_win
             change = filtered_win.ne(filtered_win.shift(1)).cumsum()
             run_lengths = change.map(change.value_counts())
             eligible = filtered_win & (run_lengths <= max_gap)
@@ -1069,17 +980,14 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Endog for the model: start from filled (originals present, filtered as NaN)
         y_full = pd.to_numeric(self.filled[to_fill], errors="coerce")
         y = y_full.loc[win_idx]
 
-        # Ensure monotonic index for time-mode Kalman
         if isinstance(y.index, pd.DatetimeIndex) and not y.index.is_monotonic_increasing:
             y = y.sort_index()
             eligible = eligible.reindex(y.index, fill_value=False)
-            win_idx = y.index  # keep aligned
+            win_idx = y.index  
 
-        # --- Build & fit the structural model ---
         try:
             from statsmodels.tsa.statespace.structural import UnobservedComponents
         except Exception as e:
@@ -1101,36 +1009,29 @@ class OnlineSensorBased(HydroData):
             endog=y,
             level=level,
             seasonal=seasonal,
-            # You could expose more options (stochastic_level, irregular, etc.)
         )
 
-        # Fit (let statsmodels handle missing values in endog)
         fit_kwargs = dict() if fit_kwargs is None else dict(fit_kwargs)
         fit_kwargs.setdefault("disp", False)
 
         try:
             res = ss_mod.fit(**fit_kwargs)
         except Exception as err:
-            # Fall back to a simpler model if fitting fails
             wn.warn(f"Kalman fit failed with `{model}`; retrying with local level. Error: {err}")
             ss_mod = UnobservedComponents(endog=y, level="llevel", seasonal=seasonal)
             res = ss_mod.fit(**fit_kwargs)
 
-        # Get in-sample smoothed estimates for the window (includes missing positions)
         try:
             pred = res.get_prediction()
             y_hat = pred.predicted_mean
         except Exception:
-            # fallback
             y_hat = res.fittedvalues
 
         y_hat = pd.to_numeric(y_hat, errors="coerce").reindex(win_idx)
 
-        # Only assign to indices that are eligible AND got a finite estimate
         to_update = eligible.index[eligible & y_hat.notna()]
         if len(to_update) > 0:
             self.filled.loc[to_update, to_fill] = y_hat.loc[to_update]
-            # Tag just those indices as filled by Kalman
             self.meta_filled[to_fill] = (
                 self.meta_filled[to_fill]
                 .reindex(self.data.index)
@@ -1138,10 +1039,8 @@ class OnlineSensorBased(HydroData):
                 .replace({"!!": "original"})
             )
             
-            # if self.meta_filled.loc[to_update, to_fill] == "filtered":
             self.meta_filled.loc[to_update, to_fill] = "filled_kalman"
 
-        # leave non-eligible or non-estimated filtered points as-is (still 'filtered', NaN in filled)
         if plot:
             self.plot_analysed(to_fill)
 
@@ -1150,15 +1049,15 @@ class OnlineSensorBased(HydroData):
         to_fill: str,
         arange: Optional[Tuple[object, object]] = None,
         *,
-        order: Tuple[int, int, int] = (1, 0, 1),          # (p,d,q)
-        seasonal_order: Optional[Tuple[int, int, int, int]] = None,  # (P,D,Q,s) or None
+        order: Tuple[int, int, int] = (1, 0, 1),          
+        seasonal_order: Optional[Tuple[int, int, int, int]] = None,  
         trend: Optional[Literal["n","c","t","ct"]] = None,
-        max_gap: Optional[int] = None,                     # only fill filtered runs with length <= max_gap
+        max_gap: Optional[int] = None,                     
         enforce_stationarity: bool = True,
         enforce_invertibility: bool = True,
         plot: bool = False,
         clear: bool = False,
-        fit_kwargs: Optional[dict] = None,                 # e.g. {"disp": False, "maxiter": 200}
+        fit_kwargs: Optional[dict] = None,                 
     ) -> None:
         """
         Fill filtered values in `to_fill` using SARIMAX (ARIMA/SARIMA) in-sample predictions.
@@ -1192,7 +1091,6 @@ class OnlineSensorBased(HydroData):
         fit_kwargs : dict
             Extra args for `model.fit(...)`.
         """
-        # --- setup & checks ---
         self._plot = "filled"
         try:
             self._filling_warning()
@@ -1205,10 +1103,8 @@ class OnlineSensorBased(HydroData):
         if clear:
             self._reset_meta_filled(to_fill)
 
-        # Seed: originals into self.filled[to_fill], filtered → NaN
         self._add_to_meta(to_fill)
 
-        # Select window
         if arange is None:
             win_idx = self.data.index
         else:
@@ -1221,7 +1117,6 @@ class OnlineSensorBased(HydroData):
                     self.plot_analysed(to_fill)
                 return
 
-        # Filter mask from meta_valid (this is where you tag)
         # tags_valid = (
         #     self.meta_valid[to_fill]
         #     .reindex(self.data.index)
@@ -1242,7 +1137,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Optional: limit to short runs
         eligible = filtered_win.copy()
         if max_gap is not None and max_gap > 0:
             change = filtered_win.ne(filtered_win.shift(1)).cumsum()
@@ -1253,24 +1147,20 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Endogenous series for the model (filled: originals present, filtered NaN)
         y_full = pd.to_numeric(self.filled[to_fill], errors="coerce")
         y = y_full.loc[win_idx]
 
-        # Ensure monotonic index (SARIMAX expects ordered data). Keep alignment.
         if isinstance(y.index, pd.DatetimeIndex) and not y.index.is_monotonic_increasing:
             y = y.sort_index()
             eligible = eligible.reindex(y.index, fill_value=False)
             win_idx = y.index
 
-        # If DatetimeIndex has no freq and you're using seasonal, try inferring:
         if isinstance(win_idx, pd.DatetimeIndex) and seasonal_order is not None and win_idx.freq is None:
             try:
                 win_idx = win_idx.inferred_freq and win_idx
             except Exception:
-                pass  # SARIMAX can still run; seasonality uses period `s`
+                pass  
 
-        # --- Fit SARIMAX ---
         try:
             from statsmodels.tsa.statespace.sarimax import SARIMAX
         except Exception as e:
@@ -1286,20 +1176,17 @@ class OnlineSensorBased(HydroData):
             trend=trend,
             enforce_stationarity=enforce_stationarity,
             enforce_invertibility=enforce_invertibility,
-            # measurement_error=False, simple_differencing=False, time_varying_regression=False, mle_regression=True
         )
 
         try:
             res = model.fit(**fit_kwargs)
         except Exception as err:
-            # Gentle fallback: simplify the model progressively
             try:
                 model2 = SARIMAX(endog=y, order=(max(order[0],1), 0, 0), seasonal_order=(0,0,0,0), trend=None)
                 res = model2.fit(disp=False)
             except Exception as err2:
                 raise RuntimeError(f"SARIMAX fit failed: {err} / fallback: {err2}")
 
-        # In-sample smoothed/predicted mean for the window (includes NaNs at missing points)
         try:
             pred = res.get_prediction()
             y_hat = pred.predicted_mean
@@ -1307,11 +1194,9 @@ class OnlineSensorBased(HydroData):
             y_hat = res.fittedvalues
         y_hat = pd.to_numeric(y_hat, errors="coerce").reindex(win_idx)
 
-        # Update only eligible & successfully estimated indices
         to_update = eligible.index[eligible & y_hat.notna()]
         if len(to_update) > 0:
             self.filled.loc[to_update, to_fill] = y_hat.loc[to_update]
-            # Tag as filled_arima
             self.meta_filled[to_fill] = (
                 self.meta_filled[to_fill]
                 .reindex(self.data.index)
@@ -1320,31 +1205,28 @@ class OnlineSensorBased(HydroData):
             )
             self.meta_filled.loc[to_update, to_fill] = "filled_arima"
 
-        # Leave others as filtered (NaN in filled)
         if plot:
             self.plot_analysed(to_fill)
 
     def fill_missing_gaussian(
         self,
         to_fill: str,
-        arange: Optional[Tuple[object, object]] = None,   # None → whole dataset
+        arange: Optional[Tuple[object, object]] = None,   
         *,
         only_checked: bool = True,
         clear: bool = False,
         plot: bool = False,
-        # efficiency guards
         max_train_points: int = 5000,
         stride: int = 1,
-        # GP config
         kernel: Optional[object] = None,
-        seasonal_period: Optional[Union[pd.Timedelta, float]] = None,  # e.g. pd.Timedelta(days=1) or seconds float
-        unit: str = "d",                          # {'sec','min','hr','d'} for datetime index conversion
-        alpha: Optional[float] = None,            # measurement noise; if None, WhiteKernel carries it
+        seasonal_period: Optional[Union[pd.Timedelta, float]] = None,  
+        unit: str = "d",                          
+        alpha: Optional[float] = None,            
         normalize_y: bool = True,
         n_restarts_optimizer: int = 2,
         random_state: Optional[int] = None,
-        context_expand: Optional[pd.Timedelta] = None,  # expands training around arange (DatetimeIndex only)
-        X_cols: Optional[Sequence[str]] = None,   # optional exogenous regressors
+        context_expand: Optional[pd.Timedelta] = None,  
+        X_cols: Optional[Sequence[str]] = None,  
     ) -> None:
         """
         Fill gaps using a Gaussian Process regressor on time (and optional exogenous features).
@@ -1367,12 +1249,10 @@ class OnlineSensorBased(HydroData):
         if to_fill not in self.data.columns:
             raise KeyError(f"Column '{to_fill}' not found in data.")
 
-        # Prepare meta_filled & filled scaffolding (seed filled with originals; filtered → NaN)
         if clear:
             self._reset_meta_filled(to_fill)
         self._add_to_meta(to_fill)
 
-        # Resolve window
         if arange is None:
             win_idx = self.data.index
             train_slice = slice(self.data.index.min(), self.data.index.max())
@@ -1388,7 +1268,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Determine prediction targets
         if only_checked:
             mv = (
                 self.meta_filled[to_fill]
@@ -1411,13 +1290,11 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Optionally expand training window (only meaningful if arange is provided and index is datetime)
         if isinstance(self.data.index, pd.DatetimeIndex) and context_expand is not None and arange is not None:
             start = pd.to_datetime(arange[0]) - context_expand
             end   = pd.to_datetime(arange[1]) + context_expand
             train_slice = slice(start, end)
 
-        # Build training y from originals
         y_full = pd.to_numeric(self.data[to_fill], errors="coerce")
         y_train = y_full.loc[train_slice].copy()
         if hasattr(self, "meta_valid") and to_fill in self.meta_valid:
@@ -1430,11 +1307,9 @@ class OnlineSensorBased(HydroData):
             y_train = y_train.where(mv_train.eq("original"))
 
         y_train = y_train.dropna()
-        # Downsample training for speed if requested
         if stride > 1 and len(y_train) > 0:
             y_train = y_train.iloc[::stride]
 
-        # Cap training size
         if len(y_train) > max_train_points:
             take = np.linspace(0, len(y_train) - 1, max_train_points).astype(int)
             y_train = y_train.iloc[take]
@@ -1449,7 +1324,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Build design matrices (time → numeric; optionally add exogenous features)
         anchor_idx = y_train.index.union(target_idx)
 
         def _to_numeric_time(
@@ -1464,7 +1338,6 @@ class OnlineSensorBased(HydroData):
             """
             if is_datetime:
                 di = pd.DatetimeIndex(ix)
-                # elapsed seconds as ndarray
                 secs = (di - pd.Timestamp(origin)) / np.timedelta64(1, "s")
                 arr = np.asarray(secs, dtype=float)
                 if unit in ("sec", "s"):
@@ -1473,10 +1346,8 @@ class OnlineSensorBased(HydroData):
                     return arr / 60.0
                 if unit in ("hr", "h"):
                     return arr / 3600.0
-                # default: days
                 return arr / 86400.0
             else:
-                # numeric index path
                 return np.asarray(pd.Index(ix).to_numpy(dtype=float), dtype=float)
 
         is_dt = isinstance(anchor_idx, pd.DatetimeIndex)
@@ -1485,7 +1356,6 @@ class OnlineSensorBased(HydroData):
             # x_train_time = _to_numeric_time(y_train.index, origin, True).reshape(-1, 1)
             # x_target_time = _to_numeric_time(target_idx, origin, True).reshape(-1, 1)
         else:
-            # numeric index
             origin = 0.0
             # x_train_time = _to_numeric_time(y_train.index, origin, False).reshape(-1, 1)
             # x_target_time = _to_numeric_time(target_idx, origin, False).reshape(-1, 1)
@@ -1496,7 +1366,6 @@ class OnlineSensorBased(HydroData):
         X_train_list = [x_train_time]
         X_target_list = [x_target_time]
 
-        # Optional exogenous features (aligned to y_train/target_idx)
         if X_cols:
             for col in X_cols:
                 if col not in self.data.columns:
@@ -1508,7 +1377,6 @@ class OnlineSensorBased(HydroData):
         X_train = np.concatenate(X_train_list, axis=1)
         X_target = np.concatenate(X_target_list, axis=1)
 
-        # Drop NaN rows in train (from exogenous alignment)
         mask_ok = np.isfinite(X_train).all(axis=1) & np.isfinite(y_train.to_numpy())
         X_train = X_train[mask_ok]
         y_train = y_train.iloc[mask_ok]
@@ -1519,7 +1387,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Construct kernel if not provided
         try:
             from sklearn.gaussian_process import GaussianProcessRegressor
             from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel, ExpSineSquared
@@ -1532,14 +1399,14 @@ class OnlineSensorBased(HydroData):
                 if isinstance(seasonal_period, pd.Timedelta):
                     period_sec = seasonal_period.total_seconds()
                 else:
-                    period_sec = float(seasonal_period)  # assume seconds
+                    period_sec = float(seasonal_period)  
                 if is_dt:
                     if unit in ("sec","s"):      p = period_sec
                     elif unit in ("min","m"):    p = period_sec / 60.0
                     elif unit in ("hr","h"):     p = period_sec / 3600.0
                     else:                        p = period_sec / 86400.0
                 else:
-                    p = period_sec  # numeric index: assume same units
+                    p = period_sec  
                 k_season = ExpSineSquared(length_scale=1.0, periodicity=p,
                                         periodicity_bounds=(max(1e-6, p/10), p*10))
                 k = ConstantKernel(1.0, (1e-3, 1e3)) * (k_base + k_season) + WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-6, 1e-1))
@@ -1556,7 +1423,6 @@ class OnlineSensorBased(HydroData):
             random_state=random_state,
         )
 
-        # Fit & predict
         try:
             gp.fit(X_train, y_train.to_numpy().astype(float))
         except Exception as e:
@@ -1579,7 +1445,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Write results & tag
         if to_fill not in self.filled.columns:
             self.filled[to_fill] = pd.to_numeric(self.data[to_fill], errors="coerce")
 
@@ -1673,16 +1538,14 @@ class OnlineSensorBased(HydroData):
         except TypeError:
             pass
 
-        # --- Checks ---
         for col in (to_fill, to_use):
             if col not in self.data.columns:
                 raise KeyError(f"Column '{col}' not found in data.")
 
         if clear:
             self._reset_meta_filled(to_fill)
-        self._add_to_meta(to_fill)  # seeds filled[to_fill] from originals
+        self._add_to_meta(to_fill)  
 
-        # Windows
         def _slice_index(bounds: Optional[Tuple[object, object]]) -> pd.Index:
             if bounds is None:
                 return self.data.index
@@ -1699,9 +1562,8 @@ class OnlineSensorBased(HydroData):
 
         train_idx = _slice_index(train_range if train_range is not None else arange)
         if len(train_idx) == 0:
-            train_idx = self.data.index  # fallback to all data
+            train_idx = self.data.index  
 
-        # --- Build training set for estimation (if requested) ---
         used_ratio = ratio
         used_intercept = 0.0 if zero_intercept and estimate_params else intercept
 
@@ -1710,7 +1572,6 @@ class OnlineSensorBased(HydroData):
             y_train = pd.to_numeric(self.data[to_fill].reindex(train_idx), errors="coerce")
             x_train = pd.to_numeric(self.data[to_use].reindex(train_idx), errors="coerce")
 
-            # Optionally restrict to 'original' points (recommended)
             if train_only_original:
                 tags = (
                     self.meta_valid[to_fill]
@@ -1733,11 +1594,9 @@ class OnlineSensorBased(HydroData):
                     RuntimeWarning,
                 )
             else:
-                # Robust or OLS fit
                 try:
                     if robust:
-                        # Try RANSAC; fallback to OLS if sklearn unavailable
-                        from sklearn.linear_model import RANSACRegressor, LinearRegression  # type: ignore
+                        from sklearn.linear_model import RANSACRegressor, LinearRegression  
                         base = LinearRegression(fit_intercept=not zero_intercept)
                         ransac = RANSACRegressor(base_estimator=base, random_state=0)
                         ransac.fit(x, y)
@@ -1746,7 +1605,6 @@ class OnlineSensorBased(HydroData):
                         used_ratio = float(coef)
                         used_intercept = 0.0 if zero_intercept else float(intercept_est)
                     else:
-                        # OLS via numpy
                         if zero_intercept:
                             # y = a * x (no intercept)
                             denom = float(np.dot(x.ravel(), x.ravel()))
@@ -1754,20 +1612,17 @@ class OnlineSensorBased(HydroData):
                             used_intercept = 0.0
                         else:
                             # y = a * x + b
-                            # polyfit handles numerics well; returns [a, b]
                             a, b = np.polyfit(x.ravel(), y, 1)
                             used_ratio = float(a)
                             used_intercept = float(b)
                 except Exception as e:
                     wn.warn(f"Parameter estimation failed ({e}). Falling back to provided ratio/intercept.", RuntimeWarning)
 
-        # Final sanity for params if still None
         if used_ratio is None or not np.isfinite(used_ratio):
             raise ValueError("`ratio` must be provided or successfully estimated.")
         if not np.isfinite(used_intercept):
             used_intercept = 0.0
 
-        # --- Determine fill targets in the application window ---
         if only_checked:
             # tags_valid = (
             #     self.meta_valid[to_fill]
@@ -1790,7 +1645,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return {"ratio": used_ratio, "intercept": used_intercept} if return_params else None
 
-        # Compute replacements from driver
         x_driver = pd.to_numeric(self.data[to_use].reindex(win_idx), errors="coerce")
         replacements = used_ratio * x_driver + used_intercept
 
@@ -1800,7 +1654,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return {"ratio": used_ratio, "intercept": used_intercept} if return_params else None
 
-        # --- Apply & tag ---
         if to_fill not in self.filled.columns:
             self.filled[to_fill] = pd.to_numeric(self.data[to_fill], errors="coerce")
 
@@ -1854,9 +1707,8 @@ class OnlineSensorBased(HydroData):
 
         if clear:
             self._reset_meta_filled(to_fill)
-        self._add_to_meta(to_fill)  # seeds self.filled[to_fill] with originals; filtered -> NaN
+        self._add_to_meta(to_fill)  
 
-        # Window to operate in
         if arange is None:
             win_idx = self.data.index
         else:
@@ -1869,7 +1721,6 @@ class OnlineSensorBased(HydroData):
                     self.plot_analysed(to_fill)
                 return
 
-        # Eligibility
         if only_checked:
             # tags_valid = (
             #     self.meta_valid[to_fill]
@@ -1892,9 +1743,7 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # ---- Build profile seconds from 'time_of_day' (strings like 'HH:MM:SS') ----
         prof = self.daily_profile[to_fill][["avg"]].copy()
-        # Convert index (time-of-day) to Timedelta and then to seconds (float)
         td = pd.to_timedelta(pd.Index(prof.index.astype(str)), errors="coerce")
         prof = prof.assign(secs=pd.Series(td.total_seconds(), index=prof.index))
         prof = prof.dropna(subset=["secs", "avg"]).sort_values("secs")
@@ -1911,20 +1760,15 @@ class OnlineSensorBased(HydroData):
             wn.warn("Daily profile contains no finite (secs, avg) pairs.", RuntimeWarning, stacklevel=2)
             return
 
-        # ---- Compute target seconds for eligible indices ----
         elig_idx = eligible.index[eligible]
         if isinstance(self.data.index, pd.DatetimeIndex):
-            # seconds since midnight (float, includes microseconds)
             td_since_midnight = elig_idx - elig_idx.normalize()
             tgt_secs = td_since_midnight.total_seconds().astype(float)
         else:
-            # numeric index assumed to be day + fraction
             vals = pd.Index(elig_idx).astype(float)
             frac = vals - np.floor(vals)
             tgt_secs = (frac * 86400.0).astype(float)
 
-        # ---- Interpolate profile onto target seconds ----
-        # Outside [min(prof_secs), max(prof_secs)] → NaN
         filled_vals = np.interp(
             tgt_secs,
             prof_secs,
@@ -1932,7 +1776,6 @@ class OnlineSensorBased(HydroData):
             left=np.nan,
             right=np.nan,
         )
-        # Keep only finite results
         ok = np.isfinite(filled_vals)
         if not ok.any():
             if plot:
@@ -1942,7 +1785,6 @@ class OnlineSensorBased(HydroData):
         to_write_idx = elig_idx[ok]
         to_write_vals = filled_vals[ok]
 
-        # ---- Write to filled & tag meta ----
         if to_fill not in self.filled.columns:
             self.filled[to_fill] = pd.to_numeric(self.data[to_fill], errors="coerce")
 
@@ -2052,15 +1894,12 @@ class OnlineSensorBased(HydroData):
         left_is_dt = isinstance(data_idx, pd.DatetimeIndex)
         right_is_dt = isinstance(model_series.index, pd.DatetimeIndex)
 
-        # Helper to robustly reset/restore original index without relying on a column literally named "index"
         def _with_orig_index(df: pd.DataFrame, name="_orig_index") -> pd.DataFrame:
             out = df.copy()
             out[name] = out.index
             return out.reset_index(drop=True)
 
-        # ===== Matching cases =====
         if left_is_dt and right_is_dt:
-            # Datetime ↔ Datetime
             left_df = pd.DataFrame({"ts": pd.to_datetime(left_idx)}, index=left_idx)
             left_df = _with_orig_index(left_df, name="_orig_index").sort_values("ts")
 
@@ -2077,7 +1916,6 @@ class OnlineSensorBased(HydroData):
             yhat = pd.Series(matched["yhat"].values, index=matched.index)
 
         elif (not left_is_dt) and (not right_is_dt):
-            # Numeric ↔ Numeric
             left_vals = pd.Series(left_idx, index=left_idx).astype(float)
             left_df = pd.DataFrame({"x": left_vals.values}, index=left_vals.index)
             left_df = _with_orig_index(left_df, name="_orig_index").sort_values("x")
@@ -2094,7 +1932,6 @@ class OnlineSensorBased(HydroData):
             yhat = pd.Series(matched["yhat"].values, index=matched.index)
 
         else:
-            # Cross-type
             if left_is_dt:
                 origin = pd.to_datetime(
                     min(left_idx.min(),
@@ -2134,7 +1971,6 @@ class OnlineSensorBased(HydroData):
             matched = matched.set_index("_orig_index")
             yhat = pd.Series(matched["yhat"].values, index=matched.index)
 
-        # keep only finite predictions
         yhat = pd.to_numeric(yhat, errors="coerce")
         valid_targets = yhat.index[yhat.notna()]
         if len(valid_targets) == 0:
@@ -2164,7 +2000,7 @@ class OnlineSensorBased(HydroData):
         self,
         to_fill: str,
         arange: Tuple[object, object],
-        range_to_replace: List[float] = [1.0, 4.0],  # min & max gap length in *days*
+        range_to_replace: List[float] = [1.0, 4.0],  
         *,
         only_checked: bool = True,
         plot: bool = False,
@@ -2206,10 +2042,9 @@ class OnlineSensorBased(HydroData):
         if arange is None or len(arange) != 2:
             raise ValueError("`arange` must be a (start, end) tuple; this method requires a bounded window.")
 
-        # Ensure scaffolding: meta_filled & filled
         if clear:
             self._reset_meta_filled(to_fill)
-        self._add_to_meta(to_fill)  # seeds self.filled[to_fill] with originals; filtered → NaN
+        self._add_to_meta(to_fill)  
 
         idx = self.data.index
         start, end = arange
@@ -2222,7 +2057,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # at least one day before `start`
         if isinstance(idx, pd.DatetimeIndex):
             start_ts = pd.to_datetime(start)
             if start_ts - pd.Timedelta(days=1) < idx.min():
@@ -2234,8 +2068,6 @@ class OnlineSensorBased(HydroData):
                 raise IndexError("No previous-day data available; choose a later `arange` start.")
             prev_slice = slice(start_num - 1.0, start_num)
 
-        # --- choose source series for previous-day profile ---
-        # prefer self.filled[to_fill] if it has non-NaN in the prev window; else use self.data[to_fill]
         src_filled = self.filled.get(to_fill, pd.Series(index=self.data.index, dtype=float)).loc[prev_slice]
         use_filled = src_filled.notna().any()
 
@@ -2243,11 +2075,9 @@ class OnlineSensorBased(HydroData):
             prev_series = src_filled
         else:
             src_data = pd.to_numeric(self.data[to_fill], errors="coerce").loc[prev_slice].copy()
-            # if meta_valid exists, prefer original points to build the profile
             if hasattr(self, "meta_valid") and to_fill in self.meta_valid:
                 mv_prev = self.meta_valid[to_fill].reindex(src_data.index)
                 prev_series = src_data.where(mv_prev.eq("original"))
-                # if that wiped everything, fall back to raw data
                 if prev_series.dropna().empty:
                     prev_series = src_data
             else:
@@ -2256,7 +2086,6 @@ class OnlineSensorBased(HydroData):
         if prev_series.dropna().empty:
             raise ValueError("Previous-day window has no usable samples to form a profile.")
 
-        # Normalize to per-day key & compute day_size
         if isinstance(idx, pd.DatetimeIndex):
             prev_series = prev_series.dropna()
             prev_key = prev_series.index.time
@@ -2278,7 +2107,6 @@ class OnlineSensorBased(HydroData):
         if day_size == 0:
             raise ValueError("Previous-day profile has no valid samples.")
 
-        # gap-size thresholds in points
         min_pts = int(np.floor(range_to_replace[0] * day_size))
         max_pts = int(np.floor(range_to_replace[1] * day_size))
         if max_pts < 1:
@@ -2287,7 +2115,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Eligible indices within window
         if only_checked:
             # mv = (
             #     self.meta_valid[to_fill]
@@ -2310,7 +2137,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Run-length filter for gap lengths
         labels = (
             self.meta_valid[to_fill]
             .reindex(self.data.index)
@@ -2327,7 +2153,6 @@ class OnlineSensorBased(HydroData):
                 self.plot_analysed(to_fill)
             return
 
-        # Build replacement values by aligning time-of-day / fraction-of-day to `day_before`
         if isinstance(idx, pd.DatetimeIndex):
             target_tod = pd.Index(to_replace_idx).time
             src = pd.Series(day_before["data"].values, index=day_before.index, dtype=float)
@@ -2350,7 +2175,6 @@ class OnlineSensorBased(HydroData):
         valid_idx = fill_vals.index[ok]
         valid_vals = fill_vals.values[ok]
 
-        # Write & tag
         if to_fill not in self.filled.columns:
             self.filled[to_fill] = pd.to_numeric(self.data[to_fill], errors="coerce")
 
@@ -2400,14 +2224,12 @@ class OnlineSensorBased(HydroData):
         if reset:
             self._reset_meta_valid(data_name)
 
-        # Ensure meta_valid exists and has the target column
         if not hasattr(self, "meta_valid") or not isinstance(self.meta_valid, pd.DataFrame):
             self.meta_valid = pd.DataFrame(index=self.data.index)
         self.meta_valid = self.meta_valid.reindex(self.data.index)
         if data_name not in self.meta_valid.columns:
             self.meta_valid[data_name] = "original"
 
-        # Slice window by labels safely
         try:
             window = self.data.loc[range_[0]:range_[1]]
         except Exception as e:
@@ -2419,7 +2241,6 @@ class OnlineSensorBased(HydroData):
         if window.empty:
             raise ValueError("Selected `range_` yields an empty window; adjust the bounds.")
 
-        # Convert window labels to absolute integer positions
         idx_all = self.data.index
         pos_window = idx_all.get_indexer(window.index)
         pos_window = pos_window[pos_window >= 0]
@@ -2427,19 +2248,15 @@ class OnlineSensorBased(HydroData):
         if number <= 0 or max_size <= 0 or len(pos_window) < 2:
             return pd.Index([])
 
-        # Random engine (support both RNG and RandomState)
         rng = np.random.RandomState(random_state) if random_state is not None else np.random
 
         low_val = int(pos_window.min())
         high_val = int(pos_window.max())
 
-        # Choose random start positions within window
         starts = rng.randint(low_val, high_val, size=number)
 
-        # Random lengths (>=1 and <= max_size)
         lengths = rng.randint(1, max_size + 1, size=number)
 
-        # Build absolute integer locations, clip to window
         locs_list = [np.arange(s, s + L, dtype=int) for s, L in zip(starts, lengths)]
         if not locs_list:
             return pd.Index([])
@@ -2447,7 +2264,6 @@ class OnlineSensorBased(HydroData):
         locs = np.unique(np.clip(np.concatenate(locs_list), low_val, high_val))
         gap_index = idx_all[locs]
 
-        # Mutate only the target column (like your original)
         self.data.loc[gap_index, data_name] = 0
         self.meta_valid.loc[gap_index, data_name] = "filtered"
 
@@ -2489,7 +2305,6 @@ class OnlineSensorBased(HydroData):
 
         to_fill: str = options.get("to_fill", data_name)
 
-        # Build test copies
         s, e = test_data_range
         try:
             orig = self.__class__(self.data.loc[s:e].copy(),
@@ -2508,7 +2323,6 @@ class OnlineSensorBased(HydroData):
         if orig.data.empty:
             return None
 
-        # Ensure meta frames exist & aligned
         for attr in ("meta_valid", "meta_filled"):
             frame = getattr(gaps, attr, None)
             if not isinstance(frame, pd.DataFrame):
@@ -2522,13 +2336,11 @@ class OnlineSensorBased(HydroData):
         if to_fill not in gaps.meta_filled.columns:
             gaps.meta_filled[to_fill] = gaps.meta_valid[to_fill].copy()
 
-        # Create highs info if needed by your warnings (kept for parity with original)
         try:
             gaps.get_highs(data_name, 0.9, [s, e])
         except Exception:
             pass
 
-        # Create gaps (small and/or large)
         tagged_all = pd.Index([])
         a_start, a_end = options["arange"]
         if nr_small_gaps > 0:
@@ -2547,12 +2359,10 @@ class OnlineSensorBased(HydroData):
         if tagged_all.empty:
             return None
 
-        # Build filled as a full copy of data, then plant NaNs at artificial gaps (for to_fill only)
         gaps.filled = gaps.data.apply(pd.to_numeric, errors="coerce").copy()
         gaps.filled.loc[tagged_all, to_fill] = np.nan
         gaps.meta_filled[to_fill] = gaps.meta_valid[to_fill].copy()
 
-        # Run the filler (callable or method name)
         if callable(filling_function):
             filling_function(gaps, **options)
         else:
@@ -2560,7 +2370,6 @@ class OnlineSensorBased(HydroData):
                 raise ValueError(f"Filling method '{filling_function}' not found.")
             getattr(gaps, filling_function)(**options)
 
-        # Choose indices to score
         if to_fill in gaps.meta_filled.columns:
             mf = gaps.meta_filled[to_fill].astype(str)
             filled_idx = mf.index[mf.str.startswith("filled_")]
@@ -2568,7 +2377,6 @@ class OnlineSensorBased(HydroData):
         else:
             score_idx = pd.Index([])
 
-        # Fallback: any artificial gaps that became non-NaN in the result
         if score_idx.empty:
             non_nan = gaps.filled.loc[tagged_all, to_fill].dropna().index
             score_idx = non_nan
@@ -2576,7 +2384,6 @@ class OnlineSensorBased(HydroData):
         if score_idx.empty:
             return None
 
-        # Compute percent error
         o = pd.to_numeric(orig.data.loc[score_idx, to_fill], errors="coerce").astype(float)
         p = pd.to_numeric(gaps.filled.loc[score_idx, to_fill], errors="coerce").astype(float)
         valid = (~o.replace([np.inf, -np.inf], np.nan).isna()) & (~p.replace([np.inf, -np.inf], np.nan).isna())
@@ -2647,7 +2454,6 @@ class OnlineSensorBased(HydroData):
 
             avg = float(np.mean(errors))
 
-            # ensure table exists and row exists
             if not hasattr(self, "filling_error") or not isinstance(self.filling_error, pd.DataFrame):
                 self.filling_error = pd.DataFrame(columns=["imputation error [%]"])
             if "imputation error [%]" not in self.filling_error.columns:
@@ -2659,7 +2465,6 @@ class OnlineSensorBased(HydroData):
             #     f"{avg:.2f}%. This value is saved in self.filling_error."
             # )
         finally:
-            # restore flags
             self._filling_warning_issued = prev_fill_warn
             self._rain_warning_issued = prev_rain_warn
 
@@ -2754,18 +2559,14 @@ class OnlineSensorBased(HydroData):
 
         rows: List[Dict[str, Any]] = []
 
-        # Iterate methods
         for label, spec in method_specs.items():
             if "filling_function" not in spec:
                 raise ValueError(f"method_specs['{label}'] must include 'filling_function'.")
 
             filling_function = spec["filling_function"]
 
-            # Prepare per-iteration results
             errors: List[float] = []
-            # Iterate trials
             for i in range(nr_iterations):
-                # ensure a changing seed per method/iteration (but deterministic if base provided)
                 rs = (None if random_state is None else (random_state + hash(label) + i) % (2**31 - 1))
 
                 try:
@@ -2781,8 +2582,7 @@ class OnlineSensorBased(HydroData):
                         **{k: v for k, v in spec.items() if k != "filling_function"},
                     )
                 except Exception:
-                    # If a single iteration fails hard (e.g., bad options),
-                    # treat as no result for this iteration.
+                    
                     err = None
 
                 if err is not None and np.isfinite(err):
@@ -2816,7 +2616,6 @@ class OnlineSensorBased(HydroData):
             ax.set_xticklabels(summary["method"], rotation=30, ha="right")
             ax.set_ylabel("Mean error (%)")
             ax.set_title(f"Filling method comparison for '{data_name}'")
-            # Optional error bars if std available
             if summary["std_error_pct"].notna().any():
                 ax.errorbar(
                     x,

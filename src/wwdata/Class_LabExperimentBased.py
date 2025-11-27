@@ -33,11 +33,11 @@ class ValidationMetrics:
     n: int
     mae: float
     rmse: float
-    mbe: float            # mean bias error = mean(ref - lab) or (lab - ref) per `bias_as`
+    mbe: float            
     mape: float
-    r: float              # Pearson r
+    r: float              
     r2: float
-    ccc: float            # Lin’s concordance correlation coefficient
+    ccc: float            
     slope: float
     intercept: float
 
@@ -52,8 +52,8 @@ class LabExperimentBased(HydroData):
         experiment_tag: str = "No tag given",
         time_unit: Optional[str] = None,
         units: Optional[Dict[str, str]] = None,
-        meta: Optional[pd.DataFrame] = None,       # sample-level metadata
-        id_column: Optional[str] = None,           # sample_id if present in data
+        meta: Optional[pd.DataFrame] = None,       
+        id_column: Optional[str] = None,           
     ):
         super().__init__(
             data=data,
@@ -68,7 +68,6 @@ class LabExperimentBased(HydroData):
         )
         self.id_column: Optional[str] = id_column if id_column in self.data.columns else None
 
-        # Optional QC/flags table parallel to data (e.g., 'original','qc_fail','estimated','nd')
         self.meta_qc: pd.DataFrame = pd.DataFrame(index=self.data.index)
 
 
@@ -169,10 +168,8 @@ class LabExperimentBased(HydroData):
         denom = np.maximum(np.abs(ref), zero_guard)
         mape = float(np.mean(np.abs(err) / denom) * 100.0)
 
-        # correlation & simple OLS (lab vs ref)
         r = float(np.corrcoef(ref, lab)[0,1]) if n > 1 else np.nan
         r2 = r*r if np.isfinite(r) else np.nan
-        # OLS slope/intercept (ref as x, lab as y)
         x = ref.values
         y = lab.values
         x_mean, y_mean = np.mean(x), np.mean(y)
@@ -181,7 +178,6 @@ class LabExperimentBased(HydroData):
         slope = float(sxy / sxx) if sxx > 0 else np.nan
         intercept = float(y_mean - slope*x_mean) if np.isfinite(slope) else np.nan
 
-        # Lin's CCC
         sx = np.var(x, ddof=1)
         sy = np.var(y, ddof=1)
         if n > 1 and np.isfinite(r) and sx > 0 and sy > 0:
@@ -232,7 +228,6 @@ class LabExperimentBased(HydroData):
             sxy = np.sum(x*y)
             slope = float(sxy / sxx) if sxx > 0 else np.nan
             intercept = 0.0
-            # r2
             yhat = slope * x
         else:
             x_mean, y_mean = np.mean(x), np.mean(y)
