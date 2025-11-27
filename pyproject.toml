@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wwdata"
+
+authors = [
+  { name="Chaim De Mulder", email="demulderchaim@gmail.com" },
+  { name="Saba Daneshgar", email="sabadaneshgar@gmail.com"},
+]
+dynamic = ["version"]
+description = "Data analysis package aimed at data obtained in the context of (waste)water"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 3 - Pre-Alpha",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy>=2.2.2",
+    "dateutils>=0.6.6",
+    "scipy>=1.15.1",
+    "matplotlib>=3.10.0",
+    "statsmodels>=0.14.4",
+    "xlrd>=2.0.1",
+    "scikit-learn>=1.7.1",
+    "pyyaml>=6.0.2",
+]
+
+
+license-files = ["LICENSE"]
+
+
+[project.urls]
+Homepage = "https://github.com/UGentBIOMATH/wwdata"
+Issues = "https://github.com/UGentBIOMATH/wwdata/issues"
