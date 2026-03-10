@@ -26,7 +26,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Iterable, Dict, Tuple, List, Literal, Union
 
-from .Class_HydroData import HydroData
+from .base import HydroData
 
 @dataclass
 class ValidationMetrics:

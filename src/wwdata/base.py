@@ -111,7 +111,7 @@ class HydroData:
         units: Optional[Dict[str, str]] = None,
         *,
         copy: bool = True,
-    ) -> None:
+        ) -> None:
         if isinstance(data, pd.DataFrame):
             df = data.copy() if copy else data
         else:
@@ -283,7 +283,7 @@ class HydroData:
         freq: Optional[pd.Timedelta] = None,   
         step: Optional[float] = None,          
         inclusive: Literal["left", "right", "both", "neither"] = "left",
-    ) -> None:
+        ) -> None:
         """
         Fill missing index values within [start, end] assuming equidistant sampling.
         Leaves newly created rows as NaN. 
@@ -370,7 +370,7 @@ class HydroData:
         *,
         fill_value: str = "original",
         reindex: bool = True,
-    ) -> None:
+        ) -> None:
         """
         Reset the `meta_valid` DataFrame.
 
@@ -409,7 +409,7 @@ class HydroData:
         keep: Literal["first", "last"] = "first",
         sort: bool = False,
         print_number: bool = True,
-    ) -> int:
+        ) -> int:
         """
         Drop rows with duplicate index values (keep the first or last occurrence).
 
@@ -473,7 +473,7 @@ class HydroData:
         limit: Optional[int] = None,
         regex: bool | dict[str, Any] | None = None,
         method: Optional[str] = None,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Wrapper for pandas.DataFrame.replace with metadata preservation.
 
@@ -531,7 +531,7 @@ class HydroData:
         inplace: bool = False,
         verify_integrity: bool = False,
         save_prev_index: bool = True,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Extended wrapper around pandas.DataFrame.set_index.
 
@@ -655,7 +655,7 @@ class HydroData:
         set_index: bool = True,                     
         drop: bool = True,                          
         index_name: str = "Datetime",
-    ) -> None:
+        ) -> None:
         """
         Convert time values to pandas datetime and (optionally) set as the index.
 
@@ -743,7 +743,7 @@ class HydroData:
         inplace: bool = True,
         save_abs: bool = True,
         decimals: int = 5,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Convert absolute datetime values to relative numeric time (starting at 0) in the given unit.
 
@@ -770,7 +770,8 @@ class HydroData:
         -----
         - The first timestamp is considered t=0.
         - If the time source is not datetime-like, the method attempts to convert it using
-        pandas.to_datetime (raises on failure).
+            pandas.to_datetime (raises on failure).
+
         """
         if self.data.empty:
             return None if inplace else self.__class__(
@@ -867,7 +868,7 @@ class HydroData:
         index_label: Optional[str] = None,     
         include_units: bool = False,
         default_ext: str = ".csv",             
-    ) -> Path:
+        ) -> Path:
         """
         Write a data export to disk (optionally compressed based on filename).
 
@@ -957,7 +958,7 @@ class HydroData:
         *,
         only_checked: bool = True,
         return_scalar: bool = False,
-    ) -> Union[pd.Series, float, None]:
+        ) -> Union[pd.Series, float, None]:
         """
         Compute column averages (mean) for selected or all columns.
 
@@ -1021,7 +1022,7 @@ class HydroData:
         *,
         only_checked: bool = True,
         return_scalar: bool = False,
-    ) -> Union[pd.Series, float, None]:
+        ) -> Union[pd.Series, float, None]:
         """
         Compute column standard deviations for selected or all columns.
 
@@ -1086,7 +1087,7 @@ class HydroData:
         *,
         method: Literal["value", "percentile"] = "percentile",
         plot: bool = False,
-    ) -> None:
+        ) -> None:
         """
         Tag indices where a column's values exceed a threshold (absolute or percentile).
 
@@ -1276,7 +1277,7 @@ class HydroData:
         *,
         treat_filtered_as_missing: bool = True,
         min_gap_len: int = 1,
-    ) -> pd.DataFrame:
+        ) -> pd.DataFrame:
         """
         Summarize contiguous missing segments (gaps) per column.
 
@@ -1354,7 +1355,7 @@ class HydroData:
         treat_filtered_as_missing: bool = True,
         sort_columns_by_missing: bool = True,
         figsize: tuple[float, float] = (10, 5),
-    ) -> None:
+        ) -> None:
         """
         Visualize missingness over time (rows) and columns (cols).
         Missing (NaN or filtered) = 1, present = 0.
@@ -1405,7 +1406,7 @@ class HydroData:
         log: bool = False,
         figsize: Tuple[float, float] = (10, 6),
         treat_filtered_as_missing: bool = True,
-    ) -> None:
+        ) -> None:
         """
         Plot histograms for selected numeric columns.
 
@@ -1465,7 +1466,7 @@ class HydroData:
         showfliers: bool = True,
         figsize: Tuple[float, float] = (10, 6),
         treat_filtered_as_missing: bool = True,
-    ) -> None:
+        ) -> None:
         """
         Plot boxplots for selected numeric columns.
 
@@ -1519,18 +1520,18 @@ class HydroData:
         annotate: bool = True,
         vmin: float = -1.0,
         vmax: float = 1.0,
-    ) -> pd.DataFrame:
+        ) -> pd.DataFrame:
         """
         Compute correlation matrix for selected numeric columns and optionally plot a heatmap.
 
+        
         Parameters
         ----------
         columns : str | sequence[str] | None, default None
             Which columns to compute correlations for. None = all numeric columns.
         method : {'pearson','spearman','kendall'}, default 'pearson'
         treat_filtered_as_missing : bool, default True
-            If True and `meta_valid` exists, rows where meta_valid[col] == 'filtered'
-            are treated as missing for that column.
+            If True and `meta_valid` exists, rows where meta_valid[col] == 'filtered' are treated as missing for that column.
         plot_heatmap : bool, default False
             If True, show a heatmap of the correlation matrix.
         figsize : (w, h), default (8, 6)
@@ -1539,10 +1540,12 @@ class HydroData:
         vmin, vmax : float, default -1.0, 1.0
             Color scale limits for the heatmap.
 
+            
         Returns
         -------
         pd.DataFrame
             Correlation matrix.
+            
         """
         import matplotlib.pyplot as plt
 
@@ -1642,7 +1645,7 @@ class HydroData:
         arange: Optional[Union[Sequence[object], Tuple[object, object]]] = None,
         *,
         clear: bool = False,
-    ) -> None:
+        ) -> None:
         """
         Tag NaN values in a column as 'filtered' in `self.meta_valid`.
 
@@ -1714,7 +1717,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ):
+        ) -> Optional["HydroData"]:
         """
         Tag subsequent 'double' values (near-constant segments) in a series.
 
@@ -1841,7 +1844,7 @@ class HydroData:
         method: Literal["below", "above"] = "below",
         clear: bool = False,
         plot: bool = False,
-    ) -> None:
+        ) -> None:
         """
         Tag values above or below a given limit as 'filtered' in `self.meta_valid`.
 
@@ -1938,7 +1941,7 @@ class HydroData:
         slope_range: None = None,   
         *,
         window: int = 1,            
-    ) -> pd.Series:
+        ) -> pd.Series:
         """
         Calculate point-to-point (or windowed) slopes dy/dx.
 
@@ -2007,13 +2010,14 @@ class HydroData:
         plot: bool = False,
         final: bool = False,
         max_iters: int = 20,
-    ):
+        ) -> Optional["HydroData"]:
         """
         Iteratively tag/remove points where |windowed slope| > cutoff.
 
         - Slope computed as y.diff(window) / x.diff(window)
         - If x is datetime-like, pass `time_unit`.
         - If `final=True`, filtered points become NaN (inplace or returned copy).
+
         """
         self._plot = "valid"
         if data_name not in self.data.columns:
@@ -2118,7 +2122,7 @@ class HydroData:
         ema_min_periods: Optional[int] = None,            
         inplace: bool = False,
         plot: bool = True,
-    ):
+        ) -> Optional["HydroData"]:
         """
         Smooth columns via mean/median rolling window or EMA.
 
@@ -2126,18 +2130,24 @@ class HydroData:
         ----------
         arange : (start, end) or None
         window : int
-            - mean/median: rolling window size (centered)
-            - ema: if `ema_alpha` is None, this is used as the EMA span
+            mean/median: rolling window size (centered). If `ema_alpha` is None, this is used as the EMA span
         data_name : str | sequence[str] | None
         kind : {'mean','median','ema'}
             'ema' uses pd.Series.ewm(alpha=..., adjust=..., min_periods=...)
         ema_alpha : float in (0,1], optional
-            If provided, EMA will use this alpha directly. If None, `window` is used as span.
+            if provided, EMA will use this alpha directly. If None, `window` is used as span.
         ema_adjust : bool, default True
             Pass-through to pandas ewm(..., adjust=...).
         ema_min_periods : int or None
             Pass-through to pandas ewm(..., min_periods=...).
-        inplace, plot : see previous docs
+        inplace : bool, default False
+            Only used when `final=True`. If True, overwrite this object's data, otherwise return a new HydroData with the tagged values set to NaN.
+        plot : bool, default False
+            If True, calls `self.plot_analysed(data_name)` after tagging (if available).
+
+        Returns
+        -------
+        None or a HydroData object
         """
         if window < 1:
             raise ValueError("`window` must be >= 1.")
@@ -2239,7 +2249,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ):
+        ) -> Optional["HydroData"]:
         """
         Filter outliers by comparing data to its smoother (mean/median/EMA).
 
@@ -2366,7 +2376,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Tag outliers using (robust) z-score.
 
@@ -2493,7 +2503,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Tag outliers using STL decomposition residuals:
         decompose y = trend + seasonal + resid,
@@ -2648,7 +2658,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Tag outliers outside Tukey IQR fences:
         value < Q1 - k*IQR  or  value > Q3 + k*IQR
@@ -2761,7 +2771,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Tag outliers using a rolling IQR fence:
         value < Q1(w) - k*IQR(w)  or  value > Q3(w) + k*IQR(w),
@@ -2883,7 +2893,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-    ) -> Optional["HydroData"]:
+        ) -> Optional["HydroData"]:
         """
         Hampel spike detector: tag points where
         |x - rolling_median| > k * 1.4826 * rolling_MAD
@@ -3000,7 +3010,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-        ):
+        ) -> Optional["HydroData"]:
         """
         Multivariate outlier detection using Isolation Forest.
 
@@ -3138,7 +3148,7 @@ class HydroData:
         log_file: Optional[str] = None,
         plot: bool = False,
         final: bool = False,
-        ):
+        ) -> Optional["HydroData"]:
         """
         Multivariate outlier detection via PCA reconstruction error.
 
@@ -3310,7 +3320,7 @@ class HydroData:
         arange: tuple,
         *,
         only_checked: bool = False,
-    ) -> tuple[float, float]:
+        ) -> tuple[float, float]:
         """
         Calculate the average ratio between two time series (data_1 / data_2),
         within a given range, with optional exclusion of previously filtered values.
@@ -3378,7 +3388,7 @@ class HydroData:
         *,
         only_checked: bool = False,
         verbose: bool = False,
-    ) -> Tuple[float, float]:
+        ) -> Tuple[float, float]:
         """
         Compare average ratios (data_1/data_2) over multiple non-overlapping
         windows and return the most reliable one (min relative std = std/|mean|).
@@ -3479,7 +3489,7 @@ class HydroData:
         zero_intercept: bool = False,
         only_checked: bool = False,
         plot: bool = False,
-    ) -> Union[Tuple[float, float, float], Tuple["matplotlib.figure.Figure", "matplotlib.axes.Axes"]]:
+        ) -> Union[Tuple[float, float, float], Tuple["matplotlib.figure.Figure", "matplotlib.axes.Axes"]]:
         """
         Linear relationship between two series: data_2 ~ a * data_1 (+ b).
         Returns slope (a), intercept (b), and R^2. If plot=True, returns (fig, ax).
@@ -3609,7 +3619,7 @@ class HydroData:
         plot_method: str = "quantile",  
         clear: bool = False,
         only_checked: bool = False,
-    ):
+        ) -> Union[Dict, Tuple["matplotlib.figure.Figure", "matplotlib.axes.Axes"]]:
         """
         Compute a typical daily profile (time-of-day statistics) for a series.
 
@@ -3760,7 +3770,7 @@ class HydroData:
         data_name: str,
         time_range="default",
         only_checked: bool = False,
-    ):
+        ) -> Tuple["matplotlib.figure.Figure", "matplotlib.axes.Axes"]:
         """
         Plot values & their types (original, filtered, filled) for `data_name`
         over a given range. Works for both HydroData and OnlineSensorBased.
@@ -3951,7 +3961,7 @@ def _export_params(
     dest: Optional[Union[str, Path]] = None,
     *,
     fmt: Literal["json", "yaml"] = "json",
-) -> Optional[str]:
+    ) -> Optional[str]:
     """
     Export pipeline parameters (fn + kwargs per step) to JSON/YAML.
     Returns the serialized string if dest is None, else writes file and returns dest path as str.
@@ -3987,7 +3997,7 @@ def _export_summary(
     fmt: Literal["csv", "parquet", "sqlite"] = "csv",
     sqlite_path: Optional[Union[str, Path]] = None,
     sqlite_table: str = "pipeline_summary",
-) -> Optional[str]:
+    ) -> Optional[str]:
     """
     Export the summary table to CSV/Parquet or SQLite.
     Returns the path (or 'sqlite:<db>#<table>') if written, else None.
@@ -4029,7 +4039,7 @@ def _snapshot_frame(
     path: Optional[Union[str, Path]] = None,
     sqlite_path: Optional[Union[str, Path]] = None,
     sqlite_table: Optional[str] = None,
-) -> Optional[str]:
+    ) -> Optional[str]:
     """
     Save a snapshot of the DataFrame in memory/CSV/Parquet/SQLite.
     Returns a locator string (path or sqlite:...) or None for memory.

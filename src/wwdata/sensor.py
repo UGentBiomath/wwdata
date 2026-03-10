@@ -28,7 +28,7 @@ import warnings as wn
 import random as rn
 import inspect
 
-from .Class_HydroData import HydroData
+from .base import HydroData
 from dataclasses import dataclass
 from typing import Dict, Optional, Sequence, Union, Tuple, Literal, Any, Hashable, Iterable, List, Callable
 import logging
