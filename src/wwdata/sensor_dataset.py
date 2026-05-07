@@ -22,13 +22,13 @@ from __future__ import annotations
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 import datetime as dt
 import warnings as wn
 import random as rn
 import inspect
 
-from .base import HydroData
+from .dataset import Dataset
 from dataclasses import dataclass
 from typing import Dict, Optional, Sequence, Union, Tuple, Literal, Any, Hashable, Iterable, List, Callable
 import logging
@@ -37,7 +37,7 @@ import inspect
 logger = logging.getLogger(__name__)
 
 
-class OnlineSensorBased(HydroData):
+class SensorDataset(Dataset):
     """
     Class for handling online sensor time-series related to (waste)water data.
 
@@ -570,7 +570,7 @@ class OnlineSensorBased(HydroData):
         if enable:
             wn.showwarning = types.MethodType(self._warning, self)  
         else:
-            wn.showwarning = wn._showwarning_orig if hasattr(wn, "_showwarning_orig") else warnings._showwarning  
+            wn.showwarning = wn._showwarning_orig if hasattr(wn, "_showwarning_orig") else wn._showwarning  
 
 
     def _filling_warning(self, *, use_custom_format: bool = False, stacklevel: int = 2) -> None:
@@ -2484,7 +2484,7 @@ class OnlineSensorBased(HydroData):
             }
             summary = pd.Series(row)
 
-            return summary
+        return summary
 
 
 

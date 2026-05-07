@@ -26,7 +26,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional, Iterable, Dict, Tuple, List, Literal, Union
 
-from .base import HydroData
+from .dataset import Dataset
 
 @dataclass
 class ValidationMetrics:
@@ -41,7 +41,7 @@ class ValidationMetrics:
     slope: float
     intercept: float
 
-class LabExperimentBased(HydroData):
+class LabDataset(Dataset):
 
     def __init__(
         self,

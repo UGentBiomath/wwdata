@@ -46,7 +46,7 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-class HydroData:
+class Dataset:
     """
     Class for handling (waste)water related data
 
